@@ -34,4 +34,13 @@ describe("Stepper", () => {
 
     expect(screen.queryByText("01")).not.toBeInTheDocument();
   });
+
+  it("renders every step as inert display, never a control that could jump ahead (spec 16.3)", () => {
+    const state = createDefaultState();
+    state.tasks["request-dto"].completed = true;
+    render(<Stepper tasks={state.tasks} activeTaskId="request-mapper" />);
+
+    expect(screen.queryAllByRole("button")).toHaveLength(0);
+    expect(screen.queryAllByRole("link")).toHaveLength(0);
+  });
 });

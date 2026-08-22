@@ -13,9 +13,17 @@ function Probe() {
       <span data-testid="has-active-draft">
         {String(workshop.hasActiveDraft)}
       </span>
+      <span data-testid="hints-used">
+        {workshop.activeTaskId
+          ? workshop.state.tasks[workshop.activeTaskId].hintsUsed
+          : "none"}
+      </span>
       <button onClick={() => workshop.selectLanguage("php")}>select-php</button>
       <button onClick={() => workshop.updateDraft("request-dto", "draft text")}>
         set-draft
+      </button>
+      <button onClick={() => workshop.recordHintUsed("request-dto")}>
+        use-hint
       </button>
       <button onClick={() => workshop.completeTask("request-dto")}>
         complete-request-dto
@@ -96,6 +104,40 @@ describe("WorkshopProvider", () => {
       expect(screen.getByTestId("has-active-draft")).toHaveTextContent("false"),
     );
     expect(loadState().tasks["request-dto"].draft).toBe("");
+  });
+
+  it("a fresh provider mount (simulating reload) restores language, draft, and hints used (spec 10/16.6)", async () => {
+    const user = userEvent.setup();
+    const { unmount } = render(
+      <WorkshopProvider>
+        <Probe />
+      </WorkshopProvider>,
+    );
+
+    await waitFor(() => screen.getByTestId("active-task"));
+    await user.click(screen.getByText("select-php"));
+    await user.click(screen.getByText("set-draft"));
+    await user.click(screen.getByText("use-hint"));
+    await user.click(screen.getByText("use-hint"));
+    await waitFor(() =>
+      expect(screen.getByTestId("hints-used")).toHaveTextContent("2"),
+    );
+
+    // A real reload tears down all in-memory state — a fresh provider
+    // mount reading only from localStorage is the faithful simulation.
+    unmount();
+    render(
+      <WorkshopProvider>
+        <Probe />
+      </WorkshopProvider>,
+    );
+
+    await waitFor(() =>
+      expect(screen.getByTestId("language")).toHaveTextContent("php"),
+    );
+    expect(screen.getByTestId("active-task")).toHaveTextContent("request-dto");
+    expect(screen.getByTestId("hints-used")).toHaveTextContent("2");
+    expect(loadState().tasks["request-dto"].draft).toBe("draft text");
   });
 
   it("resetWorkshop clears all state including completed tasks", async () => {

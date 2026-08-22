@@ -1,7 +1,13 @@
+import { useEffect, useRef } from "react";
 import type { ReactNode } from "react";
 import type { TaskDefinition } from "@/lib/workshop/tasks";
 import { firstSentence } from "@/lib/firstSentence";
-import { IsometricStack } from "./IsometricStack";
+import { stackLayerForTask } from "@/lib/workshop/stackLayer";
+import { prefersReducedMotion } from "@/lib/three/capabilities";
+import { DataTransitPipeline } from "./DataTransitPipeline";
+
+type GsapModule = typeof import("gsap");
+type GsapTween = ReturnType<GsapModule["default"]["fromTo"]>;
 
 type ExerciseSidebarProps = {
   task: TaskDefinition;
@@ -91,13 +97,48 @@ function InfoRow({
 }
 
 export function ExerciseSidebar({ task, nextTitle }: ExerciseSidebarProps) {
+  const infoRef = useRef<HTMLDivElement>(null);
+
+  // A small DOM transition coordinated to the task, not the other way
+  // around (spec 11: GSAP "steuert... Aufgabenübergänge" without owning
+  // the learning logic) — content is already fully correct the instant
+  // this effect runs; the tween is a purely visual layer on top. Skipped
+  // entirely under prefers-reduced-motion, and gsap itself is only
+  // fetched in that case too — like the 3D pipeline, an animation module
+  // never delays or bloats the core page for a participant who won't use it.
+  useEffect(() => {
+    const el = infoRef.current;
+    if (!el || prefersReducedMotion()) {
+      return;
+    }
+    let tween: GsapTween | undefined;
+    let cancelled = false;
+    import("gsap").then(({ default: gsap }) => {
+      if (cancelled) {
+        return;
+      }
+      tween = gsap.fromTo(
+        el,
+        { opacity: 0, y: 8 },
+        { opacity: 1, y: 0, duration: 0.4, ease: "power2.out" },
+      );
+    });
+    return () => {
+      cancelled = true;
+      tween?.kill();
+    };
+  }, [task.id]);
+
   return (
     <aside className="flex flex-col gap-8 border-l border-[var(--border)] px-8 py-8">
       <div className="-mx-4 flex justify-center">
-        <IsometricStack size={430} highlight="Request DTO" />
+        <DataTransitPipeline
+          size={430}
+          highlight={stackLayerForTask(task.id)}
+        />
       </div>
 
-      <div className="rounded-xl border border-[var(--border)]">
+      <div ref={infoRef} className="rounded-xl border border-[var(--border)]">
         <InfoRow icon="target" title={`Define the ${task.title}`}>
           {firstSentence(task.description)}
         </InfoRow>

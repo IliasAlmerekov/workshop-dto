@@ -20,6 +20,29 @@ if (typeof window !== "undefined" && !window.matchMedia) {
     }) as MediaQueryList;
 }
 
+// jsdom has no real WebGL — canRender3DPipeline()'s capability probe must
+// see this as "unsupported" (matching a real no-WebGL browser) rather than
+// tripping jsdom's noisy "not implemented" console.error on every test that
+// renders the data pipeline.
+if (typeof HTMLCanvasElement !== "undefined") {
+  const originalGetContext = HTMLCanvasElement.prototype.getContext;
+  HTMLCanvasElement.prototype.getContext = function (
+    this: HTMLCanvasElement,
+    contextId: string,
+    ...args: unknown[]
+  ) {
+    if (
+      contextId === "webgl2" ||
+      contextId === "webgl" ||
+      contextId === "experimental-webgl"
+    ) {
+      return null;
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- delegating to the real overload set
+    return (originalGetContext as any).call(this, contextId, ...args);
+  } as typeof HTMLCanvasElement.prototype.getContext;
+}
+
 // jsdom does not implement the native <dialog> modal behavior yet.
 if (
   typeof HTMLDialogElement !== "undefined" &&

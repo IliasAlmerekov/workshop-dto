@@ -85,28 +85,32 @@ Jeder Zustand unten wurde daraufhin geprüft, dass er **mindestens zwei** unabh�
 
 Diese Tabelle ist eine Regel, keine Bestandsaufnahme: Jede neue Komponente, die einen dieser Zustände einführt, muss beide Spalten erfüllen. Beispiel für eine nachträgliche Korrektur nach dieser Regel: Die Fluss-Diagramm-Boxen (`FlowDiagram.tsx`) trugen ursprünglich nur farbliche Unterscheidung zwischen „normal"/„Warnung"/„sicher" — sie tragen jetzt zusätzlich eine `⚠`- bzw. `✓`-Glyphe direkt in der Box.
 
-## 7. Reduced Motion und WebGL-Fallback (verbindlich vor Issue #12)
+## 7. Reduced Motion und WebGL-Fallback
 
-Zum jetzigen Stand enthält der Workshop **keine** Motion- oder WebGL-Inhalte — die isometrische Datenpipeline ist ein statisches SVG. Diese Regeln gelten als Vertrag für die 3D-Umsetzung in Issue #12 und danach:
+Seit Issue #12 hat die Aufgaben-Seitenleiste eine echte R3F-/Drei-Pipeline (`DataTransitPipeline.tsx` → `three/DataPipelineScene.tsx`), die den `IsometricStack`-Fallback ersetzt, wenn der Browser sie unterstützt. Die Regeln unten sind kein Vorgriff mehr, sondern beschreiben die tatsächliche Umsetzung:
 
-1. `prefers-reduced-motion: reduce` wird respektiert — jede GSAP-/R3F-Animation muss eine reduzierte oder deaktivierte Variante haben, niemals nur „etwas langsamer".
-2. Ein **vollständiger 2D-Fallback ohne WebGL** ist Pflicht, nicht optional — Geräte ohne WebGL-Unterstützung oder mit deaktiviertem WebGL müssen den kompletten Lerninhalt erreichen können. Das existierende `IsometricStack`-SVG ist der Referenzpunkt für diesen Fallback: Es transportiert dieselbe Kernaussage (vier Stationen, eine hervorgehoben) ohne jede 3D-Bibliothek.
-3. Keine Animation darf den Editor oder die Navigation blockieren — CodeMirror-Eingaben und Task-Wechsel müssen während einer laufenden Animation reaktionsfähig bleiben.
-4. Schwere Editor- und 3D-Module werden dynamisch nachgeladen (bereits gelebte Praxis: jede CodeMirror-Sprachgrammatik lädt einzeln per `import()`, siehe `loadLanguageExtension` und die vier `taskNAdapters.ts`-Loader — dasselbe Muster gilt für R3F/Drei/GSAP-Bundles).
-5. Adaptive Qualität für schwächere Geräte (z. B. reduzierte Partikelzahl, deaktiviertes Postprocessing) ist beim Bau der 3D-Szene zu berücksichtigen, nicht nachträglich.
-6. Tastaturbedienung und sichtbarer Fokus (Abschnitt 6) gelten unverändert auch neben/über einer 3D-Szene — die Szene darf niemals der einzige Weg sein, um eine Aktion auszulösen.
+1. `prefers-reduced-motion: reduce` wird respektiert — `canRender3DPipeline()` (`lib/three/capabilities.ts`) prüft das explizit und liefert in dem Fall den 2D-Fallback, nicht eine „weniger bewegte" 3D-Variante. Der zusätzliche kleine GSAP-Übergang der Seitenleisten-Infobox (`ExerciseSidebar.tsx`) prüft dieselbe Präferenz separat und unterbleibt dann ganz — inklusive des `import("gsap")`-Aufrufs selbst.
+2. Der **vollständige 2D-Fallback ohne WebGL** ist die tatsächliche erste Bildschirmausgabe für jeden Besuch: `DataTransitPipeline` rendert serverseitig und beim ersten Client-Paint immer `IsometricStack`, bevor der Client-seitige Fähigkeitscheck greift — kein Hydration-Mismatch, keine verzögerte Kerninhalts-Anzeige.
+3. Keine Animation blockiert Editor oder Navigation — verifiziert live: Task-Wechsel, Hinweise und `Insert solution` bleiben während laufender Pipeline-Übergänge uneingeschränkt bedienbar.
+4. Schwere Module laden dynamisch und ausschließlich im fähigen Zweig: `three`, `@react-three/fiber`, `@react-three/drei` und `gsap` werden nur bei bestätigter Fähigkeit per `import()` nachgeladen (verifiziert im Produktions-Build: der ~1 MB schwere 3D-Chunk taucht in `/workshop`s eagerem Skript-Manifest nicht auf, ebenso wenig `gsap`s ~70 KB).
+5. Adaptive Qualität: begrenzter `dpr` (`[1, 1.75]`), `powerPreference: "low-power"`, `frameloop="demand"` nach einer kurzen Einschwingphase (siehe Punkt 6).
+6. **Kein Dauer-Rendering im Leerlauf**: Der Canvas rendert nur bei tatsächlicher Änderung. Eine Besonderheit war hier zu lösen — siehe „Postprocessing" unten.
+
+**Postprocessing (gestrichen, mit Begründung):** `@react-three/postprocessing`s `EffectComposer` wurde eingebaut und live getestet — es lieferte in jeder getesteten Konfiguration (mit/ohne Multisampling, mit/ohne Antialiasing) einen vollständig leeren Canvas (`readPixels` bestätigte `[0,0,0,0]` an jedem Sample-Punkt; ohne `EffectComposer` rendert exakt dieselbe Szene korrekt). Da „Licht und Tiefe, sparsam eingesetzt" das eigentliche Ziel ist und keine harte Bindung an genau diese Bibliothek, wird das Ziel stattdessen über natives Three.js erreicht: `ACESFilmicToneMapping` für Licht, exponentieller `<fog>` für Tiefe. Beides ist verifiziert lauffähig. Die `postprocessing`-Pakete wurden aus `package.json` wieder entfernt, um keine ungenutzte, defekt erprobte Abhängigkeit im Baum zu lassen.
 
 ## 8. Asset-Herkunft und Lizenzregeln
 
-| Asset-Typ | Aktueller Stand | Regel für künftige Assets |
+| Asset-Typ | Stand | Regel für künftige Assets |
 |---|---|---|
 | Schriften | Geist Sans/Mono über `next/font/google`, zur Build-Zeit selbst gehostet (keine Laufzeit-Anfrage an Google, keine separate Lizenzklärung nötig — Next.js bezieht ausschließlich offen lizenzierte Google-Fonts-Dateien) | Neue Schriften müssen ebenso self-hosted via `next/font` eingebunden werden, nicht per `<link>` auf einen externen CDN |
 | Icons | Alle Icons sind handgeschriebenes Inline-SVG im jeweiligen Component-File (keine Icon-Bibliothek als Abhängigkeit) | Neue Icons folgen demselben Muster: `viewBox="0 0 24 24"`, `stroke="currentColor"`, `aria-hidden="true"` |
-| PBR-Materialien / HDRI (für Issue #12) | Noch keine vorhanden | Müssen lokal im Repository versioniert werden (`apps/web/public/...` oder ein noch anzulegendes `assets/`-Verzeichnis) — kein Laden von Drittanbieter-CDNs zur Laufzeit, da das den 2D-/Offline-Fallback und die Deploy-Reproduzierbarkeit (Spec 16.12) gefährdet. Jede Datei braucht eine dokumentierte Quelle und Lizenz (z. B. CC0/Public Domain) in einer Zeile in diesem Abschnitt, sobald sie hinzukommt. Dateigröße ist gegen die Ladezeit-Anforderung (dynamisches Nachladen, adaptive Qualität) abzuwägen. |
+| PBR-Materialien | Die Pipeline-Stationen und das Datenobjekt nutzen `meshStandardMaterial`/`meshPhysicalMaterial` (Metalness/Roughness/Clearcoat) — keine externen Textur-Dateien, nur Parameter | Neue PBR-Texturen (falls künftig gebraucht) müssen lokal im Repository versioniert werden, lizenzdokumentiert in dieser Zeile |
+| HDRI-Umgebungslicht | **Bewusst kein HDRI-Bild.** Die Umgebungsbeleuchtung ist prozedural über drei's `<Environment>` mit `<Lightformer>`-Kindern erzeugt (reine Geometrie/Licht, kein Bild-Asset, kein Download, kein Lizenzthema) | Sollte ein echtes HDRI später gewünscht sein: lokal versionieren (`apps/web/public/...`), Lizenz (z. B. CC0/Poly Haven) in dieser Zeile dokumentieren, kein Laden von Drittanbieter-CDNs zur Laufzeit |
 
 ## 9. Prüfung dieses Fundaments
 
 - Gelebt und stichprobenartig auf Konsistenz geprüft in: Landing (`/`), Story (`/story`), Demo (`/demo`), Workshop-Aufgabenansicht und Abschluss-Screen (`/workshop`).
 - Responsiv geprüft bei 1280px (Laptop) und 768px (Tablet) — siehe Abschnitt 5.
 - Zustands-Regel (Abschnitt 6) geprüft gegen alle bestehenden Status-tragenden Komponenten; eine Lücke (Fluss-Diagramm-Boxen) gefunden und behoben.
-- Dieses Dokument wird nicht rückwirkend für jede Komponente einzeln verifiziert (das leistet die visuelle/funktionale Testabdeckung der jeweiligen Issues) — es ist der Vertrag, an dem künftige Arbeit, allen voran Issue #12, gemessen wird.
+- Die 3D-Pipeline (Abschnitt 7) wurde nicht nur gebaut, sondern in einem echten Browser gegen echte Pixel verifiziert (`readPixels`) — reine Sichtprüfung hätte den leeren-Canvas-Fehler durch `EffectComposer` nicht zuverlässig von einem echten, aber unauffälligen Rendering unterschieden.
+- Ein zweiter echter Bug wurde bei der Integration gefunden und behoben: Die Seitenleiste hob in `ExerciseSidebar.tsx` immer fest „Request DTO" hervor, unabhängig von der aktiven Aufgabe — die neue `stackLayerForTask()`-Zuordnung (`lib/workshop/stackLayer.ts`) betrifft sowohl den 2D- als auch den 3D-Pfad.

@@ -5,19 +5,23 @@ import { taskDefinition } from "@/lib/workshop/tasks";
 import { TASK1_DEFINITION } from "@/lib/exercises/task1";
 import { TASK2_DEFINITION } from "@/lib/exercises/task2";
 import { TASK3_DEFINITION } from "@/lib/exercises/task3";
+import { TASK4_DEFINITION } from "@/lib/exercises/task4";
 import { loadTask1Adapter } from "@/lib/exercises/task1Adapters";
 import { loadTask2Adapter } from "@/lib/exercises/task2Adapters";
 import { loadTask3Adapter } from "@/lib/exercises/task3Adapters";
+import { loadTask4Adapter } from "@/lib/exercises/task4Adapters";
 import type { TaskDefinition } from "@/lib/exercises/types";
 import type { TaskLanguageAdapter } from "@/lib/exercises/types";
 import type { Language, TaskId } from "@/lib/workshop/types";
 import { ExerciseCard } from "./ExerciseCard";
 import { ExerciseRunner } from "./ExerciseRunner";
+import { EntityDtoComparisonPanel } from "./EntityDtoComparisonPanel";
+import type { ReactNode } from "react";
 
 /**
- * Tasks that have graduated to the real CodeMirror + Lezer-validated
- * runner (issue #4, extended in issues #5 and #6). Task 4 stays on the
- * older placeholder flow until it gets the same treatment.
+ * All four tasks have graduated to the real CodeMirror + Lezer-validated
+ * runner (issue #4, extended in issues #5, #6, and #7). `ExerciseCard`
+ * stays as a fallback for any task without an entry here.
  */
 const REAL_TASKS: Partial<
   Record<
@@ -25,6 +29,7 @@ const REAL_TASKS: Partial<
     {
       definition: TaskDefinition;
       loadAdapter: (language: Language) => Promise<TaskLanguageAdapter>;
+      successPanel?: ReactNode;
     }
   >
 > = {
@@ -39,6 +44,11 @@ const REAL_TASKS: Partial<
   "external-api": {
     definition: TASK3_DEFINITION,
     loadAdapter: loadTask3Adapter,
+  },
+  "response-dto": {
+    definition: TASK4_DEFINITION,
+    loadAdapter: loadTask4Adapter,
+    successPanel: <EntityDtoComparisonPanel />,
   },
 };
 
@@ -65,6 +75,7 @@ export function ActiveExerciseCard() {
         definition={real.definition}
         loadAdapter={real.loadAdapter}
         language={state.language}
+        successPanel={real.successPanel}
       />
     );
   }

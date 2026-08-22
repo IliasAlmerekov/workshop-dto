@@ -14,6 +14,9 @@ import { typescriptMapperAdapter } from "@/lib/exercises/adapters/typescriptMapp
 import { TASK3_DEFINITION } from "@/lib/exercises/task3";
 import { loadTask3Adapter } from "@/lib/exercises/task3Adapters";
 import { typescriptIdentityMapperAdapter } from "@/lib/exercises/adapters/typescriptIdentityMapper";
+import { TASK4_DEFINITION } from "@/lib/exercises/task4";
+import { loadTask4Adapter } from "@/lib/exercises/task4Adapters";
+import { typescriptResponseMapperAdapter } from "@/lib/exercises/adapters/typescriptResponseMapper";
 
 // CodeMirror's real editing surface is a contenteditable div, not something
 // userEvent.type can drive meaningfully in jsdom, and its restricted-editing
@@ -246,6 +249,70 @@ describe("ExerciseRunner — Task 3 (external-api)", () => {
     await user.click(screen.getByRole("button", { name: /continue/i }));
     await waitFor(() =>
       expect(loadState().tasks["external-api"].completed).toBe(true),
+    );
+  });
+});
+
+describe("ExerciseRunner — Task 4 (response-dto)", () => {
+  it("loads the response mapper exercise and reports missing-field feedback", async () => {
+    const user = userEvent.setup();
+    renderWithWorkshop(
+      <ExerciseRunner
+        taskId="response-dto"
+        definition={TASK4_DEFINITION}
+        loadAdapter={loadTask4Adapter}
+        language="typescript"
+      />,
+    );
+
+    await screen.findByRole("heading", {
+      name: "Response DTO and Entity Mapper",
+    });
+    await user.click(screen.getByRole("button", { name: /check solution/i }));
+
+    expect(
+      await screen.findByText(/userName is missing from the mapped response/i),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /continue/i })).toBeDisabled();
+  });
+
+  it("Insert solution fills the response mapper, validates, unlocks Continue, and reveals the success panel", async () => {
+    const user = userEvent.setup();
+    renderWithWorkshop(
+      <ExerciseRunner
+        taskId="response-dto"
+        definition={TASK4_DEFINITION}
+        loadAdapter={loadTask4Adapter}
+        language="typescript"
+        successPanel={<p>Live entity vs. DTO comparison</p>}
+      />,
+    );
+
+    await screen.findByRole("heading", {
+      name: "Response DTO and Entity Mapper",
+    });
+    expect(
+      screen.queryByText("Live entity vs. DTO comparison"),
+    ).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /show hint/i }));
+    await user.click(screen.getByRole("button", { name: /show hint/i }));
+    await user.click(screen.getByRole("button", { name: /show hint/i }));
+    await user.click(screen.getByRole("button", { name: /insert solution/i }));
+
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: /continue/i })).toBeEnabled(),
+    );
+    expect(loadState().tasks["response-dto"].draft).toBe(
+      typescriptResponseMapperAdapter.solutionEditable,
+    );
+    expect(
+      screen.getByText("Live entity vs. DTO comparison"),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /continue/i }));
+    await waitFor(() =>
+      expect(loadState().tasks["response-dto"].completed).toBe(true),
     );
   });
 });

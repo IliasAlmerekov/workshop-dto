@@ -22,6 +22,19 @@ import {
   clearState,
 } from "./storage";
 import { starterCode } from "./starterCode";
+import { TASK1_STARTER_CODE } from "@/lib/exercises/task1StarterCode";
+
+/**
+ * Task 1's real CodeMirror runner persists only the editable TODO region
+ * (the surrounding file is fixed, per-language boilerplate re-derived from
+ * the adapter, not something to store per participant). Every other task
+ * still uses the older placeholder flow, which persists the whole draft.
+ */
+function untouchedStarterText(taskId: TaskId, language: Language): string {
+  return taskId === "request-dto"
+    ? TASK1_STARTER_CODE[language].editable
+    : starterCode(taskId, language);
+}
 
 type WorkshopContextValue = {
   state: WorkshopState;
@@ -31,6 +44,8 @@ type WorkshopContextValue = {
   selectLanguage: (language: Language) => void;
   clearActiveDraft: () => void;
   updateDraft: (taskId: TaskId, draft: string) => void;
+  /** Records that one more progressive hint (spec 7.3) has been revealed for this task. */
+  recordHintUsed: (taskId: TaskId) => void;
   completeTask: (taskId: TaskId) => void;
   resetWorkshop: () => void;
 };
@@ -74,7 +89,9 @@ export function WorkshopProvider({ children }: { children: ReactNode }) {
       return false;
     }
     const { draft, touched } = state.tasks[activeTaskId];
-    return touched && draft !== starterCode(activeTaskId, state.language);
+    return (
+      touched && draft !== untouchedStarterText(activeTaskId, state.language)
+    );
   }, [activeTaskId, state]);
 
   const clearActiveDraft = useCallback(() => {
@@ -103,6 +120,19 @@ export function WorkshopProvider({ children }: { children: ReactNode }) {
     }));
   }, []);
 
+  const recordHintUsed = useCallback((taskId: TaskId) => {
+    setState((previous) => ({
+      ...previous,
+      tasks: {
+        ...previous.tasks,
+        [taskId]: {
+          ...previous.tasks[taskId],
+          hintsUsed: previous.tasks[taskId].hintsUsed + 1,
+        },
+      },
+    }));
+  }, []);
+
   const completeTask = useCallback((taskId: TaskId) => {
     setState((previous) => ({
       ...previous,
@@ -127,6 +157,7 @@ export function WorkshopProvider({ children }: { children: ReactNode }) {
       selectLanguage,
       clearActiveDraft,
       updateDraft,
+      recordHintUsed,
       completeTask,
       resetWorkshop,
     }),
@@ -138,6 +169,7 @@ export function WorkshopProvider({ children }: { children: ReactNode }) {
       selectLanguage,
       clearActiveDraft,
       updateDraft,
+      recordHintUsed,
       completeTask,
       resetWorkshop,
     ],

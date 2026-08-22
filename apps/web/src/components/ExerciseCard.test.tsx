@@ -10,10 +10,15 @@ import {
 } from "@/lib/workshop/storage";
 import { starterCode } from "@/lib/workshop/starterCode";
 
+// Task 1 (request-dto) now runs on the real CodeMirror-based Task1Runner
+// (see Task1Runner.test.tsx) — these tests cover the older placeholder flow
+// that tasks 2-4 still use, so they seed request-dto as already complete to
+// land on request-mapper instead.
 beforeEach(() => {
   window.localStorage.clear();
   const seeded = createDefaultState();
   seeded.language = "typescript";
+  seeded.tasks["request-dto"].completed = true;
   saveState(seeded);
 });
 
@@ -22,9 +27,9 @@ describe("ExerciseCard (via ActiveExerciseCard)", () => {
     renderWithWorkshop(<ActiveExerciseCard />);
 
     const editor = await screen.findByLabelText(/your solution/i);
-    expect(editor).toHaveValue(starterCode("request-dto", "typescript"));
+    expect(editor).toHaveValue(starterCode("request-mapper", "typescript"));
     // Showing starter code must not mark the task as touched.
-    expect(loadState().tasks["request-dto"].touched).toBe(false);
+    expect(loadState().tasks["request-mapper"].touched).toBe(false);
   });
 
   it("persists draft edits for the active task", async () => {
@@ -36,9 +41,9 @@ describe("ExerciseCard (via ActiveExerciseCard)", () => {
     await user.type(editor, "my own solution");
 
     await waitFor(() =>
-      expect(loadState().tasks["request-dto"].draft).toBe("my own solution"),
+      expect(loadState().tasks["request-mapper"].draft).toBe("my own solution"),
     );
-    expect(loadState().tasks["request-dto"].touched).toBe(true);
+    expect(loadState().tasks["request-mapper"].touched).toBe(true);
   });
 
   it("keeps a deliberately emptied editor empty", async () => {
@@ -49,7 +54,7 @@ describe("ExerciseCard (via ActiveExerciseCard)", () => {
     await user.clear(editor);
 
     await waitFor(() => expect(editor).toHaveValue(""));
-    expect(loadState().tasks["request-dto"].touched).toBe(true);
+    expect(loadState().tasks["request-mapper"].touched).toBe(true);
   });
 
   it("keeps Continue disabled until Check solution is clicked", async () => {
@@ -81,9 +86,9 @@ describe("ExerciseCard (via ActiveExerciseCard)", () => {
     await user.click(screen.getByRole("button", { name: /continue/i }));
 
     await waitFor(() =>
-      expect(loadState().tasks["request-dto"].completed).toBe(true),
+      expect(loadState().tasks["request-mapper"].completed).toBe(true),
     );
-    await screen.findByLabelText(/your solution for request mapper/i);
+    await screen.findByLabelText(/your solution for external api/i);
   });
 
   it("shows a placeholder hint note when Show hint is clicked", async () => {

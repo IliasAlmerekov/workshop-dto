@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import type { ReactNode } from "react";
 import { useWorkshop } from "@/lib/workshop/WorkshopContext";
 import type { TaskDefinition } from "@/lib/exercises/types";
 import type {
@@ -17,6 +18,8 @@ type ExerciseRunnerProps = {
   definition: TaskDefinition;
   loadAdapter: (language: Language) => Promise<TaskLanguageAdapter>;
   language: Language;
+  /** Extra content shown once the check passes — e.g. Task 4's live Entity-vs-DTO comparison (spec 6.4). */
+  successPanel?: ReactNode;
 };
 
 function ClipboardIcon() {
@@ -80,6 +83,7 @@ export function ExerciseRunner({
   definition,
   loadAdapter,
   language,
+  successPanel,
 }: ExerciseRunnerProps) {
   const { state, updateDraft, recordHintUsed, completeTask } = useWorkshop();
   const progress = state.tasks[taskId];
@@ -317,6 +321,8 @@ export function ExerciseRunner({
           {definition.explanation}
         </p>
       )}
+
+      {checkResult?.passed && successPanel}
     </section>
   );
 }

@@ -11,6 +11,13 @@ const BOX_TONE: Record<NonNullable<FlowStep["tone"]>, string> = {
   safe: "border-[var(--accent)]/40 bg-[var(--accent-soft)] text-[var(--accent)]",
 };
 
+// A step's tone is never carried by color alone (DESIGN.md's state rule):
+// each non-default tone gets its own glyph prefix too.
+const BOX_GLYPH: Partial<Record<NonNullable<FlowStep["tone"]>, string>> = {
+  warning: "⚠ ",
+  safe: "✓ ",
+};
+
 function ArrowIcon() {
   return (
     <svg
@@ -68,6 +75,9 @@ export function FlowDiagram({
             <span
               className={`rounded-lg border px-3 py-2 text-sm font-medium whitespace-nowrap ${BOX_TONE[step.tone ?? "default"]}`}
             >
+              {step.tone && BOX_GLYPH[step.tone] && (
+                <span aria-hidden="true">{BOX_GLYPH[step.tone]}</span>
+              )}
               {step.label}
             </span>
             {index < steps.length - 1 && <ArrowIcon />}

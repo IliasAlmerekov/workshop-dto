@@ -67,8 +67,14 @@ export default function Home() {
           </div>
 
           <Link
-            href="/demo"
+            href="/story"
             className="mt-4 text-sm text-[var(--accent)] hover:underline"
+          >
+            Why DTOs and Mappers exist →
+          </Link>
+          <Link
+            href="/demo"
+            className="mt-2 text-sm text-[var(--accent)] hover:underline"
           >
             See a real entity leak vs. safe DTO response →
           </Link>

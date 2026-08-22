@@ -1,6 +1,17 @@
 import "@testing-library/jest-dom/vitest";
-import { afterEach } from "vitest";
+import { afterEach, expect } from "vitest";
 import { cleanup } from "@testing-library/react";
+import { toHaveNoViolations } from "jest-axe";
+
+// jest-axe ships this matcher typed for Jest's own MatcherState, not
+// vitest's — the runtime shape (a function returning {pass, message}) is
+// identical, so this cast is a type-only bridge, not a behavior change.
+expect.extend(
+  toHaveNoViolations as unknown as Record<
+    string,
+    (received: unknown) => { pass: boolean; message: () => string }
+  >,
+);
 
 afterEach(() => {
   cleanup();

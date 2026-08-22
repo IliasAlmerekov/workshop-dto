@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { screen, waitFor } from "@testing-library/react";
+import { axe } from "jest-axe";
 import WorkshopPage from "./page";
 import { renderWithWorkshop } from "@/test-utils/renderWithWorkshop";
 import { saveState, createDefaultState } from "@/lib/workshop/storage";
@@ -42,5 +43,17 @@ describe("Workshop page", () => {
       screen.getByRole("button", { name: /reset workshop/i }),
     ).toBeInTheDocument();
     expect(replace).not.toHaveBeenCalled();
+  });
+
+  it("has no automatically detectable accessibility violations (spec 16, issue #13)", async () => {
+    const seeded = createDefaultState();
+    seeded.language = "php";
+    saveState(seeded);
+
+    const { container } = renderWithWorkshop(<WorkshopPage />);
+    await screen.findByRole("heading", { name: "Typed Request DTO" });
+
+    const results = await axe(container);
+    expect(results).toHaveNoViolations();
   });
 });

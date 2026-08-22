@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { axe } from "jest-axe";
 import { ExerciseRunner } from "./ExerciseRunner";
 import { renderWithWorkshop } from "@/test-utils/renderWithWorkshop";
 import { WorkshopProvider } from "@/lib/workshop/WorkshopContext";
@@ -146,6 +147,22 @@ describe("ExerciseRunner — Task 1 (request-dto)", () => {
       ).toBeGreaterThan(0),
     );
     expect(screen.queryAllByText("CreateUserRequest.ts")).toHaveLength(0);
+  });
+
+  it("has no automatically detectable accessibility violations (spec 16, issue #13)", async () => {
+    const { container } = renderWithWorkshop(
+      <ExerciseRunner
+        taskId="request-dto"
+        definition={TASK1_DEFINITION}
+        loadAdapter={loadTask1Adapter}
+        language="typescript"
+      />,
+    );
+
+    await screen.findByRole("heading", { name: "Typed Request DTO" });
+
+    const results = await axe(container);
+    expect(results).toHaveNoViolations();
   });
 });
 

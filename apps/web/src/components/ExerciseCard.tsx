@@ -160,7 +160,7 @@ export function ExerciseCard({ task, progress, language }: ExerciseCardProps) {
           type="button"
           disabled={!checked}
           onClick={() => completeTask(task.id)}
-          className="ml-auto flex items-center gap-2 rounded-lg bg-[var(--accent)] px-5 py-3 text-sm font-semibold text-[var(--accent-foreground)] disabled:cursor-not-allowed disabled:bg-[var(--border)] disabled:text-[var(--muted)]"
+          className="ml-auto flex items-center gap-2 rounded-lg bg-[var(--accent-solid)] px-5 py-3 text-sm font-semibold text-[var(--accent-foreground)] disabled:cursor-not-allowed disabled:bg-[var(--border)] disabled:text-[var(--muted)]"
         >
           Continue
           <span aria-hidden="true">→</span>

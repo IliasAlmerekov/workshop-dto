@@ -81,7 +81,7 @@ export function Stepper({ tasks, activeTaskId }: StepperProps) {
               <span
                 className={`flex h-9 w-9 items-center justify-center rounded-full text-xs font-semibold ${
                   isActive
-                    ? "bg-[var(--accent)] text-[var(--accent-foreground)]"
+                    ? "bg-[var(--accent-solid)] text-[var(--accent-foreground)]"
                     : progress.completed
                       ? "bg-[var(--accent-soft)] text-[var(--accent)]"
                       : "border border-[var(--border)] text-[var(--muted)]"
@@ -103,7 +103,11 @@ export function Stepper({ tasks, activeTaskId }: StepperProps) {
                 {task.shortTitle}
               </span>
               {isLocked && (
-                <span className="text-[var(--muted)]" aria-label="locked">
+                <span
+                  className="text-[var(--muted)]"
+                  role="img"
+                  aria-label="locked"
+                >
                   <LockIcon />
                 </span>
               )}

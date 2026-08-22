@@ -243,7 +243,7 @@ export default function StoryPage() {
       <div className="flex flex-wrap gap-3 border-t border-[var(--border)] pt-8">
         <Link
           href="/"
-          className="rounded-lg bg-[var(--accent)] px-5 py-3 text-sm font-semibold text-[var(--accent-foreground)]"
+          className="rounded-lg bg-[var(--accent-solid)] px-5 py-3 text-sm font-semibold text-[var(--accent-foreground)]"
         >
           Start the exercises
         </Link>

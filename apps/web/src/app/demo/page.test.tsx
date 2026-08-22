@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { axe } from "jest-axe";
 import DemoPage from "./page";
 
 vi.mock("@/lib/config", () => ({ API_BASE_URL: "http://localhost:8000" }));
@@ -109,4 +110,14 @@ describe("Demo page", () => {
   // userEvent + fake timers is a known-fragile combination in jsdom and
   // would only duplicate that coverage, so this file sticks to the
   // page-level wiring (leak flagging, "waking" state) instead.
+
+  it("has no automatically detectable accessibility violations (spec 16, issue #13)", async () => {
+    const { container } = render(<DemoPage />);
+    await waitFor(() =>
+      expect(screen.getByText(/"passwordHash"/)).toBeInTheDocument(),
+    );
+
+    const results = await axe(container);
+    expect(results).toHaveNoViolations();
+  });
 });

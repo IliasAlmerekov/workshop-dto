@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { axe } from "jest-axe";
 import Home from "./page";
 import { renderWithWorkshop } from "@/test-utils/renderWithWorkshop";
 import { loadState } from "@/lib/workshop/storage";
@@ -57,5 +58,13 @@ describe("Landing page", () => {
 
     await user.click(screen.getByRole("radio", { name: "Python" }));
     await waitFor(() => expect(loadState().language).toBe("python"));
+  });
+
+  it("has no automatically detectable accessibility violations (spec 16, issue #13)", async () => {
+    const { container } = renderWithWorkshop(<Home />);
+    await screen.findByRole("button", { name: /start without login/i });
+
+    const results = await axe(container);
+    expect(results).toHaveNoViolations();
   });
 });

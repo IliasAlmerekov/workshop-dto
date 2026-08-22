@@ -63,7 +63,7 @@ export function ConfirmDialog({
           </button>
           <button
             type="button"
-            className="rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-medium text-[var(--accent-foreground)]"
+            className="rounded-md bg-[var(--accent-solid)] px-4 py-2 text-sm font-medium text-[var(--accent-foreground)]"
             onClick={onConfirm}
           >
             {confirmLabel}

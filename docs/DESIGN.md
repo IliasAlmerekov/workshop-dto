@@ -39,17 +39,22 @@ Alle Farben sind CSS-Custom-Properties in `apps/web/src/app/globals.css`, hell *
 | `--background` | `#f4f4f5` | `#09090b` | Seitenhintergrund |
 | `--surface` / `--surface-raised` | `#ffffff` | `#131316` / `#18181b` | Karten, Panels |
 | `--foreground` | `#09090b` | `#fafafa` | Primärtext |
-| `--muted` | `#71717a` | `#a1a1aa` | Sekundärtext, Beschreibungen |
+| `--muted` | `#6b6b76` | `#a1a1aa` | Sekundärtext, Beschreibungen |
 | `--border` | `#e4e4e7` | `#27272a` | Kartenrahmen, Trenner |
-| `--accent` | `#2563eb` | `#3b82f6` | Primäraktion, aktiver Zustand, Fokus |
+| `--accent` | `#2563eb` | `#3b82f6` | Text/Rahmen auf `--background`/`--surface`, Fokusring |
+| `--accent-solid` | `#2563eb` | `#2f6fe0` | Hintergrund gefüllter Buttons (mit `--accent-foreground`-Text) |
 | `--accent-soft` | `#eff4ff` | `rgba(59,130,246,.14)` | Hintergrund für „sicher"/aktiv/erfolgreich |
-| `--accent-foreground` | `#ffffff` | `#ffffff` | Text auf Akzentflächen |
+| `--accent-foreground` | `#ffffff` | `#ffffff` | Text auf `--accent-solid`-Flächen |
 | `--glass-from/to/edge`, `--glow` | s. Datei | s. Datei | Isometrische/3D-Flächen |
 | `--code-bg` | `#ffffff` | `#131316` | Editor-Hintergrund |
 | `--shadow-sm/--shadow/--shadow-lg` | s. Datei | s. Datei | Erhabene Flächen, gestaffelt nach Wichtigkeit |
 | `--syntax-*` | s. Datei | s. Datei | Manuelle Syntax-Highlighting-Farben (Platzhalter-Editor) |
 
 Zusätzlich, **nicht** als eigenes Token, sondern bewusst über Tailwinds `amber-500`-Skala: Warn-/Fehlerfarbe (siehe Abschnitt 6). Der Theme-Wechsel wird per `data-theme`-Attribut auf `<html>` gesteuert und vor dem ersten Render per Inline-Skript gesetzt (`THEME_INIT_SCRIPT`), um einen Flackerübergang zu vermeiden.
+
+**Kontrast-Korrekturen (issue #13):** Zwei Token-Werte wurden gegenüber der ursprünglichen Fassung angepasst, nachdem eine WCAG-AA-Prüfung (4.5:1 für normalen Text) reale Verstöße fand:
+- `--muted` (hell): `#71717a` auf `--background` erreichte nur 4.40:1. Auf `#6b6b76` abgedunkelt → 4.79:1 auf `--background`, 5.26:1 auf `--surface`.
+- `--accent-solid` (neu, dunkel `#2f6fe0`): Weißer Button-Text auf dem alten `--accent` (`#3b82f6`) erreichte im Dark Mode nur 3.68:1. `--accent` selbst blieb unverändert (als Text-/Rahmenfarbe auf `--background` bereits 5.41:1) — gefüllte Buttons verwenden seitdem `--accent-solid` statt `--accent` als Hintergrund.
 
 ## 4. Abstände und Radien
 

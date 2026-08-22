@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, screen, waitFor } from "@testing-library/react";
+import { axe } from "jest-axe";
 import { CompletionScreen } from "./CompletionScreen";
 import { renderWithWorkshop } from "@/test-utils/renderWithWorkshop";
 
@@ -113,5 +114,15 @@ describe("CompletionScreen", () => {
       "href",
       "https://github.com/IliasAlmerekov/workshop-dto/blob/main/apps/api/src/Mapper/UserResponseMapper.php",
     );
+  });
+
+  it("has no automatically detectable accessibility violations (spec 16, issue #13)", async () => {
+    const { container } = renderWithWorkshop(<CompletionScreen />);
+    await waitFor(() =>
+      expect(screen.getByText(/"passwordHash"/)).toBeInTheDocument(),
+    );
+
+    const results = await axe(container);
+    expect(results).toHaveNoViolations();
   });
 });

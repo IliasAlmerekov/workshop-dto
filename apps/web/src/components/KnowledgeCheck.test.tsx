@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { axe } from "jest-axe";
 import { KnowledgeCheck } from "./KnowledgeCheck";
 import { renderWithWorkshop } from "@/test-utils/renderWithWorkshop";
 import { loadState } from "@/lib/workshop/storage";
@@ -80,5 +81,15 @@ describe("KnowledgeCheck", () => {
       }),
     );
     expect(loadState().quizCompleted).toBe(true);
+  });
+
+  it("has no automatically detectable accessibility violations (spec 16, issue #13)", async () => {
+    const { container } = renderWithWorkshop(<KnowledgeCheck />);
+    await screen.findByRole("button", {
+      name: /couples the public API contract to internal fields/i,
+    });
+
+    const results = await axe(container);
+    expect(results).toHaveNoViolations();
   });
 });

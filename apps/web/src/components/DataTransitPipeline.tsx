@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import type { ComponentType } from "react";
+import { Component, useEffect, useState } from "react";
+import type { ComponentType, ErrorInfo, ReactNode } from "react";
 import { IsometricStack, type StackLayer } from "./IsometricStack";
 import { canRender3DPipeline } from "@/lib/three/capabilities";
 
@@ -12,6 +12,42 @@ type DataTransitPipelineProps = {
 };
 
 type SceneComponent = ComponentType<{ activeLayer: StackLayer; size: number }>;
+
+type SceneErrorBoundaryProps = { fallback: ReactNode; children: ReactNode };
+type SceneErrorBoundaryState = { failed: boolean };
+
+/**
+ * `supportsWebGL()`'s cheap detection canvas can succeed while the real
+ * `@react-three/fiber` canvas still fails to create its WebGL context (GPU
+ * resource exhaustion, a context-attribute combination the driver rejects,
+ * context loss) — verified live: forcing `getContext` to fail after the
+ * capability check passes throws "THREE.WebGLRenderer: Error creating WebGL
+ * context" with no existing safety net (issue #13). This boundary is that
+ * net, so a mid-session failure degrades to the 2D fallback instead of
+ * taking down the pipeline (or the page).
+ */
+class SceneErrorBoundary extends Component<
+  SceneErrorBoundaryProps,
+  SceneErrorBoundaryState
+> {
+  state: SceneErrorBoundaryState = { failed: false };
+
+  static getDerivedStateFromError(): SceneErrorBoundaryState {
+    return { failed: true };
+  }
+
+  componentDidCatch(error: unknown, info: ErrorInfo) {
+    console.error(
+      "Data Transit Lab 3D scene failed, falling back to 2D:",
+      error,
+      info,
+    );
+  }
+
+  render() {
+    return this.state.failed ? this.props.fallback : this.props.children;
+  }
+}
 
 /**
  * The "Data Transit Lab" pipeline (spec section 11). Renders the R3F/Drei
@@ -49,11 +85,17 @@ export function DataTransitPipeline({
     };
   }, []);
 
+  const fallback = (
+    <IsometricStack size={size} highlight={highlight} className={className} />
+  );
+
   if (!Scene) {
-    return (
-      <IsometricStack size={size} highlight={highlight} className={className} />
-    );
+    return fallback;
   }
 
-  return <Scene activeLayer={highlight} size={size} />;
+  return (
+    <SceneErrorBoundary fallback={fallback}>
+      <Scene activeLayer={highlight} size={size} />
+    </SceneErrorBoundary>
+  );
 }

@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import { DataTransitPipeline } from "./DataTransitPipeline";
 
@@ -7,13 +7,21 @@ vi.mock("@/lib/three/capabilities", () => ({
   canRender3DPipeline: () => canRender3DPipeline(),
 }));
 
+let sceneShouldThrow = false;
 vi.mock("./three/DataPipelineScene", () => ({
-  DataPipelineScene: ({ activeLayer }: { activeLayer: string }) => (
-    <div data-testid="3d-scene">3D scene: {activeLayer}</div>
-  ),
+  DataPipelineScene: ({ activeLayer }: { activeLayer: string }) => {
+    if (sceneShouldThrow) {
+      throw new Error("THREE.WebGLRenderer: Error creating WebGL context.");
+    }
+    return <div data-testid="3d-scene">3D scene: {activeLayer}</div>;
+  },
 }));
 
 describe("DataTransitPipeline", () => {
+  afterEach(() => {
+    sceneShouldThrow = false;
+  });
+
   it("renders the static 2D fallback first, even when 3D is capable (avoids a hydration mismatch)", () => {
     canRender3DPipeline.mockReturnValue(true);
     render(<DataTransitPipeline highlight="Mapper" />);
@@ -47,5 +55,22 @@ describe("DataTransitPipeline", () => {
     expect(
       screen.getByRole("img", { name: /data pipeline/i }),
     ).toBeInTheDocument();
+  });
+
+  it("falls back to the 2D pipeline if the 3D scene throws while mounting (issue #13, e.g. real WebGL context creation failing after the cheap capability probe passed)", async () => {
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+    canRender3DPipeline.mockReturnValue(true);
+    sceneShouldThrow = true;
+    render(<DataTransitPipeline highlight="Entity" />);
+
+    await waitFor(() =>
+      expect(
+        screen.getByRole("img", { name: /data pipeline/i }),
+      ).toBeInTheDocument(),
+    );
+    expect(screen.queryByTestId("3d-scene")).not.toBeInTheDocument();
+    consoleError.mockRestore();
   });
 });

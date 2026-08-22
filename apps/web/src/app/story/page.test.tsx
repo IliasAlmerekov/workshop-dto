@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { axe } from "jest-axe";
 import StoryPage from "./page";
 
 vi.mock("@/lib/config", () => ({ API_BASE_URL: "http://localhost:8000" }));
@@ -143,5 +144,15 @@ describe("Story page", () => {
         name: /open the entity vs\. dto comparison/i,
       }),
     ).toHaveAttribute("href", "/demo");
+  });
+
+  it("has no automatically detectable accessibility violations (spec 16, issue #13)", async () => {
+    const { container } = render(<StoryPage />);
+    await waitFor(() =>
+      expect(screen.getByText(/"passwordHash"/)).toBeInTheDocument(),
+    );
+
+    const results = await axe(container);
+    expect(results).toHaveNoViolations();
   });
 });

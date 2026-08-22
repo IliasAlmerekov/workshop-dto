@@ -59,7 +59,7 @@ export default function Home() {
               type="button"
               disabled={!hydrated || !state.language}
               onClick={() => router.push("/workshop")}
-              className="rounded-lg bg-[var(--accent)] px-7 py-3.5 text-sm font-semibold text-[var(--accent-foreground)] shadow-[var(--shadow)] disabled:cursor-not-allowed disabled:bg-[var(--border)] disabled:text-[var(--muted)] disabled:shadow-none"
+              className="rounded-lg bg-[var(--accent-solid)] px-7 py-3.5 text-sm font-semibold text-[var(--accent-foreground)] shadow-[var(--shadow)] disabled:cursor-not-allowed disabled:bg-[var(--border)] disabled:text-[var(--muted)] disabled:shadow-none"
             >
               Start without login
             </button>

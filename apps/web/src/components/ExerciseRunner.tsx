@@ -118,7 +118,9 @@ export function ExerciseRunner({
   if (!adapter) {
     return (
       <section className="flex flex-col gap-6 px-8 py-8">
-        <p className="text-sm text-[var(--muted)]">Loading exercise…</p>
+        <p role="status" className="text-sm text-[var(--muted)]">
+          Loading exercise…
+        </p>
       </section>
     );
   }
@@ -269,7 +271,7 @@ export function ExerciseRunner({
           type="button"
           disabled={!checkResult?.passed}
           onClick={() => completeTask(taskId)}
-          className="ml-auto flex items-center gap-2 rounded-lg bg-[var(--accent)] px-5 py-3 text-sm font-semibold text-[var(--accent-foreground)] disabled:cursor-not-allowed disabled:bg-[var(--border)] disabled:text-[var(--muted)]"
+          className="ml-auto flex items-center gap-2 rounded-lg bg-[var(--accent-solid)] px-5 py-3 text-sm font-semibold text-[var(--accent-foreground)] disabled:cursor-not-allowed disabled:bg-[var(--border)] disabled:text-[var(--muted)]"
         >
           Continue
           <span aria-hidden="true">→</span>

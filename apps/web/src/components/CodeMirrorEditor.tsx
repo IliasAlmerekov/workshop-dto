@@ -74,6 +74,7 @@ export function CodeMirrorEditor({
           languageExtension,
           workshopEditorTheme,
           EditorView.lineWrapping,
+          EditorView.contentAttributes.of({ "aria-label": label }),
           restrictedEditing(
             { from: before.length, to: before.length + editable.length },
             (text) => onEditableChangeRef.current(text),
@@ -109,7 +110,9 @@ export function CodeMirrorEditor({
       </div>
       <div aria-label={label} role="group" ref={hostRef} className="text-sm" />
       {!ready && (
-        <p className="p-4 text-sm text-[var(--muted)]">Loading editor…</p>
+        <p role="status" className="p-4 text-sm text-[var(--muted)]">
+          Loading editor…
+        </p>
       )}
     </div>
   );

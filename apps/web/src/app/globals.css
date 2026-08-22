@@ -5,9 +5,12 @@
   --surface: #ffffff;
   --surface-raised: #ffffff;
   --foreground: #09090b;
-  --muted: #71717a;
+  /* #71717a on --background is 4.40:1, just under WCAG AA's 4.5:1 for
+     normal text (issue #13). Darkened slightly to clear it with margin. */
+  --muted: #6b6b76;
   --border: #e4e4e7;
   --accent: #2563eb;
+  --accent-solid: #2563eb;
   --accent-soft: #eff4ff;
   --accent-foreground: #ffffff;
   --glass-from: rgba(255, 255, 255, 0.95);
@@ -34,6 +37,10 @@
   --muted: #a1a1aa;
   --border: #27272a;
   --accent: #3b82f6;
+  /* Darker than --accent: white button text on #3b82f6 is only 3.68:1
+     (fails WCAG AA 4.5:1), but --accent itself is tuned for text-on-background
+     legibility, so filled buttons use this separate, darker token instead. */
+  --accent-solid: #2f6fe0;
   --accent-soft: rgba(59, 130, 246, 0.14);
   --accent-foreground: #ffffff;
   --glass-from: rgba(63, 63, 70, 0.55);

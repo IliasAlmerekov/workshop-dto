@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { LanguagePicker } from "@/components/LanguagePicker";
 import { HealthStatus } from "@/components/HealthStatus";
 import { IsometricStack } from "@/components/IsometricStack";
@@ -64,6 +65,13 @@ export default function Home() {
             </button>
             <HealthStatus />
           </div>
+
+          <Link
+            href="/demo"
+            className="mt-4 text-sm text-[var(--accent)] hover:underline"
+          >
+            See a real entity leak vs. safe DTO response →
+          </Link>
         </div>
 
         <div className="hidden justify-self-center lg:block">

@@ -13,8 +13,12 @@ export function ActiveExerciseCard() {
   }
 
   return (
+    // Keying on language too, not just the task id: a language switch keeps
+    // the same task active but must reset the "Check solution" state, since
+    // a check performed against the old track's code must not carry over to
+    // stale-looking Continue permission for the new track's starter code.
     <ExerciseCard
-      key={activeTaskId}
+      key={`${activeTaskId}:${state.language}`}
       task={taskDefinition(activeTaskId)}
       progress={state.tasks[activeTaskId]}
       language={state.language}

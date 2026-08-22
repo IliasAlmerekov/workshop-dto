@@ -176,4 +176,31 @@ describe("LanguageSwitcher", () => {
     expect(loadState().tasks["request-dto"].completed).toBe(true);
     expect(loadState().tasks["request-mapper"].draft).toBe("");
   });
+
+  it("re-locks Continue after a language switch, even without touching the new editor", async () => {
+    seedLanguage("typescript");
+    const user = userEvent.setup();
+    renderWithWorkshop(
+      <>
+        <LanguageSwitcher />
+        <ActiveExerciseCard />
+      </>,
+    );
+
+    await user.click(screen.getByRole("button", { name: /check solution/i }));
+    expect(screen.getByRole("button", { name: /continue/i })).toBeEnabled();
+
+    // Untouched starter code, so this switch needs no confirmation dialog.
+    await user.selectOptions(
+      screen.getByLabelText("Programming language"),
+      "java",
+    );
+
+    await waitFor(() =>
+      expect(screen.getByLabelText(/your solution/i)).toHaveValue(
+        starterCode("request-dto", "java"),
+      ),
+    );
+    expect(screen.getByRole("button", { name: /continue/i })).toBeDisabled();
+  });
 });

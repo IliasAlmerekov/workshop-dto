@@ -54,6 +54,44 @@ describe("workshop storage", () => {
     expect(loadState()).toEqual(createDefaultState());
   });
 
+  it("resets to defaults instead of crashing when a task is missing", () => {
+    window.localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        version: SCHEMA_VERSION,
+        language: null,
+        tasks: {},
+        quizCompleted: false,
+      }),
+    );
+
+    expect(loadState()).toEqual(createDefaultState());
+  });
+
+  it("resets to defaults when the stored language is not a supported track", () => {
+    const seeded = createDefaultState();
+    window.localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ ...seeded, language: "ruby" }),
+    );
+
+    expect(loadState().language).toBeNull();
+  });
+
+  it("resets to defaults when a task's fields have the wrong types", () => {
+    const seeded = createDefaultState();
+    seeded.tasks["request-dto"] = {
+      // @ts-expect-error -- deliberately malformed to test the runtime guard
+      completed: "yes",
+      draft: "",
+      touched: false,
+      hintsUsed: 0,
+    };
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(seeded));
+
+    expect(loadState()).toEqual(createDefaultState());
+  });
+
   it("clearState removes the persisted entry", () => {
     saveState(createDefaultState());
     clearState();

@@ -87,7 +87,7 @@ export function CodeEditor({
             autoCorrect="off"
             autoCapitalize="off"
             rows={lineCount}
-            className="code-layer relative w-full resize-none bg-transparent text-transparent caret-[var(--accent)] focus:outline-none"
+            className="code-layer relative w-full resize-none overflow-x-auto bg-transparent text-transparent caret-[var(--accent)] focus:outline-none"
           />
         </div>
       </div>

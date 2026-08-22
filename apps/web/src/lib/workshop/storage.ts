@@ -1,4 +1,9 @@
-import { TASK_IDS, type WorkshopState } from "./types";
+import {
+  LANGUAGES,
+  TASK_IDS,
+  type TaskProgress,
+  type WorkshopState,
+} from "./types";
 
 export const STORAGE_KEY = "dto-mapper-workshop";
 export const SCHEMA_VERSION = 2;
@@ -17,15 +22,53 @@ export function createDefaultState(): WorkshopState {
   };
 }
 
+function isTaskProgress(value: unknown): boolean {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+  const candidate = value as Partial<TaskProgress>;
+  return (
+    typeof candidate.completed === "boolean" &&
+    typeof candidate.draft === "string" &&
+    typeof candidate.touched === "boolean" &&
+    typeof candidate.hintsUsed === "number"
+  );
+}
+
+/**
+ * Validates the full shape, not just the version number: every task id must
+ * be present with a well-formed TaskProgress, and language must be null or
+ * one of the supported tracks. A version-matching but structurally wrong
+ * value (e.g. from a manual edit, or a future field renamed without a schema
+ * bump) must fail this check rather than crash the app later when code reads
+ * a field that turns out to be missing.
+ */
 function isWorkshopState(value: unknown): value is WorkshopState {
   if (typeof value !== "object" || value === null) {
     return false;
   }
   const candidate = value as Partial<WorkshopState>;
-  return (
-    typeof candidate.version === "number" &&
-    typeof candidate.tasks === "object" &&
-    candidate.tasks !== null
+
+  if (typeof candidate.version !== "number") {
+    return false;
+  }
+  if (
+    candidate.language !== null &&
+    !(LANGUAGES as readonly unknown[]).includes(candidate.language)
+  ) {
+    return false;
+  }
+  if (typeof candidate.quizCompleted !== "boolean") {
+    return false;
+  }
+
+  const tasks = candidate.tasks;
+  if (typeof tasks !== "object" || tasks === null) {
+    return false;
+  }
+
+  return TASK_IDS.every((id) =>
+    isTaskProgress((tasks as Record<string, unknown>)[id]),
   );
 }
 

@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import type { TaskDefinition } from "@/lib/workshop/tasks";
+import { firstSentence } from "@/lib/firstSentence";
 import { IsometricStack } from "./IsometricStack";
 
 type ExerciseSidebarProps = {
@@ -98,7 +99,7 @@ export function ExerciseSidebar({ task, nextTitle }: ExerciseSidebarProps) {
 
       <div className="rounded-xl border border-[var(--border)]">
         <InfoRow icon="target" title={`Define the ${task.title}`}>
-          {task.description.split(". ")[0] + "."}
+          {firstSentence(task.description)}
         </InfoRow>
         <InfoRow icon="shield" title="Why it matters">
           Strong contracts at system boundaries prevent bugs and make your

@@ -139,7 +139,12 @@ export function WorkshopProvider({ children }: { children: ReactNode }) {
         ...previous.tasks,
         [taskId]: {
           ...previous.tasks[taskId],
-          hintsUsed: previous.tasks[taskId].hintsUsed + 1,
+          // Clamped here, not just by the caller-side stage guards in
+          // ExerciseRunner: two recordHintUsed calls dispatched before a
+          // re-render lets the caller re-observe the incremented count
+          // (e.g. a fast double click on "Show hint") would otherwise push
+          // hintsUsed past the 4 stages spec 7.3 defines.
+          hintsUsed: Math.min(previous.tasks[taskId].hintsUsed + 1, 4),
         },
       },
     }));

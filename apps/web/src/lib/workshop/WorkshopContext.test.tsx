@@ -140,6 +140,25 @@ describe("WorkshopProvider", () => {
     expect(loadState().tasks["request-dto"].draft).toBe("draft text");
   });
 
+  it("recordHintUsed clamps at 4 stages even if called more times than the UI intends (spec 7.3)", async () => {
+    const user = userEvent.setup();
+    render(
+      <WorkshopProvider>
+        <Probe />
+      </WorkshopProvider>,
+    );
+
+    await waitFor(() => screen.getByTestId("active-task"));
+    for (let i = 0; i < 6; i += 1) {
+      await user.click(screen.getByText("use-hint"));
+    }
+
+    await waitFor(() =>
+      expect(screen.getByTestId("hints-used")).toHaveTextContent("4"),
+    );
+    expect(loadState().tasks["request-dto"].hintsUsed).toBe(4);
+  });
+
   it("resetWorkshop clears all state including completed tasks", async () => {
     const seeded = createDefaultState();
     seeded.language = "java";

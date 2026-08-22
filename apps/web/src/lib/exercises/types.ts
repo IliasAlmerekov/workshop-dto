@@ -1,4 +1,4 @@
-import type { Language } from "@/lib/workshop/types";
+import type { Language, TaskId } from "@/lib/workshop/types";
 
 /**
  * Validator result shape, per spec section 9.3. Every check carries its own
@@ -63,7 +63,7 @@ export type TaskLanguageAdapter = {
 
 /** The language-neutral half of a task (spec section 13). */
 export type TaskDefinition = {
-  id: string;
+  id: TaskId;
   order: number;
   title: string;
   shortTitle: string;

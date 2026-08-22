@@ -1,0 +1,79 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  web:
+    name: Web (Next.js)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Format check
+        run: pnpm run format:check:web
+
+      - name: Lint
+        run: pnpm run lint:web
+
+      - name: Typecheck
+        run: pnpm run typecheck:web
+
+      - name: Test
+        run: pnpm run test:web
+
+      - name: Build (static export)
+        run: pnpm run build:web
+
+  api:
+    name: API (Symfony)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/api
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          coverage: none
+
+      - name: Get composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: composer-${{ hashFiles('apps/api/composer.lock') }}
+          restore-keys: composer-
+
+      - run: composer install --prefer-dist --no-progress --no-interaction
+
+      - name: Format check
+        run: composer run cs-check
+
+      - name: Static analysis
+        run: composer run phpstan
+
+      - name: Test
+        env:
+          APP_ENV: test
+          APP_SECRET: ci-test-secret
+        run: composer run test

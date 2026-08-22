@@ -1,0 +1,9 @@
+.git
+vendor/
+var/
+.php-cs-fixer.cache
+.env.local
+.env.local.php
+.env.*.local
+.phpunit.cache
+docker-compose*.yml

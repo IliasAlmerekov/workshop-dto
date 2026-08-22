@@ -1,0 +1,34 @@
+# Render Blueprint for the DTO & Mapper Workshop walking skeleton.
+# https://render.com/docs/blueprint-spec
+#
+# After the first deploy, Render assigns each service a URL of the form
+# https://<name>.onrender.com (unless a custom domain is configured). If the
+# assigned URLs differ from the ones assumed below, update NEXT_PUBLIC_API_URL
+# and CORS_ALLOW_ORIGIN accordingly in the Render dashboard.
+
+services:
+  - type: web
+    name: workshop-dto-api
+    runtime: docker
+    dockerfilePath: ./apps/api/Dockerfile
+    dockerContext: ./apps/api
+    plan: free
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: APP_ENV
+        value: prod
+      - key: APP_SECRET
+        generateValue: true
+      - key: CORS_ALLOW_ORIGIN
+        value: '^https://workshop-dto-web\.onrender\.com$'
+
+  - type: web
+    name: workshop-dto-web
+    runtime: static
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm run build:web
+    staticPublishPath: ./apps/web/out
+    autoDeploy: true
+    envVars:
+      - key: NEXT_PUBLIC_API_URL
+        value: https://workshop-dto-api.onrender.com

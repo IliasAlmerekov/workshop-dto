@@ -1,0 +1,14 @@
+# dependencies
+node_modules/
+
+# build output
+.next/
+out/
+
+# misc
+.DS_Store
+*.log
+
+# root-level env overrides only; apps/* manage their own env conventions
+/.env
+/.env.local

@@ -26,7 +26,7 @@ services:
   - type: web
     name: workshop-dto-web
     runtime: static
-    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm run build:web
+    buildCommand: pnpm run build:web
     staticPublishPath: ./apps/web/out
     autoDeploy: true
     envVars:

@@ -59,6 +59,8 @@ type WorkshopContextValue = {
   /** Records that one more progressive hint (spec 7.3) has been revealed for this task. */
   recordHintUsed: (taskId: TaskId) => void;
   completeTask: (taskId: TaskId) => void;
+  /** Marks the post-exercise knowledge check as done (spec 7.5/10). */
+  completeQuiz: () => void;
   resetWorkshop: () => void;
 };
 
@@ -160,6 +162,10 @@ export function WorkshopProvider({ children }: { children: ReactNode }) {
     }));
   }, []);
 
+  const completeQuiz = useCallback(() => {
+    setState((previous) => ({ ...previous, quizCompleted: true }));
+  }, []);
+
   const resetWorkshop = useCallback(() => {
     clearState();
     setState(createDefaultState());
@@ -176,6 +182,7 @@ export function WorkshopProvider({ children }: { children: ReactNode }) {
       updateDraft,
       recordHintUsed,
       completeTask,
+      completeQuiz,
       resetWorkshop,
     }),
     [
@@ -188,6 +195,7 @@ export function WorkshopProvider({ children }: { children: ReactNode }) {
       updateDraft,
       recordHintUsed,
       completeTask,
+      completeQuiz,
       resetWorkshop,
     ],
   );

@@ -55,7 +55,10 @@ function CheckIcon() {
 
 export function Stepper({ tasks, activeTaskId }: StepperProps) {
   return (
-    <ol className="flex items-center gap-0 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    <ol
+      aria-label="Exercise progress"
+      className="flex items-center gap-0 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+    >
       {TASK_DEFINITIONS.map((task, index) => {
         const progress = tasks[task.id];
         const isActive = task.id === activeTaskId;

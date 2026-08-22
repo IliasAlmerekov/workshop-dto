@@ -6,6 +6,7 @@ import { WorkshopHeader } from "@/components/WorkshopHeader";
 import { Stepper } from "@/components/Stepper";
 import { ActiveExerciseCard } from "@/components/ActiveExerciseCard";
 import { ExerciseSidebar } from "@/components/ExerciseSidebar";
+import { CompletionScreen } from "@/components/CompletionScreen";
 import { useWorkshop } from "@/lib/workshop/WorkshopContext";
 import { taskDefinition, nextTaskId } from "@/lib/workshop/tasks";
 
@@ -42,13 +43,7 @@ export default function WorkshopPage() {
           <ExerciseSidebar task={activeTask} nextTitle={upcomingTitle} />
         </div>
       ) : (
-        <main className="flex flex-1 flex-col items-center justify-center gap-3 px-8 py-20 text-center">
-          <p className="text-4xl font-bold">All four exercises complete 🎉</p>
-          <p className="max-w-md text-[var(--muted)]">
-            You defined typed DTOs, wrote explicit mappers, isolated a foreign
-            API contract, and produced a safe public response.
-          </p>
-        </main>
+        <CompletionScreen />
       )}
     </div>
   );

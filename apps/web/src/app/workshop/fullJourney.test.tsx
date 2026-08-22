@@ -111,11 +111,14 @@ describe.each(LANGUAGES)("full workshop journey — %s", (language) => {
     }
     expect(finalState.language).toBe(language);
 
-    // No stepper control can jump back into a completed (or any other) task.
+    // The stepper (the only navigation control across tasks) is gone once
+    // the journey is complete — nothing is left to jump back into a
+    // completed task with. Checking for its role rather than matching task
+    // title text avoids false positives against unrelated content (e.g. the
+    // completion screen's knowledge check, which legitimately mentions the
+    // same boundary names in its answer options).
     expect(
-      screen.queryAllByRole("button", {
-        name: /request dto|request mapper|external api|response dto/i,
-      }),
-    ).toHaveLength(0);
+      screen.queryByRole("list", { name: /exercise progress/i }),
+    ).not.toBeInTheDocument();
   });
 });

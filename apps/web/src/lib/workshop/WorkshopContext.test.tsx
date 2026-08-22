@@ -18,7 +18,11 @@ function Probe() {
           ? workshop.state.tasks[workshop.activeTaskId].hintsUsed
           : "none"}
       </span>
+      <span data-testid="quiz-completed">
+        {String(workshop.state.quizCompleted)}
+      </span>
       <button onClick={() => workshop.selectLanguage("php")}>select-php</button>
+      <button onClick={() => workshop.completeQuiz()}>complete-quiz</button>
       <button onClick={() => workshop.updateDraft("request-dto", "draft text")}>
         set-draft
       </button>
@@ -159,10 +163,31 @@ describe("WorkshopProvider", () => {
     expect(loadState().tasks["request-dto"].hintsUsed).toBe(4);
   });
 
-  it("resetWorkshop clears all state including completed tasks", async () => {
+  it("completeQuiz persists the knowledge check's completion (spec 7.5/10)", async () => {
+    const user = userEvent.setup();
+    render(
+      <WorkshopProvider>
+        <Probe />
+      </WorkshopProvider>,
+    );
+
+    await waitFor(() =>
+      expect(screen.getByTestId("quiz-completed")).toHaveTextContent("false"),
+    );
+
+    await user.click(screen.getByText("complete-quiz"));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("quiz-completed")).toHaveTextContent("true"),
+    );
+    expect(loadState().quizCompleted).toBe(true);
+  });
+
+  it("resetWorkshop clears all state including completed tasks and the quiz", async () => {
     const seeded = createDefaultState();
     seeded.language = "java";
     seeded.tasks["request-dto"].completed = true;
+    seeded.quizCompleted = true;
     saveState(seeded);
 
     const user = userEvent.setup();
@@ -175,6 +200,7 @@ describe("WorkshopProvider", () => {
     await waitFor(() =>
       expect(screen.getByTestId("language")).toHaveTextContent("java"),
     );
+    expect(screen.getByTestId("quiz-completed")).toHaveTextContent("true");
 
     await user.click(screen.getByText("reset"));
 
@@ -182,5 +208,6 @@ describe("WorkshopProvider", () => {
       expect(screen.getByTestId("language")).toHaveTextContent("none"),
     );
     expect(loadState().tasks["request-dto"].completed).toBe(false);
+    expect(loadState().quizCompleted).toBe(false);
   });
 });

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { JsonEndpointPanel } from "@/components/JsonEndpointPanel";
 import { FlowDiagram } from "@/components/FlowDiagram";
 import { API_BASE_URL } from "@/lib/config";
+import { BOUNDARY_USE_CASES } from "@/lib/workshop/boundaries";
 
 export const metadata = {
   title: "The DTO & Mapper story — DTO & Mapper Workshop",
@@ -27,25 +28,6 @@ const TERMS = [
     term: "Data Mapper (a different pattern)",
     definition:
       'Not the same thing. "Data Mapper" is also the name of a persistence-layer pattern that moves data between objects and a database. This workshop never uses that meaning — every "mapper" here is the Object Mapper/Assembler kind above.',
-  },
-];
-
-const BOUNDARIES = [
-  {
-    title: "HTTP request → application",
-    body: "Exercise 1: the client sends registration data. A typed CreateUserRequest makes exactly what the application accepts explicit.",
-  },
-  {
-    title: "Normalizing that input",
-    body: "Exercise 2: raw request fields get renamed, trimmed, and converted before anything else touches them.",
-  },
-  {
-    title: "External API → your application",
-    body: "Exercise 3: a third-party identity service has its own vocabulary. A mapper isolates it so a provider change never ripples through your code.",
-  },
-  {
-    title: "Application → HTTP response",
-    body: "Exercise 4: the public response is built on purpose, not serialized straight from the entity — so internal fields can't leak by accident.",
   },
 ];
 
@@ -192,7 +174,7 @@ export default function StoryPage() {
           Every exercise ahead is one of these boundaries:
         </p>
         <ol className="flex flex-col gap-3">
-          {BOUNDARIES.map((boundary, index) => (
+          {BOUNDARY_USE_CASES.map((boundary, index) => (
             <li
               key={boundary.title}
               className="flex gap-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4"

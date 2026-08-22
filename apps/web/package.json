@@ -18,6 +18,7 @@
     "react-dom": "19.2.8"
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.3",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.5",
@@ -28,7 +29,9 @@
     "eslint": "^9",
     "eslint-config-next": "16.3.2",
     "jsdom": "^30.0.1",
+    "postcss": "^8.5.26",
     "prettier": "^3.9.6",
+    "tailwindcss": "^4.3.3",
     "typescript": "^5",
     "vitest": "^4.1.11"
   },

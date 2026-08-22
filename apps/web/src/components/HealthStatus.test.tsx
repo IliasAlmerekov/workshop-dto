@@ -8,7 +8,7 @@ afterEach(() => {
 });
 
 describe("HealthStatus", () => {
-  it("shows ok once the API reports a healthy status", async () => {
+  it("renders nothing while the API is healthy", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue({
@@ -19,14 +19,11 @@ describe("HealthStatus", () => {
 
     render(<HealthStatus />);
 
-    await waitFor(() =>
-      expect(screen.getByTestId("health-status")).toHaveTextContent(
-        "Symfony API status: ok",
-      ),
-    );
+    await waitFor(() => expect(globalThis.fetch).toHaveBeenCalled());
+    expect(screen.queryByTestId("health-status")).not.toBeInTheDocument();
   });
 
-  it("shows an unreachable state when the API request fails", async () => {
+  it("shows a waking-up state when the API cannot be reached", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn().mockRejectedValue(new Error("network down")),
@@ -36,8 +33,21 @@ describe("HealthStatus", () => {
 
     await waitFor(() =>
       expect(screen.getByTestId("health-status")).toHaveTextContent(
-        "unreachable (network down)",
+        /waking up the demo api/i,
       ),
+    );
+  });
+
+  it("shows the waking-up state when the API answers with an unexpected payload", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({ ok: true, json: async () => ({}) }),
+    );
+
+    render(<HealthStatus />);
+
+    await waitFor(() =>
+      expect(screen.getByTestId("health-status")).toBeInTheDocument(),
     );
   });
 });

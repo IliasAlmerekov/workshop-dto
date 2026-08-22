@@ -48,7 +48,12 @@ export function findAll(node: SyntaxNode, name: string): SyntaxNode[] {
       }
       continue;
     }
-  } while (cursor.next());
+    // A bare TreeCursor.next() walks past this node's own end into whatever
+    // follows it in the whole document (verified empirically against
+    // @lezer/common) — it is not bounded to the subtree it started in, so
+    // that has to be enforced here or a scoped search (e.g. "methods inside
+    // this one class") leaks matches from unrelated, later code.
+  } while (cursor.next() && cursor.from < node.to);
   return found;
 }
 
@@ -69,4 +74,47 @@ export function hasErrorTokenWithText(
     c = c.nextSibling;
   }
   return node.type.isError && textOf(node, doc).trim() === text;
+}
+
+function stripQuotes(text: string): string {
+  const trimmed = text.trim();
+  const first = trimmed[0];
+  const last = trimmed[trimmed.length - 1];
+  if (
+    (first === "'" || first === '"') &&
+    first === last &&
+    trimmed.length >= 2
+  ) {
+    return trimmed.slice(1, -1);
+  }
+  return trimmed;
+}
+
+/**
+ * True if some node anywhere in this subtree covers exactly `text` (quotes
+ * stripped, so a PHP/Python string-keyed access like `$raw['user_name']` and
+ * a plain identifier access like `raw.user_name` both match the same way).
+ * Deliberately loose about exact expression shape — spec section 9.2 allows
+ * equivalent expressions, not just one exact form — but exact-equality on
+ * the candidate node's own text (not a substring search) keeps a composite
+ * node's much longer text from matching by coincidence.
+ */
+export function subtreeContainsToken(
+  node: SyntaxNode,
+  doc: string,
+  text: string,
+): boolean {
+  const cursor = node.cursor();
+  do {
+    if (/Comment/.test(cursor.name)) {
+      continue;
+    }
+    if (stripQuotes(textOf(cursor.node, doc)) === text) {
+      return true;
+    }
+    // A bare TreeCursor.next() walks past this node's own end into whatever
+    // follows it in the whole document (verified empirically) — it is not
+    // bounded to the subtree it started in, so that has to be enforced here.
+  } while (cursor.next() && cursor.from < node.to);
+  return false;
 }

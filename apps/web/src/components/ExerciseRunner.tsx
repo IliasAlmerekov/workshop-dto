@@ -2,19 +2,20 @@
 
 import { useEffect, useState } from "react";
 import { useWorkshop } from "@/lib/workshop/WorkshopContext";
-import { TASK1_DEFINITION } from "@/lib/exercises/task1";
-import { loadTask1Adapter } from "@/lib/exercises/task1Adapters";
+import type { TaskDefinition } from "@/lib/exercises/types";
 import type {
   TaskLanguageAdapter,
   ValidationResult,
 } from "@/lib/exercises/types";
-import type { Language } from "@/lib/workshop/types";
+import type { Language, TaskId } from "@/lib/workshop/types";
 import { CodeMirrorEditor } from "./CodeMirrorEditor";
 
-const TASK_ID = TASK1_DEFINITION.id as "request-dto";
 const MAX_HINT_STAGE = 4; // 3 progressive cards + "Insert solution" as the 4th step
 
-type Task1RunnerProps = {
+type ExerciseRunnerProps = {
+  taskId: TaskId;
+  definition: TaskDefinition;
+  loadAdapter: (language: Language) => Promise<TaskLanguageAdapter>;
   language: Language;
 };
 
@@ -67,9 +68,21 @@ function CheckGlyph({ passed }: { passed: boolean }) {
   );
 }
 
-export function Task1Runner({ language }: Task1RunnerProps) {
+/**
+ * The reusable exercise runner (issue #4's "tracer bullet", extended in
+ * issue #5 to a second task): a real CodeMirror editor with a restricted
+ * TODO region, Lezer-AST validation, progressive hints, and Insert
+ * solution — parameterized by task definition and adapter loader so every
+ * task shares one implementation of the interaction, not just the look.
+ */
+export function ExerciseRunner({
+  taskId,
+  definition,
+  loadAdapter,
+  language,
+}: ExerciseRunnerProps) {
   const { state, updateDraft, recordHintUsed, completeTask } = useWorkshop();
-  const progress = state.tasks[TASK_ID];
+  const progress = state.tasks[taskId];
 
   const [adapter, setAdapter] = useState<TaskLanguageAdapter | null>(null);
   const [checkResult, setCheckResult] = useState<ValidationResult | null>(null);
@@ -84,7 +97,7 @@ export function Task1Runner({ language }: Task1RunnerProps) {
     setAdapter(null);
     setCheckResult(null);
     setInsertGeneration(0);
-    loadTask1Adapter(language)
+    loadAdapter(language)
       .then((loaded) => {
         if (!cancelled) {
           setAdapter(loaded);
@@ -96,7 +109,7 @@ export function Task1Runner({ language }: Task1RunnerProps) {
     return () => {
       cancelled = true;
     };
-  }, [language]);
+  }, [language, loadAdapter]);
 
   if (!adapter) {
     return (
@@ -112,7 +125,7 @@ export function Task1Runner({ language }: Task1RunnerProps) {
     : adapter.starterCode.editable;
 
   function handleEditableChange(text: string) {
-    updateDraft(TASK_ID, text);
+    updateDraft(taskId, text);
     setCheckResult(null);
   }
 
@@ -124,16 +137,16 @@ export function Task1Runner({ language }: Task1RunnerProps) {
 
   function handleShowHint() {
     if (hintStage < 3) {
-      recordHintUsed(TASK_ID);
+      recordHintUsed(taskId);
     }
   }
 
   function handleInsertSolution() {
-    updateDraft(TASK_ID, adapter!.solutionEditable);
+    updateDraft(taskId, adapter!.solutionEditable);
     setInsertGeneration((value) => value + 1);
     setCheckResult(adapter!.validate(adapter!.solutionCode));
     if (hintStage < MAX_HINT_STAGE) {
-      recordHintUsed(TASK_ID);
+      recordHintUsed(taskId);
     }
   }
 
@@ -144,16 +157,16 @@ export function Task1Runner({ language }: Task1RunnerProps) {
     <section className="flex flex-col gap-6 px-8 py-8">
       <div>
         <p className="text-xs font-semibold tracking-[0.12em] text-[var(--accent)] uppercase">
-          Exercise {String(TASK1_DEFINITION.order).padStart(2, "0")}
+          Exercise {String(definition.order).padStart(2, "0")}
         </p>
         <h1 className="mt-3 text-[2.75rem] leading-[1.05] font-bold tracking-tight">
-          {TASK1_DEFINITION.title}
+          {definition.title}
         </h1>
         <p className="mt-2 text-lg text-[var(--muted)]">
-          {TASK1_DEFINITION.question}
+          {definition.question}
         </p>
         <p className="mt-4 max-w-xl text-sm leading-relaxed text-[var(--muted)]">
-          {TASK1_DEFINITION.description}
+          {definition.description}
         </p>
       </div>
 
@@ -171,10 +184,10 @@ export function Task1Runner({ language }: Task1RunnerProps) {
             <code className="font-mono text-[var(--accent)]">
               {adapter.fileName}
             </code>{" "}
-            with the following fields:
+            with the following:
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
-            {TASK1_DEFINITION.fields.map((field) => (
+            {definition.fields.map((field) => (
               <span
                 key={field}
                 className="rounded-md border border-[var(--border)] bg-[var(--surface)] px-2.5 py-1.5 font-mono text-xs text-[var(--accent)]"
@@ -194,7 +207,7 @@ export function Task1Runner({ language }: Task1RunnerProps) {
         after={adapter.starterCode.after}
         resetKey={`${language}:${insertGeneration}`}
         onEditableChange={handleEditableChange}
-        label={`Your solution for ${TASK1_DEFINITION.title}`}
+        label={`Your solution for ${definition.title}`}
       />
 
       <div className="flex flex-wrap items-center gap-3">
@@ -251,7 +264,7 @@ export function Task1Runner({ language }: Task1RunnerProps) {
         <button
           type="button"
           disabled={!checkResult?.passed}
-          onClick={() => completeTask(TASK_ID)}
+          onClick={() => completeTask(taskId)}
           className="ml-auto flex items-center gap-2 rounded-lg bg-[var(--accent)] px-5 py-3 text-sm font-semibold text-[var(--accent-foreground)] disabled:cursor-not-allowed disabled:bg-[var(--border)] disabled:text-[var(--muted)]"
         >
           Continue
@@ -301,7 +314,7 @@ export function Task1Runner({ language }: Task1RunnerProps) {
 
       {checkResult?.passed && (
         <p className="rounded-lg border border-[var(--accent)]/40 bg-[var(--accent-soft)] p-3 text-xs text-[var(--foreground)]">
-          {TASK1_DEFINITION.explanation}
+          {definition.explanation}
         </p>
       )}
     </section>

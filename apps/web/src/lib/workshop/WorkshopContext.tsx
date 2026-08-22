@@ -23,17 +23,25 @@ import {
 } from "./storage";
 import { starterCode } from "./starterCode";
 import { TASK1_STARTER_CODE } from "@/lib/exercises/task1StarterCode";
+import { TASK2_STARTER_CODE } from "@/lib/exercises/task2StarterCode";
 
 /**
- * Task 1's real CodeMirror runner persists only the editable TODO region
- * (the surrounding file is fixed, per-language boilerplate re-derived from
- * the adapter, not something to store per participant). Every other task
- * still uses the older placeholder flow, which persists the whole draft.
+ * The real CodeMirror runner (tasks with a Lezer-based adapter) persists
+ * only the editable TODO region — the surrounding file is fixed,
+ * per-language boilerplate re-derived from the adapter, not something to
+ * store per participant. Every other task still uses the older placeholder
+ * flow, which persists the whole draft.
  */
+const REAL_TASK_STARTER_CODE: Partial<
+  Record<TaskId, Record<Language, { editable: string }>>
+> = {
+  "request-dto": TASK1_STARTER_CODE,
+  "request-mapper": TASK2_STARTER_CODE,
+};
+
 function untouchedStarterText(taskId: TaskId, language: Language): string {
-  return taskId === "request-dto"
-    ? TASK1_STARTER_CODE[language].editable
-    : starterCode(taskId, language);
+  const real = REAL_TASK_STARTER_CODE[taskId];
+  return real ? real[language].editable : starterCode(taskId, language);
 }
 
 type WorkshopContextValue = {

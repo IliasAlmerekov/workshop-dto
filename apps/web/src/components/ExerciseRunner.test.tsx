@@ -11,6 +11,9 @@ import { typescriptAdapter } from "@/lib/exercises/adapters/typescript";
 import { TASK2_DEFINITION } from "@/lib/exercises/task2";
 import { loadTask2Adapter } from "@/lib/exercises/task2Adapters";
 import { typescriptMapperAdapter } from "@/lib/exercises/adapters/typescriptMapper";
+import { TASK3_DEFINITION } from "@/lib/exercises/task3";
+import { loadTask3Adapter } from "@/lib/exercises/task3Adapters";
+import { typescriptIdentityMapperAdapter } from "@/lib/exercises/adapters/typescriptIdentityMapper";
 
 // CodeMirror's real editing surface is a contenteditable div, not something
 // userEvent.type can drive meaningfully in jsdom, and its restricted-editing
@@ -191,6 +194,58 @@ describe("ExerciseRunner — Task 2 (request-mapper)", () => {
     await user.click(screen.getByRole("button", { name: /continue/i }));
     await waitFor(() =>
       expect(loadState().tasks["request-mapper"].completed).toBe(true),
+    );
+  });
+});
+
+describe("ExerciseRunner — Task 3 (external-api)", () => {
+  it("loads the identity mapper exercise and reports missing-field feedback", async () => {
+    const user = userEvent.setup();
+    renderWithWorkshop(
+      <ExerciseRunner
+        taskId="external-api"
+        definition={TASK3_DEFINITION}
+        loadAdapter={loadTask3Adapter}
+        language="typescript"
+      />,
+    );
+
+    await screen.findByRole("heading", { name: "External API DTO and Mapper" });
+    await user.click(screen.getByRole("button", { name: /check solution/i }));
+
+    expect(
+      await screen.findByText(/userId is missing from the mapped result/i),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /continue/i })).toBeDisabled();
+  });
+
+  it("Insert solution fills the identity mapper, validates, and unlocks Continue", async () => {
+    const user = userEvent.setup();
+    renderWithWorkshop(
+      <ExerciseRunner
+        taskId="external-api"
+        definition={TASK3_DEFINITION}
+        loadAdapter={loadTask3Adapter}
+        language="typescript"
+      />,
+    );
+
+    await screen.findByRole("heading", { name: "External API DTO and Mapper" });
+    await user.click(screen.getByRole("button", { name: /show hint/i }));
+    await user.click(screen.getByRole("button", { name: /show hint/i }));
+    await user.click(screen.getByRole("button", { name: /show hint/i }));
+    await user.click(screen.getByRole("button", { name: /insert solution/i }));
+
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: /continue/i })).toBeEnabled(),
+    );
+    expect(loadState().tasks["external-api"].draft).toBe(
+      typescriptIdentityMapperAdapter.solutionEditable,
+    );
+
+    await user.click(screen.getByRole("button", { name: /continue/i }));
+    await waitFor(() =>
+      expect(loadState().tasks["external-api"].completed).toBe(true),
     );
   });
 });

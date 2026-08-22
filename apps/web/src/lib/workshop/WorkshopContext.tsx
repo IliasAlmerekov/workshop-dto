@@ -24,6 +24,7 @@ import {
 import { starterCode } from "./starterCode";
 import { TASK1_STARTER_CODE } from "@/lib/exercises/task1StarterCode";
 import { TASK2_STARTER_CODE } from "@/lib/exercises/task2StarterCode";
+import { TASK3_STARTER_CODE } from "@/lib/exercises/task3StarterCode";
 
 /**
  * The real CodeMirror runner (tasks with a Lezer-based adapter) persists
@@ -37,6 +38,7 @@ const REAL_TASK_STARTER_CODE: Partial<
 > = {
   "request-dto": TASK1_STARTER_CODE,
   "request-mapper": TASK2_STARTER_CODE,
+  "external-api": TASK3_STARTER_CODE,
 };
 
 function untouchedStarterText(taskId: TaskId, language: Language): string {

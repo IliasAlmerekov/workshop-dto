@@ -4,8 +4,10 @@ import { useWorkshop } from "@/lib/workshop/WorkshopContext";
 import { taskDefinition } from "@/lib/workshop/tasks";
 import { TASK1_DEFINITION } from "@/lib/exercises/task1";
 import { TASK2_DEFINITION } from "@/lib/exercises/task2";
+import { TASK3_DEFINITION } from "@/lib/exercises/task3";
 import { loadTask1Adapter } from "@/lib/exercises/task1Adapters";
 import { loadTask2Adapter } from "@/lib/exercises/task2Adapters";
+import { loadTask3Adapter } from "@/lib/exercises/task3Adapters";
 import type { TaskDefinition } from "@/lib/exercises/types";
 import type { TaskLanguageAdapter } from "@/lib/exercises/types";
 import type { Language, TaskId } from "@/lib/workshop/types";
@@ -14,8 +16,8 @@ import { ExerciseRunner } from "./ExerciseRunner";
 
 /**
  * Tasks that have graduated to the real CodeMirror + Lezer-validated
- * runner (issue #4, extended in issue #5). Tasks 3-4 stay on the older
- * placeholder flow until they get the same treatment.
+ * runner (issue #4, extended in issues #5 and #6). Task 4 stays on the
+ * older placeholder flow until it gets the same treatment.
  */
 const REAL_TASKS: Partial<
   Record<
@@ -33,6 +35,10 @@ const REAL_TASKS: Partial<
   "request-mapper": {
     definition: TASK2_DEFINITION,
     loadAdapter: loadTask2Adapter,
+  },
+  "external-api": {
+    definition: TASK3_DEFINITION,
+    loadAdapter: loadTask3Adapter,
   },
 };
 

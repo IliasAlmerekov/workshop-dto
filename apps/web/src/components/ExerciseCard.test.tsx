@@ -10,16 +10,17 @@ import {
 } from "@/lib/workshop/storage";
 import { starterCode } from "@/lib/workshop/starterCode";
 
-// Tasks 1-2 (request-dto, request-mapper) now run on the real CodeMirror-based
-// ExerciseRunner (see ExerciseRunner.test.tsx) — these tests cover the older
-// placeholder flow that tasks 3-4 still use, so they seed both real tasks as
-// already complete to land on external-api instead.
+// Tasks 1-3 (request-dto, request-mapper, external-api) now run on the real
+// CodeMirror-based ExerciseRunner (see ExerciseRunner.test.tsx) — these tests
+// cover the older placeholder flow that task 4 still uses, so they seed all
+// three real tasks as already complete to land on response-dto instead.
 beforeEach(() => {
   window.localStorage.clear();
   const seeded = createDefaultState();
   seeded.language = "typescript";
   seeded.tasks["request-dto"].completed = true;
   seeded.tasks["request-mapper"].completed = true;
+  seeded.tasks["external-api"].completed = true;
   saveState(seeded);
 });
 
@@ -28,9 +29,9 @@ describe("ExerciseCard (via ActiveExerciseCard)", () => {
     renderWithWorkshop(<ActiveExerciseCard />);
 
     const editor = await screen.findByLabelText(/your solution/i);
-    expect(editor).toHaveValue(starterCode("external-api", "typescript"));
+    expect(editor).toHaveValue(starterCode("response-dto", "typescript"));
     // Showing starter code must not mark the task as touched.
-    expect(loadState().tasks["external-api"].touched).toBe(false);
+    expect(loadState().tasks["response-dto"].touched).toBe(false);
   });
 
   it("persists draft edits for the active task", async () => {
@@ -42,9 +43,9 @@ describe("ExerciseCard (via ActiveExerciseCard)", () => {
     await user.type(editor, "my own solution");
 
     await waitFor(() =>
-      expect(loadState().tasks["external-api"].draft).toBe("my own solution"),
+      expect(loadState().tasks["response-dto"].draft).toBe("my own solution"),
     );
-    expect(loadState().tasks["external-api"].touched).toBe(true);
+    expect(loadState().tasks["response-dto"].touched).toBe(true);
   });
 
   it("keeps a deliberately emptied editor empty", async () => {
@@ -55,7 +56,7 @@ describe("ExerciseCard (via ActiveExerciseCard)", () => {
     await user.clear(editor);
 
     await waitFor(() => expect(editor).toHaveValue(""));
-    expect(loadState().tasks["external-api"].touched).toBe(true);
+    expect(loadState().tasks["response-dto"].touched).toBe(true);
   });
 
   it("keeps Continue disabled until Check solution is clicked", async () => {
@@ -79,7 +80,7 @@ describe("ExerciseCard (via ActiveExerciseCard)", () => {
     expect(screen.getByRole("button", { name: /continue/i })).toBeDisabled();
   });
 
-  it("Continue marks the task complete and advances to the next exercise", async () => {
+  it("Continue marks the task complete", async () => {
     const user = userEvent.setup();
     renderWithWorkshop(<ActiveExerciseCard />);
 
@@ -87,9 +88,8 @@ describe("ExerciseCard (via ActiveExerciseCard)", () => {
     await user.click(screen.getByRole("button", { name: /continue/i }));
 
     await waitFor(() =>
-      expect(loadState().tasks["external-api"].completed).toBe(true),
+      expect(loadState().tasks["response-dto"].completed).toBe(true),
     );
-    await screen.findByLabelText(/your solution for response dto/i);
   });
 
   it("shows a placeholder hint note when Show hint is clicked", async () => {

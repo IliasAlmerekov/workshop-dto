@@ -12,17 +12,18 @@ import {
 import { starterCode } from "@/lib/workshop/starterCode";
 
 // These tests exercise the language-switch mechanic itself (confirmation,
-// draft-clearing, re-locking Continue) generically — not tasks 1-2
+// draft-clearing, re-locking Continue) generically — not tasks 1-3
 // specifically, which have their own real CodeMirror runner covered by
-// ExerciseRunner.test.tsx. Seeding request-dto and request-mapper as already
-// complete makes external-api (still on the simpler placeholder flow) the
-// active task, so these tests don't need to deal with async adapter/grammar
-// loading at all.
+// ExerciseRunner.test.tsx. Seeding request-dto, request-mapper, and
+// external-api as already complete makes response-dto (still on the simpler
+// placeholder flow) the active task, so these tests don't need to deal with
+// async adapter/grammar loading at all.
 function seedLanguage(language: "typescript" | "php") {
   const seeded = createDefaultState();
   seeded.language = language;
   seeded.tasks["request-dto"].completed = true;
   seeded.tasks["request-mapper"].completed = true;
+  seeded.tasks["external-api"].completed = true;
   saveState(seeded);
 }
 
@@ -34,7 +35,7 @@ async function typeOwnDraft(
   await user.clear(editor);
   await user.type(editor, text);
   await waitFor(() =>
-    expect(loadState().tasks["external-api"].draft).toBe(text),
+    expect(loadState().tasks["response-dto"].draft).toBe(text),
   );
 }
 
@@ -67,7 +68,7 @@ describe("LanguageSwitcher", () => {
     );
 
     const editor = await screen.findByLabelText(/your solution/i);
-    expect(editor).toHaveValue(starterCode("external-api", "typescript"));
+    expect(editor).toHaveValue(starterCode("response-dto", "typescript"));
 
     await user.selectOptions(
       screen.getByLabelText("Programming language"),
@@ -79,7 +80,7 @@ describe("LanguageSwitcher", () => {
     // The editor now shows the Java starter code instead.
     await waitFor(() =>
       expect(screen.getByLabelText(/your solution/i)).toHaveValue(
-        starterCode("external-api", "java"),
+        starterCode("response-dto", "java"),
       ),
     );
   });
@@ -109,11 +110,11 @@ describe("LanguageSwitcher", () => {
     );
 
     await waitFor(() => expect(loadState().language).toBe("java"));
-    expect(loadState().tasks["external-api"].draft).toBe("");
-    expect(loadState().tasks["external-api"].touched).toBe(false);
+    expect(loadState().tasks["response-dto"].draft).toBe("");
+    expect(loadState().tasks["response-dto"].touched).toBe(false);
     await waitFor(() =>
       expect(screen.getByLabelText(/your solution/i)).toHaveValue(
-        starterCode("external-api", "java"),
+        starterCode("response-dto", "java"),
       ),
     );
   });
@@ -144,7 +145,7 @@ describe("LanguageSwitcher", () => {
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
     );
     expect(loadState().language).toBe("typescript");
-    expect(loadState().tasks["external-api"].draft).toBe("work in progress");
+    expect(loadState().tasks["response-dto"].draft).toBe("work in progress");
   });
 
   it("leaves completed tasks untouched across a confirmed language switch", async () => {
@@ -160,28 +161,17 @@ describe("LanguageSwitcher", () => {
     await user.click(screen.getByRole("button", { name: /check solution/i }));
     await user.click(screen.getByRole("button", { name: /continue/i }));
     await waitFor(() =>
-      expect(loadState().tasks["external-api"].completed).toBe(true),
-    );
-
-    const editor = await screen.findByLabelText(/your solution/i);
-    await user.clear(editor);
-    await user.type(editor, "fourth task draft");
-    await waitFor(() =>
-      expect(loadState().tasks["response-dto"].draft).toBe("fourth task draft"),
+      expect(loadState().tasks["response-dto"].completed).toBe(true),
     );
 
     await user.selectOptions(
       screen.getByLabelText("Programming language"),
       "python",
     );
-    const dialog = await screen.findByRole("dialog");
-    await user.click(
-      within(dialog).getByRole("button", { name: /switch and clear draft/i }),
-    );
 
     await waitFor(() => expect(loadState().language).toBe("python"));
-    expect(loadState().tasks["external-api"].completed).toBe(true);
-    expect(loadState().tasks["response-dto"].draft).toBe("");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(loadState().tasks["response-dto"].completed).toBe(true);
   });
 
   it("re-locks Continue after a language switch, even without touching the new editor", async () => {
@@ -205,7 +195,7 @@ describe("LanguageSwitcher", () => {
 
     await waitFor(() =>
       expect(screen.getByLabelText(/your solution/i)).toHaveValue(
-        starterCode("external-api", "java"),
+        starterCode("response-dto", "java"),
       ),
     );
     expect(screen.getByRole("button", { name: /continue/i })).toBeDisabled();

@@ -1,0 +1,191 @@
+/* workshop-dto theme — generated view of tokens.json. See DESIGN.md for roles and rules. */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
+
+@theme {
+  /* ---- Primitives — neutral ---------------------------------------- */
+  --color-neutral-black: #0a0a0a;
+  --color-neutral-900: #131319;
+  --color-neutral-700: #373c46;
+  --color-neutral-600: #494a57;
+  --color-neutral-500: #66656e;
+  --color-neutral-400: #9aa0a6;
+  --color-neutral-300: #dcdcde;
+  --color-neutral-200: #ececee;
+  --color-neutral-100: #f6f6f6;
+  --color-neutral-50: #fafafa;
+  --color-neutral-white: #ffffff;
+  --color-neutral-app: #f9f8fa;
+  --color-neutral-surface: #fefefe;
+  --color-neutral-disabled: #e4e5e8;
+
+  /* ---- Primitives — chromatic -------------------------------------- */
+  --color-blue-700: #0b3fd0;
+  --color-blue-600: #1e62fd;
+  --color-blue-500: #5b8dfe;
+  --color-blue-300: #a8c2fd;
+  --color-blue-100: #dbe5fe;
+  --color-blue-50: #eef1fd;
+  --color-navy-900: #02205a;
+  --color-navy-800: #00267e;
+  --color-lavender-300: #cfd2ec;
+  --color-lavender-100: #e6e8f7;
+
+  /* ---- Primitives — code syntax ------------------------------------ */
+  --color-code-keyword: #5b21d6;
+  --color-code-type: #00267e;
+  --color-code-identifier: #131319;
+  --color-code-comment: #7d7f8b;
+  --color-code-punctuation: #131319;
+  --color-code-linenumber: #66656e;
+
+  /* ---- Semantic — the only names UI code should use ---------------- */
+  --color-bg-canvas: var(--color-neutral-100);
+  --color-bg-app: var(--color-neutral-app);
+  --color-bg-surface: var(--color-neutral-surface);
+  --color-bg-surface-muted: var(--color-neutral-50);
+  --color-bg-accent-subtle: var(--color-blue-50);
+  --color-bg-accent: var(--color-blue-600);
+  --color-bg-action: var(--color-navy-900);
+  --color-bg-disabled: var(--color-neutral-disabled);
+
+  --color-text-primary: var(--color-neutral-black);
+  --color-text-secondary: var(--color-neutral-700);
+  --color-text-subtle: var(--color-neutral-500);
+  --color-text-muted: var(--color-neutral-400);
+  --color-text-accent: var(--color-blue-600);
+  --color-text-inverse: var(--color-neutral-white);
+
+  --color-border-default: var(--color-neutral-200);
+  --color-border-strong: var(--color-neutral-300);
+  --color-border-accent: var(--color-blue-600);
+
+  /* ---- Typefaces ---------------------------------------------------- */
+  --font-inter: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* ---- Type ramp ---------------------------------------------------- */
+  /* Tracking is size-dependent and non-linear. Always pair --text-* with its --leading-* and
+     --tracking-* siblings; the display steps fall apart at nominal tracking. */
+  --text-display-hero: 137px;
+  --leading-display-hero: 1;
+  --tracking-display-hero: -6.8px;
+
+  --text-display-sub: 100px;
+  --leading-display-sub: 1;
+  --tracking-display-sub: -4.58px;
+
+  --text-heading-page: 52px;
+  --leading-heading-page: 1.1;
+  --tracking-heading-page: -2.2px;
+
+  --text-heading-brand: 26px;
+  --leading-heading-brand: 1.2;
+  --tracking-heading-brand: -0.6px;
+
+  --text-heading-card: 18px;
+  --leading-heading-card: 1.3;
+  --tracking-heading-card: -0.2px;
+
+  --text-body-lead: 22px;
+  --leading-body-lead: 1.64;
+  --tracking-body-lead: -0.3px;
+
+  --text-body-question: 19px;
+  --leading-body-question: 1.45;
+  --tracking-body-question: -0.5px;
+
+  --text-body-language: 24px;
+  --leading-body-language: 1.3;
+  --tracking-body-language: -0.3px;
+
+  --text-body: 16px;
+  --leading-body: 1.44;
+  --tracking-body: 0px;
+
+  --text-body-small: 15px;
+  --leading-body-small: 1.53;
+  --tracking-body-small: 0px;
+
+  --text-body-compact: 14px;
+  --leading-body-compact: 1.5;
+  --tracking-body-compact: -0.1px;
+
+  --text-body-panel: 12.5px;
+  --leading-body-panel: 1.5;
+  --tracking-body-panel: -0.3px;
+
+  --text-label-eyebrow: 15px;
+  --leading-label-eyebrow: 1.2;
+  --tracking-label-eyebrow: 0.2px;
+
+  --text-label-caption: 13px;
+  --leading-label-caption: 1.4;
+  --tracking-label-caption: 0.1px;
+
+  --text-label-field-chip: 13px;
+  --leading-label-field-chip: 1.3;
+  --tracking-label-field-chip: -0.1px;
+
+  --text-code-editor: 14px;
+  --leading-code-editor: 1.86;
+  --tracking-code-editor: 0px;
+
+  --text-code-gutter: 13px;
+  --leading-code-gutter: 2;
+  --tracking-code-gutter: 0px;
+
+  /* ---- Spacing ------------------------------------------------------ */
+  --spacing-2: 2px;
+  --spacing-4: 4px;
+  --spacing-6: 6px;
+  --spacing-8: 8px;
+  --spacing-10: 10px;
+  --spacing-12: 12px;
+  --spacing-14: 14px;
+  --spacing-16: 16px;
+  --spacing-18: 18px;
+  --spacing-20: 20px;
+  --spacing-22: 22px;
+  --spacing-24: 24px;
+  --spacing-26: 26px;
+  --spacing-28: 28px;
+  --spacing-30: 30px;
+  --spacing-32: 32px;
+  --spacing-40: 40px;
+  --spacing-48: 48px;
+  --spacing-54: 54px;
+  --spacing-64: 64px;
+  --spacing-80: 80px;
+
+  /* ---- Radius ------------------------------------------------------- */
+  --radius-sm: 2px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-2xl: 14px;
+  --radius-full: 9999px;
+
+  /* ---- Elevation ----------------------------------------------------- */
+  /* Prefer surface contrast + a 1px hairline. Reach for these only when a surface truly floats. */
+  --shadow-card: 0 1px 2px rgba(5, 13, 38, 0.04);
+  --shadow-raised: 0 4px 12px -2px rgba(5, 13, 38, 0.06), 0 1px 3px rgba(5, 13, 38, 0.04);
+  --shadow-popover: 0 12px 32px -8px rgba(5, 13, 38, 0.12), 0 2px 6px rgba(5, 13, 38, 0.05);
+  --shadow-layer-3d: 0 28px 48px -12px rgba(5, 13, 38, 0.14), 0 6px 14px -4px rgba(5, 13, 38, 0.06);
+}
+
+html {
+  font-family: var(--font-inter);
+  font-optical-sizing: auto;
+  font-variant-numeric: tabular-nums;
+  background: var(--color-bg-app);
+  color: var(--color-text-primary);
+}
+
+code,
+pre,
+kbd,
+samp {
+  font-family: var(--font-mono);
+  font-variant-ligatures: none;
+}

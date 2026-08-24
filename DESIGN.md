@@ -12,8 +12,8 @@
 generated views of the same set — change all three together, never one alone.
 
 The system has two chromatic jobs and keeps them separate. **Accent Blue** (`#1e62fd`) is
-*attention*: the active step, the ampersand in the wordmark, field contracts, exercise labels.
-**Action Navy** (`#02205a`) is *commitment*: the primary button, and nothing else. Everything that is
+_attention_: the active step, the ampersand in the wordmark, field contracts, exercise labels.
+**Action Navy** (`#02205a`) is _commitment_: the primary button, and nothing else. Everything that is
 neither is a neutral.
 
 ---
@@ -26,22 +26,22 @@ component or screen is allowed to bind.
 
 ### Primitives — Neutral
 
-| Token | Value | Notes |
-|-------|-------|-------|
-| `neutral/black` | `#0a0a0a` | Display headlines, exercise titles, primary labels |
-| `neutral/900` | `#131319` | Locked-step labels, code punctuation |
-| `neutral/700` | `#373c46` | Long-form body copy |
-| `neutral/600` | `#494a57` | Trailing metadata, inline code tags |
-| `neutral/500` | `#66656e` | Editor gutter, chevrons, secondary glyphs |
-| `neutral/400` | `#9aa0a6` | Disabled labels, lock glyphs, info glyph |
-| `neutral/300` | `#dcdcde` | Card borders on the hero canvas, dashed connectors |
-| `neutral/200` | `#ececee` | Card borders inside the app window |
-| `neutral/100` | `#f6f6f6` | Hero page canvas |
-| `neutral/50` | `#fafafa` | Recessed strips — hero cards, editor gutter and tab bar |
-| `neutral/white` | `#ffffff` | Pure white, avatar and badge text |
-| `neutral/app` | `#f9f8fa` | Viewport behind the app window |
-| `neutral/surface` | `#fefefe` | The app window and every card inside it |
-| `neutral/disabled` | `#e4e5e8` | Disabled button fill, avatar fill |
+| Token              | Value     | Notes                                                   |
+| ------------------ | --------- | ------------------------------------------------------- |
+| `neutral/black`    | `#0a0a0a` | Display headlines, exercise titles, primary labels      |
+| `neutral/900`      | `#131319` | Locked-step labels, code punctuation                    |
+| `neutral/700`      | `#373c46` | Long-form body copy                                     |
+| `neutral/600`      | `#494a57` | Trailing metadata, inline code tags                     |
+| `neutral/500`      | `#66656e` | Editor gutter, chevrons, secondary glyphs               |
+| `neutral/400`      | `#9aa0a6` | Disabled labels, lock glyphs, info glyph                |
+| `neutral/300`      | `#dcdcde` | Card borders on the hero canvas, dashed connectors      |
+| `neutral/200`      | `#ececee` | Card borders inside the app window                      |
+| `neutral/100`      | `#f6f6f6` | Hero page canvas                                        |
+| `neutral/50`       | `#fafafa` | Recessed strips — hero cards, editor gutter and tab bar |
+| `neutral/white`    | `#ffffff` | Pure white, avatar and badge text                       |
+| `neutral/app`      | `#f9f8fa` | Viewport behind the app window                          |
+| `neutral/surface`  | `#fefefe` | The app window and every card inside it                 |
+| `neutral/disabled` | `#e4e5e8` | Disabled button fill, avatar fill                       |
 
 Two near-whites do the elevation work. `neutral/100` is the hero canvas and `neutral/50` sits on top
 of it; inside the app, `neutral/app` is the viewport and `neutral/surface` sits on top. The pair is
@@ -49,53 +49,77 @@ always ~4 values apart — enough to read as a lift, never enough to read as a c
 
 ### Primitives — Chromatic
 
-| Token | Value | Notes |
-|-------|-------|-------|
-| `blue/700` | `#0b3fd0` | Pressed accent |
-| `blue/600` | `#1e62fd` | **Accent Blue** — the system's one attention colour |
-| `blue/500` | `#5b8dfe` | Hover accent |
-| `blue/300` | `#a8c2fd` | Decorative connector nodes |
-| `blue/100` | `#dbe5fe` | Accent border on tinted surfaces |
-| `blue/50` | `#eef1fd` | Accent wash behind icon badges |
-| `navy/900` | `#02205a` | **Action Navy** — primary button only |
-| `navy/800` | `#00267e` | Type names in code |
-| `lavender/300` | `#cfd2ec` | Illustration tint |
-| `lavender/100` | `#e6e8f7` | Illustration tint, lightest |
+| Token          | Value     | Notes                                                    |
+| -------------- | --------- | -------------------------------------------------------- |
+| `blue/700`     | `#0b3fd0` | Pressed accent                                           |
+| `blue/600`     | `#1e62fd` | **Accent Blue** — the system's one attention colour      |
+| `blue/500`     | `#5b8dfe` | Hover accent                                             |
+| `blue/300`     | `#a8c2fd` | Decorative connector nodes                               |
+| `blue/100`     | `#dbe5fe` | Accent border on tinted surfaces                         |
+| `blue/50`      | `#eef1fd` | Accent wash behind icon badges                           |
+| `navy/900`     | `#02205a` | **Action Navy** — primary button only                    |
+| `navy/800`     | `#00267e` | Type names in code                                       |
+| `lavender/600` | `#2f3cf0` | Illustration accent — the `Mapper` label                 |
+| `lavender/500` | `#6f74f2` | Illustration glow — the `Mapper`'s own light             |
+| `lavender/400` | `#7c83d6` | Illustration accent, receding — the `Response DTO` label |
+| `lavender/300` | `#cfd2ec` | Illustration tint                                        |
+| `lavender/100` | `#e6e8f7` | Illustration tint, lightest                              |
+
+The `lavender` family belongs to the hero illustration and nothing else. It is
+not a third accent: no component, screen or state may bind it. Accent Blue stays
+the interface's only attention colour.
 
 ### Primitives — Code syntax
 
 The only place primitives are bound directly, because syntax colour is not a UI role.
 
-| Token | Value | Applies to |
-|-------|-------|------------|
-| `code/keyword` | `#5b21d6` | `export`, `type`, `class`, `def`, `public` |
-| `code/type` | `#00267e` | Declared type and class names |
-| `code/identifier` | `#131319` | Fields, variables |
-| `code/comment` | `#7d7f8b` | `// TODO:` starter hints |
-| `code/punctuation` | `#131319` | Braces, operators |
-| `code/linenumber` | `#66656e` | Gutter numerals |
+| Token              | Value     | Applies to                                 |
+| ------------------ | --------- | ------------------------------------------ |
+| `code/keyword`     | `#5b21d6` | `export`, `type`, `class`, `def`, `public` |
+| `code/type`        | `#00267e` | Declared type and class names              |
+| `code/identifier`  | `#131319` | Fields, variables                          |
+| `code/comment`     | `#7d7f8b` | `// TODO:` starter hints                   |
+| `code/punctuation` | `#131319` | Braces, operators                          |
+| `code/linenumber`  | `#66656e` | Gutter numerals                            |
 
 ### Semantic
 
-| Token | Aliases | Role |
-|-------|---------|------|
-| `bg/canvas` | `neutral/100` | Hero page background |
-| `bg/app` | `neutral/app` | Viewport behind the app window |
-| `bg/surface` | `neutral/surface` | App window, every card, editor body |
-| `bg/surface-muted` | `neutral/50` | Recessed strips: gutter, tab bar, hero cards |
-| `bg/accent-subtle` | `blue/50` | Icon badge wash |
-| `bg/accent` | `blue/600` | Active step badge, active underline, brand dot |
-| `bg/action` | `navy/900` | Primary button |
-| `bg/disabled` | `neutral/disabled` | Disabled button |
-| `text/primary` | `neutral/black` | Headlines, titles, active labels |
-| `text/secondary` | `neutral/700` | Body copy |
-| `text/subtle` | `neutral/500` | Gutter, chevrons, `WORKSHOP` eyebrow in the bar |
-| `text/muted` | `neutral/400` | Disabled text, lock glyphs |
-| `text/accent` | `blue/600` | `EXERCISE 01`, field chips, the `&` |
-| `text/inverse` | `neutral/white` | Text on Action Navy and Accent Blue |
-| `border/default` | `neutral/200` | Every border inside the app window |
-| `border/strong` | `neutral/300` | Hero card borders, dashed connectors |
-| `border/accent` | `blue/600` | Focus and selected outlines |
+| Token              | Aliases            | Role                                            |
+| ------------------ | ------------------ | ----------------------------------------------- |
+| `bg/canvas`        | `neutral/100`      | Hero page background                            |
+| `bg/app`           | `neutral/app`      | Viewport behind the app window                  |
+| `bg/surface`       | `neutral/surface`  | App window, every card, editor body             |
+| `bg/surface-muted` | `neutral/50`       | Recessed strips: gutter, tab bar, hero cards    |
+| `bg/accent-subtle` | `blue/50`          | Icon badge wash                                 |
+| `bg/accent`        | `blue/600`         | Active step badge, active underline, brand dot  |
+| `bg/action`        | `navy/900`         | Primary button                                  |
+| `bg/disabled`      | `neutral/disabled` | Disabled button                                 |
+| `text/primary`     | `neutral/black`    | Headlines, titles, active labels                |
+| `text/secondary`   | `neutral/700`      | Body copy                                       |
+| `text/subtle`      | `neutral/500`      | Gutter, chevrons, `WORKSHOP` eyebrow in the bar |
+| `text/muted`       | `neutral/400`      | Disabled text, lock glyphs                      |
+| `text/accent`      | `blue/600`         | `EXERCISE 01`, field chips, the `&`             |
+| `text/inverse`     | `neutral/white`    | Text on Action Navy and Accent Blue             |
+| `border/default`   | `neutral/200`      | Every border inside the app window              |
+| `border/strong`    | `neutral/300`      | Hero card borders, dashed connectors            |
+| `border/accent`    | `blue/600`         | Focus and selected outlines                     |
+
+### Validation status
+
+Added for the exercise result panel; not present in the original Figma frames. The workshop's one
+accent colour cannot say "passed" and "failed" at once, so validation gets its own pair. Colour never
+carries the verdict alone — every use is accompanied by an icon and a word (`Passed` / `Failed`).
+
+| Token                   | Primitive   | Applies to                                     | Contrast          |
+| ----------------------- | ----------- | ---------------------------------------------- | ----------------- |
+| `status/success`        | `green/700` | Passing verdict, `Passed` labels, check glyphs | 4.97:1 on surface |
+| `status/success-solid`  | `green/600` | Filled success badge behind an inverse glyph   | graphic only      |
+| `status/success-subtle` | `green/50`  | Passing output wash                            | —                 |
+| `status/success-border` | `green/200` | Passing block hairline                         | —                 |
+| `status/danger`         | `red/600`   | Failing verdict, `Failed` labels               | 4.79:1 on surface |
+| `status/danger-solid`   | `red/600`   | Filled failure badge, white glyph              | 4.83:1 inverse    |
+| `status/danger-subtle`  | `red/50`    | Failing detail wash                            | —                 |
+| `status/danger-border`  | `red/200`   | Failing block hairline                         | —                 |
 
 ---
 
@@ -127,31 +151,31 @@ This is the one deliberate addition to a single-typeface system — do not exten
 
 Every style below exists as a Figma text style of the same name.
 
-| Style | Font | Size | Weight | Line height | Tracking | Used for |
-|-------|------|------|--------|-------------|----------|----------|
-| `Display/Hero` | Inter | 137 | 700 | 100% | −6.80px | `WORKSHOP` |
-| `Display/Sub` | Inter | 100 | 700 | 100% | −4.58px | `DTO&Mapping` |
-| `Heading/Page` | Inter | 52 | 700 | 110% | −2.20px | Exercise title |
-| `Heading/Brand` | Inter | 26 | 700 | 120% | −0.60px | App bar wordmark |
-| `Heading/Card` | Inter | 18 | 700 | 130% | −0.20px | `Your task` |
-| `Body/Lead` | Inter | 22 | 400 | 164% | −0.30px | Hero lead paragraph |
-| `Body/Question` | Inter | 19 | 400 | 145% | −0.50px | Exercise question line |
-| `Body/Language` | Inter | 24 | 400 | 130% | −0.30px | Track card label |
-| `Body/Default` | Inter | 16 | 400 | 144% | 0 | Selector label, generic body |
-| `Body/Default Medium` | Inter | 16 | 500 | 144% | 0 | Secondary/disabled button label |
-| `Body/Default Bold` | Inter | 16 | 700 | 144% | 0 | Primary button, active step |
-| `Body/Small` | Inter | 15 | 400 | 153% | 0 | Intro paragraph, task sentence, file tab |
-| `Body/Small Medium` | Inter | 15 | 500 | 150% | 0 | Step numerals, avatar initials |
-| `Body/Compact` | Inter | 14 | 400 | 150% | −0.10px | Trailing metadata |
-| `Body/Compact Bold` | Inter | 14 | 700 | 140% | −0.30px | Context panel row titles |
-| `Body/Panel` | Inter | 12.5 | 400 | 150% | −0.30px | Context panel copy, validation note |
-| `Label/Eyebrow` | Inter | 15 | 700 | 120% | +0.20px | Uppercase eyebrows and section labels |
-| `Label/Caption` | Inter | 13 | 400 | 140% | +0.10px | Documentation captions |
-| `Label/Caption Bold` | Inter | 13 | 700 | 140% | +0.10px | Documentation captions, emphasised |
-| `Label/Field Chip` | Inter | 13 | 600 | 130% | −0.10px | Field contract chips |
-| `Code/Editor` | JetBrains Mono | 14 | 400 | 186% | 0 | Editor body (26px line pitch) |
-| `Code/Inline` | JetBrains Mono | 14 | 400 | 150% | 0 | Type names inside prose |
-| `Code/Gutter` | JetBrains Mono | 13 | 400 | 200% | 0 | Line numbers |
+| Style                 | Font           | Size | Weight | Line height | Tracking | Used for                                 |
+| --------------------- | -------------- | ---- | ------ | ----------- | -------- | ---------------------------------------- |
+| `Display/Hero`        | Inter          | 137  | 700    | 100%        | −6.80px  | `WORKSHOP`                               |
+| `Display/Sub`         | Inter          | 100  | 700    | 100%        | −4.58px  | `DTO&Mapping`                            |
+| `Heading/Page`        | Inter          | 52   | 700    | 110%        | −2.20px  | Exercise title                           |
+| `Heading/Brand`       | Inter          | 26   | 700    | 120%        | −0.60px  | App bar wordmark                         |
+| `Heading/Card`        | Inter          | 18   | 700    | 130%        | −0.20px  | `Your task`                              |
+| `Body/Lead`           | Inter          | 22   | 400    | 164%        | −0.30px  | Hero lead paragraph                      |
+| `Body/Question`       | Inter          | 19   | 400    | 145%        | −0.50px  | Exercise question line                   |
+| `Body/Language`       | Inter          | 24   | 400    | 130%        | −0.30px  | Track card label                         |
+| `Body/Default`        | Inter          | 16   | 400    | 144%        | 0        | Selector label, generic body             |
+| `Body/Default Medium` | Inter          | 16   | 500    | 144%        | 0        | Secondary/disabled button label          |
+| `Body/Default Bold`   | Inter          | 16   | 700    | 144%        | 0        | Primary button, active step              |
+| `Body/Small`          | Inter          | 15   | 400    | 153%        | 0        | Intro paragraph, task sentence, file tab |
+| `Body/Small Medium`   | Inter          | 15   | 500    | 150%        | 0        | Step numerals, avatar initials           |
+| `Body/Compact`        | Inter          | 14   | 400    | 150%        | −0.10px  | Trailing metadata                        |
+| `Body/Compact Bold`   | Inter          | 14   | 700    | 140%        | −0.30px  | Context panel row titles                 |
+| `Body/Panel`          | Inter          | 12.5 | 400    | 150%        | −0.30px  | Context panel copy, validation note      |
+| `Label/Eyebrow`       | Inter          | 15   | 700    | 120%        | +0.20px  | Uppercase eyebrows and section labels    |
+| `Label/Caption`       | Inter          | 13   | 400    | 140%        | +0.10px  | Documentation captions                   |
+| `Label/Caption Bold`  | Inter          | 13   | 700    | 140%        | +0.10px  | Documentation captions, emphasised       |
+| `Label/Field Chip`    | Inter          | 13   | 600    | 130%        | −0.10px  | Field contract chips                     |
+| `Code/Editor`         | JetBrains Mono | 14   | 400    | 186%        | 0        | Editor body (26px line pitch)            |
+| `Code/Inline`         | JetBrains Mono | 14   | 400    | 150%        | 0        | Type names inside prose                  |
+| `Code/Gutter`         | JetBrains Mono | 13   | 400    | 200%        | 0        | Line numbers                             |
 
 ---
 
@@ -168,14 +192,14 @@ Common values: `10` between chips, `12`–`14` between an icon and its label, `1
 
 ### Radius
 
-| Token | Value | Applies to |
-|-------|-------|------------|
-| `radius/sm` | 2px | Nothing yet — reserved |
-| `radius/md` | 6px | Small inline surfaces |
-| `radius/lg` | 8px | Buttons, field chips, icon buttons, language selector, lock badge |
-| `radius/xl` | 12px | Cards: track picker, task brief, code editor |
-| `radius/2xl` | 14px | App window, context panel, icon badges |
-| `radius/full` | 9999px | Step badges, avatar, brand dot |
+| Token         | Value  | Applies to                                                        |
+| ------------- | ------ | ----------------------------------------------------------------- |
+| `radius/sm`   | 2px    | Nothing yet — reserved                                            |
+| `radius/md`   | 6px    | Small inline surfaces                                             |
+| `radius/lg`   | 8px    | Buttons, field chips, icon buttons, language selector, lock badge |
+| `radius/xl`   | 12px   | Cards: track picker, task brief, code editor                      |
+| `radius/2xl`  | 14px   | App window, context panel, icon badges                            |
+| `radius/full` | 9999px | Step badges, avatar, brand dot                                    |
 
 Nothing rectangular exceeds 14px. Roundness increases with the surface's size, not with its
 importance.
@@ -183,8 +207,10 @@ importance.
 ### Layout
 
 - **Screen frame:** 1672 × 941. Both screens use it.
-- **Hero:** content starts at `x: 105`; the illustration occupies `x: 950 → 1672`, full-bleed
-  vertically.
+- **Hero:** content starts at `x: 105`; `WORKSHOP` receives a `−3px` optical correction for the
+  left side-bearing of its `W`, while every text box stays on the same structural axis. The
+  illustration occupies `x: 950 → 1672`; its `722 × 941` frame is lowered by `28px` at the reference
+  viewport so the visible stack begins at the eyebrow and ends in the language-card band.
 - **Exercise:** the app window is inset `9px` horizontally and `7px` vertically, `1653 × 924`.
   The app bar is `79px` tall, the stepper `87px`, and a `1px` divider at `x: 1047` splits the
   work column (left) from the context column (right).
@@ -198,12 +224,51 @@ importance.
 Elevation is carried by surface contrast and hairline borders. Shadows exist but are almost
 invisible by design and never substitute for a border.
 
-| Style | Shadow | Used on |
-|-------|--------|---------|
-| `Elevation/Card` | `0 1 2 rgba(5,13,38,.04)` | Cards, if anything at all |
-| `Elevation/Raised` | `0 4 12 -2 rgba(5,13,38,.06)`, `0 1 3 rgba(5,13,38,.04)` | Hovered card |
-| `Elevation/Popover` | `0 12 32 -8 rgba(5,13,38,.12)`, `0 2 6 rgba(5,13,38,.05)` | Dropdowns |
+| Style                | Shadow                                                         | Used on                    |
+| -------------------- | -------------------------------------------------------------- | -------------------------- |
+| `Elevation/Card`     | `0 1 2 rgba(5,13,38,.04)`                                      | Cards, if anything at all  |
+| `Elevation/Raised`   | `0 4 12 -2 rgba(5,13,38,.06)`, `0 1 3 rgba(5,13,38,.04)`       | Hovered card               |
+| `Elevation/Popover`  | `0 12 32 -8 rgba(5,13,38,.12)`, `0 2 6 rgba(5,13,38,.05)`      | Dropdowns                  |
 | `Elevation/Layer 3D` | `0 28 48 -12 rgba(5,13,38,.14)`, `0 6 14 -4 rgba(5,13,38,.06)` | The DTO layer illustration |
+
+The hero's live 3D variant uses physically based transmission materials and the locally versioned
+`apps/web/public/hdri/studio_small_08_1k.hdr` environment. The source is Poly Haven's
+**Studio Small 08** by Sergej Majboroda (CC0). It must never be fetched from a third-party host at
+runtime.
+
+Each of the four slabs is one **extruded rounded rectangle** — corners rounded, top and bottom rims
+sharp — and all four are the same size: the stack is a sequence of equal boundaries, not a hierarchy
+of them. `Mapper` is the unmistakably active one: its rim keeps the same white frosted material while
+a broad `lavender/500` pool glows from the centre and fades through `lavender/100` before reaching the
+perimeter. The light spills softly onto the `Entity` slab below it and washes the canvas behind the
+stack. The renderer runs **unmapped**
+(`flat`) and paints `bg/canvas` as its own backdrop, so the tokens above are the values that reach
+the screen and the canvas leaves no seam against the page. There is no post-processing pass; a bloom
+over a near-white scene only greys the labels down.
+
+The four boundaries settle once from a compressed stack into the Figma composition; Reduced Motion
+starts directly at the final pose. During capability detection and glass warm-up, an abstract CSS
+study of four unlabelled frosted panes holds the reserved composition with a small `Preparing pipeline`
+status. It must read as material being prepared, not as a lower-fidelity duplicate of the finished
+pipeline. The labelled static vector appears only when WebGL is unavailable or fails, preserving the
+required 2D path without flashing it on successful devices. Neither path relies on a raster export.
+
+The live scene opens as one authored data-flow moment and settles into the full reference spacing. At
+rest the slabs breathe independently with very small Y/Z offsets. Hover or keyboard focus on a
+language card adds a light, symmetric Y/Z repulsion on top of that pose; leaving the card returns to
+the reference spacing. Pointer parallax stays below two degrees and there is no continuous rotation.
+The dashed reference network and every connector node remain static while the language changes. They
+describe the shared pipeline, not the selected track, so they neither disappear nor change their
+two-accent/two-muted order. A separate thin track leader appears only while a language is selected or
+previewed and moves between the four stages.
+
+The language-to-stage mapping is sequential and explicit: Java activates `Request DTO`, Python
+activates `Mapper`, PHP activates `Entity`, and TypeScript activates `Response DTO`. The active stage
+inherits Mapper's blue inner light and blue label while Mapper returns to quiet white glass whenever a
+different stage is active. Hover/focus changes only this local preview. Click commits one 1050ms
+transition: sibling cards fade, the stack opens along Z, the camera dollies toward Mapper, and
+`Exercise 01` resolves from depth before navigation. Motion is demand-rendered at roughly 24 fps,
+sleeps outside the viewport or in a hidden tab, and navigation is immediate under Reduced Motion.
 
 A card on the canvas needs no shadow: `#fefefe` on `#f9f8fa` plus a `#ececee` hairline already reads
 as lifted.
@@ -214,15 +279,18 @@ as lifted.
 
 Each entry exists as a Figma component of the same name.
 
-### Language Card — *variants: Java · Python · PHP · TypeScript*
+### Language Card — _variants: Java · Python · PHP · TypeScript_
+
 The hero's track picker. `165px` tall, `radius/xl`, `bg/surface-muted` fill, `1px border/strong`.
 Vertical stack: a `82 × 66` logo slot, `21px` gap, then a `Body/Language` label in `text/primary`.
 Padding `28` top, `22` bottom. Widths hug the widest of logo or label, so the four cards are
 deliberately uneven. Brand logos come from `icons/*.png` — never redraw them.
 
-### Button — *variants: Primary · Secondary · Disabled*
+### Button — _variants: Primary · Secondary · Disabled_
+
 `54px` tall, `radius/lg`, horizontal auto-layout with `26px` side padding and a `12px` gap around an
 `18px` icon.
+
 - **Primary** — `bg/action` fill, `text/inverse`, `Body/Default Bold`, leading play glyph. The only
   Action Navy surface in the product.
 - **Secondary** — `bg/surface`, `1px border/default`, `text/primary`, `Body/Default Medium`, leading
@@ -230,11 +298,13 @@ deliberately uneven. Brand logos come from `icons/*.png` — never redraw them.
 - **Disabled** — `bg/disabled`, `text/muted`, trailing arrow. Reads as unavailable, not as an error.
 
 ### Field Chip
+
 The field contract quoted from the task. Hug width, `28px` tall, `radius/lg`, `bg/surface`,
 `1px border/default`, `Label/Field Chip` in `text/accent`, `10px` side padding. Chips sit in a
 `10px`-gapped row and wrap.
 
-### Step Item — *variants: Active · Locked*
+### Step Item — _variants: Active · Locked_
+
 - **Active** — `38px` `bg/accent` circle with `Body/Small Medium` in `text/inverse`, `14px` gap, label
   in `Body/Default Bold` `text/primary`.
 - **Locked** — `bg/surface` circle with `1px border/default` and a `text/subtle` numeral, label in
@@ -244,34 +314,42 @@ The field contract quoted from the task. Hug width, `28px` tall, `radius/lg`, `b
 Locked steps unlock only when the previous task passes every check.
 
 ### Exercise Stepper
+
 `87px` tall, `bg/surface`, `1px border/default` on the bottom edge only, `44px` left padding.
 Step → `18px` → dashed connector (`1.5px`, `7/7` dash, `border/strong`) → step. A `179 × 3`
 `bg/accent` bar is pinned to the bottom-left under the active step.
 
 ### App Bar
+
 `79px` tall, `bg/surface`, hairline bottom border, `45px` left / `39px` right padding. Left: the
 `Heading/Brand` wordmark, a `7px` `bg/accent` dot, and `WORKSHOP` in `Label/Eyebrow` `text/subtle`.
 Right: Language Selector, Icon Button, Avatar with `26px` gaps.
 
 ### Language Selector
+
 `207 × 47`, `radius/lg`, `bg/surface`, `1px border/default`. A `24px` track badge, the track name in
 `Body/Default`, and a `20px` chevron in `neutral/500` pushed to the right edge.
 
 ### Avatar
+
 `40px` `radius/full` circle, `bg/disabled`, initials in `Body/Small Medium` `text/subtle`.
 
 ### Icon Button
+
 `40 × 40`, no fill, no border, `radius/lg`, a `22px` glyph in `neutral/900`. Used for the theme
 toggle and the editor controls.
 
 ### Task Brief
+
 `radius/xl` card, `bg/surface`, `1px border/default`, padding `23 / 26 / 23 / 19`. A `72px`
 `radius/2xl` `bg/accent-subtle` square holds a `32px` accent glyph; `30px` gap; then a column of
 `Your task` (`Heading/Card`), the instruction sentence (`Body/Small`, `text/secondary`, with the type
 name switched to `Code/Inline` in `text/accent`), and the Field Chip row.
 
 ### Code Editor
+
 `radius/xl`, `bg/surface`, `1px border/default`, clipped.
+
 - **Tab bar** — `49px`, `bg/surface-muted`. The active tab is `bg/surface` with a right hairline and
   holds a `20px` track badge, the filename in `Body/Small`, and an `18px` close glyph. Sun and expand
   glyphs sit at the right edge in `neutral/500`.
@@ -283,6 +361,7 @@ name switched to `Code/Inline` in `text/accent`), and the Field Chip row.
 The editor is a mock. It never executes participant code — see the invariants in `CLAUDE.md`.
 
 ### Info Row
+
 One row of the exercise context panel. `67px` tall, `bg/surface`, padding `14 / 12`. A `43px`
 `radius/2xl` `bg/accent-subtle` badge with a `22px` accent glyph, `14px` gap, then a column of a
 `Body/Compact Bold` title and `Body/Panel` copy in `text/secondary`. An optional trailing value sits
@@ -294,11 +373,13 @@ gaps.
 ## Screens
 
 ### `01 · Hero — Track Picker`
+
 Eyebrow → display lockup → lead → picker label → four track cards, all left-aligned on a `105px`
 margin, against a full-height illustration on the right. The `&` in `DTO&Mapping` is the only
 coloured glyph in the type block.
 
 ### `02 · Exercise — Typed Request DTO`
+
 App bar → stepper → two columns. Left: exercise label, title, question, intro, task brief, editor,
 actions, validation note. Right: the DTO layer illustration above a context panel of four Info Rows.
 The right column explains; the left column is where work happens. Never move an action into the
@@ -309,6 +390,7 @@ right column.
 ## Do's and Don'ts
 
 ### Do
+
 - Bind `Semantic` tokens in components and screens; reach for `Primitives` only for code syntax.
 - Keep Accent Blue for attention and Action Navy for the single primary action. One of each per view.
 - Build elevation from surface contrast plus a `1px` hairline. Reach for a shadow only when a surface
@@ -320,6 +402,7 @@ right column.
 - Keep `font-optical-sizing: auto` and `font-variant-numeric: tabular-nums` on `html`.
 
 ### Don't
+
 - Don't use Action Navy for anything but the primary button, and don't give a view two primary
   buttons.
 - Don't introduce a third accent hue. Success, warning and error states are not yet defined — add
@@ -327,8 +410,10 @@ right column.
 - Don't exceed `14px` radius on a rectangular surface.
 - Don't put a drop shadow on a card that already has a border.
 - Don't set the display styles at their nominal tracking; `Display/Hero` without −6.80px falls apart.
-- Don't redraw the brand logos or the isometric DTO illustration. Both are assets: logos in
-  `icons/`, illustrations cropped from `reference/`.
+- Don't redraw the brand logos. Keep the static fallback and the live WebGL stack aligned to the
+  same four boundaries, colours and accent order.
+- Don't bind a `lavender` token in a component or screen, and don't expose the labelled static vector
+  during successful WebGL warm-up.
 - Don't let the context panel grow an action. It is read-only supporting material.
 
 ---
@@ -336,6 +421,7 @@ right column.
 ## Agent Prompt Guide
 
 **Quick colour reference**
+
 - page background: `#f9f8fa` (app) / `#f6f6f6` (hero)
 - card surface: `#fefefe`
 - border: `#ececee` (in app) / `#dcdcde` (on hero canvas)
@@ -347,15 +433,15 @@ right column.
 
 **Example component prompts**
 
-1. *Track card*: 165px tall, hug width, 12px radius, `#fafafa` fill, 1px `#dcdcde` border. Centred
+1. _Track card_: 165px tall, hug width, 12px radius, `#fafafa` fill, 1px `#dcdcde` border. Centred
    column: 82×66 logo slot, 21px gap, 24px Inter Regular label in `#0a0a0a`. Padding 28 top, 22
    bottom.
-2. *Primary button*: 54px tall, 8px radius, `#02205a` fill, 26px side padding, 12px gap, 18px white
+2. _Primary button_: 54px tall, 8px radius, `#02205a` fill, 26px side padding, 12px gap, 18px white
    play glyph, 16px Inter Bold white label. No shadow, no border.
-3. *Field chip*: hug width, 28px tall, 8px radius, white fill, 1px `#ececee` border, 10px side
+3. _Field chip_: hug width, 28px tall, 8px radius, white fill, 1px `#ececee` border, 10px side
    padding, 13px Inter Semi Bold in `#1e62fd`.
-4. *Active step*: 38px `#1e62fd` circle with white 15px Medium numeral, 14px gap, 16px Inter Bold
+4. _Active step_: 38px `#1e62fd` circle with white 15px Medium numeral, 14px gap, 16px Inter Bold
    label in `#0a0a0a`, and a 179×3 `#1e62fd` bar pinned to the bottom of the stepper.
-5. *Context row*: 67px tall, white, 14px side padding. 43px 14px-radius `#eef1fd` badge with a 22px
+5. _Context row_: 67px tall, white, 14px side padding. 43px 14px-radius `#eef1fd` badge with a 22px
    `#1e62fd` glyph, 14px gap, 14px Inter Bold title over 12.5px Inter Regular copy in `#373c46`.
    Inset 1px `#ececee` divider below.

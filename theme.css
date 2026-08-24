@@ -1,6 +1,10 @@
 /* workshop-dto theme — generated view of tokens.json. See DESIGN.md for roles and rules. */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
+
+/* Inter and JetBrains Mono are NOT fetched here. The Next.js app self-hosts both at build time
+   via `next/font/google` (see apps/web/src/app/layout.tsx), so no runtime request leaves for a
+   font CDN. `--font-inter` / `--font-mono` below name the families; the app's globals.css points
+   them at the generated `next/font` CSS variables. When using this file outside the app, load
+   both families yourself. */
 
 @theme {
   /* ---- Primitives — neutral ---------------------------------------- */
@@ -28,10 +32,26 @@
   --color-blue-50: #eef1fd;
   --color-navy-900: #02205a;
   --color-navy-800: #00267e;
+  --color-lavender-600: #2f3cf0;
+  --color-lavender-500: #6f74f2;
+  --color-lavender-400: #7c83d6;
   --color-lavender-300: #cfd2ec;
   --color-lavender-100: #e6e8f7;
 
   /* ---- Primitives — code syntax ------------------------------------ */
+  /* Validation status. Not part of the original Figma palette: the result
+     panel needs a pass/fail pair, and colour alone never carries the verdict —
+     an icon and a word always accompany it. */
+  --color-green-700: #15803d;
+  --color-green-600: #16a34a;
+  --color-green-200: #bbf7d0;
+  --color-green-50: #f0fdf4;
+
+  --color-red-700: #b91c1c;
+  --color-red-600: #dc2626;
+  --color-red-200: #fecaca;
+  --color-red-50: #fef2f2;
+
   --color-code-keyword: #5b21d6;
   --color-code-type: #00267e;
   --color-code-identifier: #131319;
@@ -60,9 +80,21 @@
   --color-border-strong: var(--color-neutral-300);
   --color-border-accent: var(--color-blue-600);
 
+  --color-status-success: var(--color-green-700);
+  --color-status-success-solid: var(--color-green-600);
+  --color-status-success-subtle: var(--color-green-50);
+  --color-status-success-border: var(--color-green-200);
+  --color-status-danger: var(--color-red-600);
+  --color-status-danger-solid: var(--color-red-600);
+  --color-status-danger-subtle: var(--color-red-50);
+  --color-status-danger-border: var(--color-red-200);
+
   /* ---- Typefaces ---------------------------------------------------- */
-  --font-inter: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --font-inter:
+    "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, sans-serif;
+  --font-mono:
+    "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
   /* ---- Type ramp ---------------------------------------------------- */
   /* Tracking is size-dependent and non-linear. Always pair --text-* with its --leading-* and
@@ -169,9 +201,13 @@
   /* ---- Elevation ----------------------------------------------------- */
   /* Prefer surface contrast + a 1px hairline. Reach for these only when a surface truly floats. */
   --shadow-card: 0 1px 2px rgba(5, 13, 38, 0.04);
-  --shadow-raised: 0 4px 12px -2px rgba(5, 13, 38, 0.06), 0 1px 3px rgba(5, 13, 38, 0.04);
-  --shadow-popover: 0 12px 32px -8px rgba(5, 13, 38, 0.12), 0 2px 6px rgba(5, 13, 38, 0.05);
-  --shadow-layer-3d: 0 28px 48px -12px rgba(5, 13, 38, 0.14), 0 6px 14px -4px rgba(5, 13, 38, 0.06);
+  --shadow-raised:
+    0 4px 12px -2px rgba(5, 13, 38, 0.06), 0 1px 3px rgba(5, 13, 38, 0.04);
+  --shadow-popover:
+    0 12px 32px -8px rgba(5, 13, 38, 0.12), 0 2px 6px rgba(5, 13, 38, 0.05);
+  --shadow-layer-3d:
+    0 28px 48px -12px rgba(5, 13, 38, 0.14),
+    0 6px 14px -4px rgba(5, 13, 38, 0.06);
 }
 
 html {

@@ -51,3 +51,6 @@ first commands, record them here.
 
 Never add a `Co-Authored-By` trailer or any other Claude/agent attribution to commit messages,
 commit bodies, or pull request descriptions.
+
+Write pull request descriptions in two or three sentences: what changed and why. The commit
+history carries the detail.

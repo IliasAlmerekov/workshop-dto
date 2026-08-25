@@ -11,7 +11,10 @@
     "typecheck:web": "pnpm --filter web typecheck",
     "test:web": "pnpm --filter web test",
     "format:web": "pnpm --filter web format",
-    "format:check:web": "pnpm --filter web format:check"
+    "format:check:web": "pnpm --filter web format:check",
+    "dev:deck": "pnpm --filter deck dev",
+    "build:deck": "pnpm --filter deck build",
+    "typecheck:deck": "pnpm --filter deck typecheck"
   },
   "devDependencies": {
     "concurrently": "^10.0.5"

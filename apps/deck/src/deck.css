@@ -1,0 +1,139 @@
+@import "tailwindcss";
+
+/* The single source of truth for colour, type, spacing, radius and elevation.
+   DESIGN.md's rule is that `tokens.json` and `theme.css` are generated views of
+   one set — so the deck imports that file rather than restating any value from
+   it. A colour that drifts on the site drifts here on the next build. */
+@import "../../../theme.css";
+
+/* `theme.css` names the two families but deliberately fetches neither: the web
+   app self-hosts them through `next/font`. A Vite deck has no such build step,
+   so it brings its own copies, inlined by `assetsInlineLimit`. */
+@import "@fontsource/inter/latin-400.css";
+@import "@fontsource/inter/latin-500.css";
+@import "@fontsource/inter/latin-600.css";
+@import "@fontsource/inter/latin-700.css";
+@import "@fontsource/jetbrains-mono/latin-400.css";
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--color-bg-canvas);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---- The stage ------------------------------------------------------ *
+ * Every slide is composed against a fixed 1600x900 frame and the whole
+ * frame is scaled to whatever the room's board turns out to be. The talk
+ * is given on hardware nobody has measured, so the alternative — a fluid
+ * layout — would mean the deck reflows live in front of an audience.
+ * Letterboxing on a 16:10 board is the cheaper failure. */
+.stage-fit {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+
+.stage {
+  width: 1600px;
+  height: 900px;
+  position: relative;
+  flex: none;
+  transform-origin: center;
+  background: var(--color-bg-canvas);
+}
+
+/* ---- Typing, borrowed verbatim from the site's IntroCurtain ---------- *
+ * Same per-character cadence (62ms step, 260ms landing) and the same
+ * caret period, so the deck's first second and the site's first second
+ * are one gesture rather than two impressions of it. */
+@keyframes deck-char {
+  from {
+    opacity: 0;
+    transform: translateY(0.14em);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.deck-char {
+  display: inline-block;
+  white-space: pre;
+  opacity: 0;
+  animation-name: deck-char;
+  animation-duration: 260ms;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  animation-fill-mode: forwards;
+}
+
+@keyframes deck-caret {
+  0%,
+  45% {
+    opacity: 1;
+  }
+  55%,
+  100% {
+    opacity: 0;
+  }
+}
+
+.deck-caret {
+  display: inline-block;
+  width: 0.06em;
+  align-self: stretch;
+  margin-left: 0.06em;
+  background: var(--color-text-accent);
+  opacity: 0;
+  animation-name: deck-caret;
+  animation-duration: 1000ms;
+  animation-iteration-count: infinite;
+}
+
+/* ---- Motion is a hook, never a gate -------------------------------- *
+ * A project invariant: the workshop completes under reduced motion. For
+ * the deck that is also insurance — one OS setting turns a morphing deck
+ * into a plain, reliable slide show on an unfamiliar machine. */
+@media (prefers-reduced-motion: reduce) {
+  .deck-char,
+  .deck-caret {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
+/* Touch zones for the board. Invisible on purpose: a presenter standing at
+   the screen advances by tapping the slide, not by finding a 40px arrow. */
+.tap-zone {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 40;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ---- The dark code half --------------------------------------------- *
+ * DESIGN.md's theme is light only, and the deck keeps it — except under
+ * code. Both of the app's code surfaces bind themeable `--syntax-*`
+ * aliases with a dark half tuned for `bg/code` #131316, and in a lit room
+ * a projected light-on-light code block is the least legible thing on the
+ * screen. These are the app's own dark values, copied from
+ * `apps/web/src/app/globals.css` :root[data-theme="dark"] so the two
+ * surfaces stay one set rather than two opinions.
+ *
+ * Signal Red needs no lifting here: #ff2001 is 4.83:1 on #131316. */
+:root {
+  --code-bg: #131316;
+  --code-foreground: #fafafa;
+  --syntax-keyword: #c4b5fd;
+  --syntax-type: #5eead4;
+  --syntax-string: #fcd34d;
+  --syntax-comment: #71717a;
+  --syntax-punct: #a1a1aa;
+  --code-danger: #ff2001;
+}

@@ -39,6 +39,7 @@ import type { Language } from "@/lib/workshop/types";
 import {
   DTO_LAYERS,
   LAYER_PITCH,
+  RESTING_ACCENT_LAYER_INDEX,
   SLAB,
   layerPosition,
   layerSeparationOffset,
@@ -88,18 +89,35 @@ const GLASS_NORMAL_MAP = "/textures/glass-frosted-001-normal.jpg";
  * The reference keeps three boundaries milky and nearly colourless. Only the
  * active boundary carries a visible lavender core, so the colour creates one
  * clear point of attention instead of turning the stack into four opaque bars.
+ *
+ * The passive tint is a near-white the volume is allowed to *carry*, not a grey
+ * it is painted with. A block whose surface colour does the work reads as
+ * plastic at any transmission, because the tint arrives evenly across the face
+ * instead of deepening with the optical path. So the surface colours here sit
+ * within a few values of white and the attenuation pair below carries every
+ * bit of the hue — which is what puts a gradient inside the block, running
+ * from a bright thin rim into a cooler core.
  */
-const GLASS_PASSIVE = "#e8e8ea"; // reference neutral top face
-const GLASS_ACTIVE = "#cdcdfb"; // reference Mapper top face
-const GLASS_ATTENUATION_PASSIVE = "#d9dbea"; // reference neutral side
-const GLASS_ATTENUATION_ACTIVE = "#b0b0f4"; // reference Mapper core
-const GLASS_ATTENUATION_DISTANCE_PASSIVE = 5.2;
-const GLASS_ATTENUATION_DISTANCE_ACTIVE = 2.3;
-const MAPPER_LIGHT = "#6b6bf2"; // lavender/500, emitted only inside the illustration
+const GLASS_PASSIVE = "#f4f5f9"; // near-white shell; the volume carries the tint
+const GLASS_ACTIVE = "#e4e4fc"; // reference active top face, lifted towards white
+const GLASS_ATTENUATION_PASSIVE = "#ccd2e8"; // reference neutral side, cooled
+const GLASS_ATTENUATION_ACTIVE = "#a6a6f4"; // reference active core
+/**
+ * How far light travels before the attenuation colour has fully absorbed it.
+ * These are the tint's *rate*, and the pair below `thickness` is what decides
+ * whether the slab reads as glass or as a painted block. Short distances give a
+ * gorgeous gradient and, one step further, an opaque periwinkle brick with the
+ * label sitting on top — the one thing this material may not become. Held long
+ * enough that the thin end of every slab is still near-white, and only the long
+ * diagonal through it reaches the core colour.
+ */
+const GLASS_ATTENUATION_DISTANCE_PASSIVE = 5.4;
+const GLASS_ATTENUATION_DISTANCE_ACTIVE = 2.9;
+const ACCENT_LIGHT = "#6b6bf2"; // lavender/500, emitted only inside the illustration
 
 const LABEL_INK = "#0a0a0a"; // neutral/black
 const LABEL_MUTED = "#26262c"; // reference Entity label, held up against bright frost
-const LABEL_ACCENT = "#15139c"; // reference Mapper label
+const LABEL_ACCENT = "#15139c"; // reference active-boundary label
 const LABEL_COOL = "#6673b3"; // reference Response DTO label
 
 const CONNECTOR = "#a8b2e8"; // reference primary dashed leader
@@ -166,7 +184,7 @@ function buildInnerGlowTexture(): Texture {
   const height = 128;
   const data = new Uint8Array(width * height * 4);
   const outer = [233, 233, 251]; // #e9e9fb — reference glow edge
-  const glowCore = [176, 176, 244]; // #b0b0f4 — reference Mapper core
+  const glowCore = [176, 176, 244]; // #b0b0f4 — reference active core
 
   for (let y = 0; y < height; y += 1) {
     for (let x = 0; x < width; x += 1) {
@@ -195,21 +213,65 @@ function buildInnerGlowTexture(): Texture {
 }
 
 /**
- * A neutral optical field for the resin volume. Screen-space transmission
- * captured the other three slabs and their labels as dark bands; a uniform
- * near-white field keeps the subtle depth/attenuation response while removing
- * recognizable scene shapes from the material entirely.
+ * The optical field the resin refracts: an authored studio backdrop rather than
+ * the live screen-space capture.
+ *
+ * Screen-space transmission caught the other three slabs and their labels and
+ * dragged them through the glass as dark bands, so the buffer was replaced with
+ * a flat white 2×2. That fixed the bands and cost the material everything else:
+ * refraction can only bend what the buffer holds, and bending a constant is
+ * still that constant. Every slab came out the same value edge to edge — the
+ * "grey block" reading, with the frost and the volume doing no visible work.
+ *
+ * So the field keeps its authored, shape-free premise and gains the one thing
+ * that survives refraction: a gradient. A wide softbox sits high and slightly
+ * left, matching where `StudioLights` puts the real one, and falls through a
+ * pale cool floor. What the eye then sees through a slab is that sweep,
+ * displaced by the rim's curvature and stretched by the block's thickness —
+ * bright where the glass is thin, deepening into the attenuation colour where
+ * the path through it is long. Nothing in it is recognizable as scene
+ * geometry, so no band can come back.
+ *
+ * Authored at 128×128 with mipmaps off and linear filtering: it is a smooth
+ * function of position, so it neither aliases nor needs resolution.
  */
 function buildResinTransmissionBuffer(): Texture {
-  const texture = new DataTexture(
-    new Uint8Array([
-      255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
-      255,
-    ]),
-    2,
-    2,
-    RGBAFormat,
-  );
+  const size = 128;
+  const data = new Uint8Array(size * size * 4);
+  const softbox = [255, 255, 255]; // the key light's own core
+  const upper = [238, 241, 250]; // cool white above the horizon
+  const floor = [206, 211, 228]; // the studio floor, `neutral/300` cooled
+
+  for (let y = 0; y < size; y += 1) {
+    // Buffer rows run top-down, so invert to get a world-up gradient.
+    const v = 1 - (y + 0.5) / size;
+    for (let x = 0; x < size; x += 1) {
+      const u = (x + 0.5) / size;
+
+      // The vertical sweep: floor into cool white, eased so the transition
+      // lands as a gradient rather than as a visible horizon line.
+      const lift = MathUtils.smoothstep(v, 0.02, 0.94);
+      // The softbox: a broad elliptical falloff high and left of centre, the
+      // same quadrant the rectAreaLight occupies.
+      const du = (u - 0.34) / 0.62;
+      const dv = (v - 0.78) / 0.5;
+      const glow = Math.pow(
+        1 - MathUtils.smoothstep(Math.sqrt(du * du + dv * dv), 0, 1),
+        1.6,
+      );
+
+      const index = (y * size + x) * 4;
+      for (let channel = 0; channel < 3; channel += 1) {
+        const base = MathUtils.lerp(floor[channel], upper[channel], lift);
+        data[index + channel] = Math.round(
+          MathUtils.lerp(base, softbox[channel], glow * 0.85),
+        );
+      }
+      data[index + 3] = 255;
+    }
+  }
+
+  const texture = new DataTexture(data, size, size, RGBAFormat);
   texture.colorSpace = SRGBColorSpace;
   texture.minFilter = LinearFilter;
   texture.magFilter = LinearFilter;
@@ -378,8 +440,8 @@ function GlassLayer({
   hovered,
 }: LayerProps) {
   const layer = DTO_LAYERS[index];
-  const active = (focusIndex ?? 1) === index;
-  // The reference opens on Mapper: one violet label and one optical core,
+  const active = (focusIndex ?? RESTING_ACCENT_LAYER_INDEX) === index;
+  // The stack rests on the Request DTO: one violet label and one optical core,
   // with the remaining boundaries returning to neutral glass.
   // Explicit workshop focus still moves that same single accent as before.
   const lit = active;
@@ -390,7 +452,10 @@ function GlassLayer({
   const attenuationDistance = lit
     ? GLASS_ATTENUATION_DISTANCE_ACTIVE
     : GLASS_ATTENUATION_DISTANCE_PASSIVE;
-  const transmission = lit ? 0.56 : 0.74;
+  // Both values are high enough that the block is genuinely see-through and
+  // the authored studio field reads through it; the active slab stays slightly
+  // denser so its lavender core survives its own transparency.
+  const transmission = lit ? 0.84 : 0.94;
   const rimColour = lit ? "#c8c8fa" : "#ffffff";
   const labelColour = active
     ? LABEL_ACCENT
@@ -413,11 +478,18 @@ function GlassLayer({
     () => [rest[0] - 0.14, rest[1] * 0.22 + 0.08, rest[2] + 0.12],
     [rest],
   );
+  // `resolution` is the edge length of the target the refracted image is
+  // resampled through, and it is what decides whether a rim highlight arrives
+  // as a curve or as a staircase. At 512 across a slab that spans most of a
+  // desktop hero the sweep was being reconstructed from fewer texels than the
+  // screen has pixels there, which is the blockiness the material was read
+  // for. `samples` is the blur tap count over that target; raising resolution
+  // without it just makes a sharper stipple, so the two move together.
   const transmissionSamples =
-    quality.tier === "high" ? 32 : quality.tier === "medium" ? 24 : 16;
+    quality.tier === "high" ? 24 : quality.tier === "medium" ? 20 : 12;
   const transmissionResolution =
-    quality.tier === "high" ? 512 : quality.tier === "medium" ? 384 : 256;
-  const glassNormalScale = useMemo(() => new Vector2(0.004, 0.004), []);
+    quality.tier === "high" ? 1024 : quality.tier === "medium" ? 768 : 384;
+  const glassNormalScale = useMemo(() => new Vector2(0.0022, 0.0022), []);
 
   useEffect(() => {
     if (!selectedTrack) {
@@ -527,12 +599,22 @@ function GlassLayer({
           // labels from reappearing as dark screen-space refraction bands.
           buffer={transmissionBuffer}
           transmission={transmission}
-          thickness={0.62}
-          ior={1.41}
-          roughness={0.24}
+          // Thickness is the optical path the attenuation colour is integrated
+          // over, not the geometry. Held well above the slab's own 0.44 so the
+          // tint has room to deepen across the block instead of arriving flat.
+          thickness={0.98}
+          ior={1.46}
+          // The frost is a microsurface, not a fog. At 0.24 the refracted
+          // studio was scattered into an even grey before it could resolve
+          // into a gradient; here the sweep survives and the normal map's
+          // acid-etched grain is what softens it.
+          roughness={0.06}
           normalMap={surface.normal}
           normalScale={glassNormalScale}
-          chromaticAberration={0}
+          // A trace of dispersion at the rim. Glass splits what it bends, and
+          // its absence is one of the few tells the eye reads without naming.
+          // Kept far below where the labels beneath could fringe.
+          chromaticAberration={0.028}
           anisotropy={0}
           anisotropicBlur={0}
           distortion={0}
@@ -541,9 +623,13 @@ function GlassLayer({
           resolution={transmissionResolution}
           side={FrontSide}
           metalness={0}
-          clearcoat={0.42}
-          clearcoatRoughness={0.22}
-          envMapIntensity={0.26}
+          // The polished coat over the frost: this is the layer the softboxes
+          // land on, and it is what separates cast glass from frosted acrylic.
+          clearcoat={1}
+          clearcoatRoughness={0.08}
+          // The HDRI's own reflections, now that the surface is smooth enough
+          // to hold them as shapes rather than as a wash.
+          envMapIntensity={0.72}
           color={glassColour}
           attenuationColor={attenuationColour}
           attenuationDistance={attenuationDistance}
@@ -1012,10 +1098,10 @@ function StudioLights({
   reducedMotion: boolean;
   activeLayerIndex: number;
 }) {
-  const mapperLight = useRef<PointLight>(null);
+  const accentLight = useRef<PointLight>(null);
 
   useFrame(({ clock }, delta) => {
-    const light = mapperLight.current;
+    const light = accentLight.current;
     if (!light || reducedMotion) {
       return;
     }
@@ -1049,8 +1135,8 @@ function StudioLights({
         intensity={0.14}
       />
       <pointLight
-        ref={mapperLight}
-        color={MAPPER_LIGHT}
+        ref={accentLight}
+        color={ACCENT_LIGHT}
         intensity={0.14}
         distance={2.8}
         decay={2}
@@ -1102,14 +1188,14 @@ export default function DtoLayerStackScene({
       <Environment
         files={ENVIRONMENT}
         resolution={quality.environmentResolution}
-        environmentIntensity={0.22}
+        environmentIntensity={0.44}
         environmentRotation={[0, 2.22, 0]}
       />
       <StudioLights
         engaged={previewTrack !== null || focusLayerIndex !== null}
         transitioning={selectedTrack !== null}
         reducedMotion={reducedMotion}
-        activeLayerIndex={focusIndex ?? 1}
+        activeLayerIndex={focusIndex ?? RESTING_ACCENT_LAYER_INDEX}
       />
 
       <group position={[0, -0.1, 0]}>

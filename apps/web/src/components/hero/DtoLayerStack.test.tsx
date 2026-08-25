@@ -154,7 +154,7 @@ describe("DtoLayerStack", () => {
     }
   });
 
-  it("returns the accent to Mapper when nothing is previewed", async () => {
+  it("rests the accent on the Request DTO when nothing is previewed", async () => {
     state.supportsWebGL = false;
     const { container } = render(<DtoLayerStack className="hero" />);
 
@@ -162,13 +162,16 @@ describe("DtoLayerStack", () => {
       name: /the four layers the workshop works through/i,
     });
 
-    expect(container.querySelector('[data-layer-id="mapper"]')).toHaveAttribute(
-      "data-active",
-      "true",
-    );
+    // The resting accent and the one every track preview lands on are the same
+    // slab, so choosing a language confirms the composition instead of moving
+    // its single lit boundary somewhere else.
     expect(
       container.querySelector('[data-layer-id="request-dto"]'),
-    ).toHaveAttribute("data-active", "false");
+    ).toHaveAttribute("data-active", "true");
+    expect(container.querySelector('[data-layer-id="mapper"]')).toHaveAttribute(
+      "data-active",
+      "false",
+    );
   });
 
   it("keeps connector lines and nodes static while the track preview changes", async () => {

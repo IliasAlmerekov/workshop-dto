@@ -6,7 +6,7 @@ describe("pickSceneQuality", () => {
     const quality = pickSceneQuality({ cores: 12, coarsePointer: true });
 
     expect(quality.tier).toBe("low");
-    expect(quality.transmissionResolutionScale).toBe(0.5);
+    expect(quality.transmissionResolutionScale).toBe(0.65);
   });
 
   it("uses the full tier on a many-core desktop", () => {

@@ -1,8 +1,14 @@
 import { HERO_LOADER_EXIT_MS } from "./heroMotion";
 
+/**
+ * The accent sits on the first slab, matching the resting accent both real
+ * renderers hold on the Request DTO. The handover is a dissolve between two
+ * pictures of the same stack, so a lit boundary that moved across it would be
+ * the one motion in the transition the eye could not explain.
+ */
 const LOADING_LAYERS = [
-  { top: "18%", delay: "0ms", accent: false },
-  { top: "36%", delay: "-420ms", accent: true },
+  { top: "18%", delay: "0ms", accent: true },
+  { top: "36%", delay: "-420ms", accent: false },
   { top: "54%", delay: "-840ms", accent: false },
   { top: "72%", delay: "-1260ms", accent: false },
 ] as const;
@@ -47,7 +53,7 @@ export function DtoLayerStackLoading({
       )}
 
       <div aria-hidden="true" className="absolute inset-0">
-        <div className="absolute top-[24%] left-1/2 h-[54%] w-[82%] -translate-x-1/2 rounded-full bg-[radial-gradient(ellipse,rgba(111,116,242,0.13),rgba(207,210,236,0.045)_46%,transparent_72%)] blur-[28px]" />
+        <div className="absolute top-[6%] left-1/2 h-[48%] w-[82%] -translate-x-1/2 rounded-full bg-[radial-gradient(ellipse,rgba(111,116,242,0.13),rgba(207,210,236,0.045)_46%,transparent_72%)] blur-[28px]" />
 
         {LOADING_LAYERS.map((layer, index) => (
           <span

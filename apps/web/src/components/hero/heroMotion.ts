@@ -126,13 +126,14 @@ export const HERO_SEPARATION_FLAT = {
  *
  * The four languages used to own a stage each — one per slab, top to bottom —
  * but a language does not own a pipeline stage, and the mapping was arbitrary in
- * a place the eye reads as meaningful. Worse, it split the emphasis: the card
- * annotated one slab while the resting violet core still sat on Mapper.
+ * a place the eye reads as meaningful.
  *
  * So the preview points at the boundary the choice actually decides: the
  * **Request DTO**, the first thing the participant writes in whichever language
- * they pick. Resolved by id rather than by position, so reordering `DTO_LAYERS`
- * cannot silently move the accent somewhere else.
+ * they pick — which is also the stack's resting accent, so previewing a track
+ * confirms the composition rather than relocating its one lit slab. Resolved by
+ * id rather than by position, so reordering `DTO_LAYERS` cannot silently move
+ * the accent somewhere else.
  */
 export const TRACK_FOCUS_LAYER_INDEX = DTO_LAYERS.findIndex(
   (layer) => layer.id === "request-dto",

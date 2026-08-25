@@ -2,10 +2,12 @@
  * The four boundaries the workshop teaches, as one ordered list.
  *
  * The live 3D scene reads its label, order and accent decisions from here.
- * `Mapper` owns the resting accent from the reference. Language preview moves
- * that same inner light and blue label across the four stages without changing
- * this structural list. The live scene and no-WebGL fallback both consume it,
- * so their labels and resting emphasis cannot drift apart.
+ * `Request DTO` owns the resting accent: it is the first boundary a
+ * participant writes in whichever track they pick, so the resting emphasis and
+ * the one a language preview lands on are the same slab, and choosing a track
+ * confirms the composition instead of relocating it. The live scene and
+ * no-WebGL fallback both consume this list, so their labels and resting
+ * emphasis cannot drift apart.
  *
  * The four slabs are identical in size — the stack is a sequence of equal
  * boundaries, not a hierarchy of them. The label sizes fall away with depth
@@ -21,18 +23,18 @@ export const DTO_LAYERS = [
   {
     id: "request-dto",
     label: "Request DTO",
-    accent: false,
+    accent: true,
     labelSize: 0.3,
     labelShift: 0,
-    tone: "ink",
+    tone: "accent",
   },
   {
     id: "mapper",
     label: "Mapper",
-    accent: true,
+    accent: false,
     labelSize: 0.275,
     labelShift: 0,
-    tone: "accent",
+    tone: "ink",
   },
   {
     id: "entity",
@@ -53,6 +55,18 @@ export const DTO_LAYERS = [
 ] as const;
 
 export type DtoLayer = (typeof DTO_LAYERS)[number];
+
+/**
+ * The slab that carries the accent when nothing else is asking for attention.
+ *
+ * Resolved from the list's own `accent` flag rather than written as a literal,
+ * so the live scene, the no-WebGL fallback and the loading skeleton cannot
+ * disagree about which boundary is lit, and reordering `DTO_LAYERS` cannot
+ * silently move the emphasis somewhere else.
+ */
+export const RESTING_ACCENT_LAYER_INDEX = DTO_LAYERS.findIndex(
+  (layer) => layer.accent,
+);
 
 /** Reference spacing between the four resting layers. Hover adds only a small
  * transient Y/Z repulsion on top of this authored composition. */

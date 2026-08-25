@@ -22,7 +22,11 @@ export type SceneQuality = {
    * whole opaque pass once per frame.
    */
   transmissionResolutionScale: number;
-  /** Environment map edge length, in pixels. */
+  /**
+   * Environment map edge length, in pixels. The HDRI's softboxes are what the
+   * polished coat reflects, so this is the difference between a rim highlight
+   * with an edge and a pale smear.
+   */
   environmentResolution: number;
 };
 
@@ -41,20 +45,20 @@ const QUALITY: Record<SceneQualityTier, SceneQuality> = {
   low: {
     tier: "low",
     dpr: [1, 1],
-    transmissionResolutionScale: 0.5,
+    transmissionResolutionScale: 0.65,
     environmentResolution: 256,
   },
   medium: {
     tier: "medium",
-    dpr: [1, 1.35],
-    transmissionResolutionScale: 0.75,
+    dpr: [1, 1.6],
+    transmissionResolutionScale: 0.9,
     environmentResolution: 512,
   },
   high: {
     tier: "high",
-    dpr: [1, 1.6],
+    dpr: [1, 2],
     transmissionResolutionScale: 1,
-    environmentResolution: 512,
+    environmentResolution: 1024,
   },
 };
 

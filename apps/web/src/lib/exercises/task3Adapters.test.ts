@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { LANGUAGES } from "@/lib/workshop/types";
 import { loadTask3Adapter } from "./task3Adapters";
-import { TASK3_FIELDS } from "./task3";
 
 describe("loadTask3Adapter", () => {
   it.each(LANGUAGES)("loads a working adapter for %s", async (language) => {
@@ -19,13 +18,15 @@ describe("loadTask3Adapter", () => {
     const result = adapter.validate(adapter.solutionCode);
     expect(result.passed).toBe(true);
 
-    // Every field has at least a source-mapping check, so feedback can point
-    // at the specific transformation that's missing (spec 7.4).
-    for (const field of TASK3_FIELDS) {
-      expect(
-        result.checks.some((c) => c.id === `field-${field.outputName}-source`),
-      ).toBe(true);
-    }
+    expect(result.checks.map((check) => check.id)).toEqual(
+      expect.arrayContaining([
+        "field-recipientEmail",
+        "field-recipientName",
+        "field-subject",
+        "field-body",
+        "immutable",
+      ]),
+    );
 
     // Three progressive hint cards before "Insert solution" (spec 7.3).
     expect(adapter.hints).toHaveLength(3);

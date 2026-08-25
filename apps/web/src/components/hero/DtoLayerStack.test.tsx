@@ -154,7 +154,7 @@ describe("DtoLayerStack", () => {
     }
   });
 
-  it("returns the accent to Mapper when nothing is previewed", async () => {
+  it("rests the accent on the Request DTO when nothing is previewed", async () => {
     state.supportsWebGL = false;
     const { container } = render(<DtoLayerStack className="hero" />);
 
@@ -162,13 +162,16 @@ describe("DtoLayerStack", () => {
       name: /the four layers the workshop works through/i,
     });
 
-    expect(container.querySelector('[data-layer-id="mapper"]')).toHaveAttribute(
-      "data-active",
-      "true",
-    );
+    // The resting accent and the one every track preview lands on are the same
+    // slab, so choosing a language confirms the composition instead of moving
+    // its single lit boundary somewhere else.
     expect(
       container.querySelector('[data-layer-id="request-dto"]'),
-    ).toHaveAttribute("data-active", "false");
+    ).toHaveAttribute("data-active", "true");
+    expect(container.querySelector('[data-layer-id="mapper"]')).toHaveAttribute(
+      "data-active",
+      "false",
+    );
   });
 
   it("keeps connector lines and nodes static while the track preview changes", async () => {
@@ -275,6 +278,38 @@ describe("DtoLayerStack", () => {
     });
 
     expect(screen.queryByTestId("hero-hover-area")).not.toBeInTheDocument();
+  });
+
+  it("re-presses the two DTO inscriptions into the committed track's syntax", async () => {
+    state.supportsWebGL = false;
+    const { container, rerender } = render(
+      <DtoLayerStack className="hero" previewTrack="php" />,
+    );
+    await screen.findByRole("img", { name: /the four layers/i });
+
+    const inscription = (layerId: string, kind: "role" | "declaration") =>
+      container.querySelector(
+        `[data-layer-id="${layerId}"] [data-layer-label="${kind}"]`,
+      );
+
+    // A hover preview is a question, not an answer: nothing is renamed yet.
+    expect(inscription("request-dto", "declaration")).toBeNull();
+    expect(inscription("request-dto", "role")).toHaveTextContent("Request DTO");
+
+    rerender(
+      <DtoLayerStack className="hero" previewTrack="php" selectedTrack="php" />,
+    );
+
+    expect(inscription("request-dto", "declaration")).toHaveTextContent(
+      "final class UserRequest",
+    );
+    expect(inscription("response-dto", "declaration")).toHaveTextContent(
+      "final class UserResponse",
+    );
+    // The boundaries a language does not decide keep their role names.
+    expect(inscription("mapper", "declaration")).toBeNull();
+    expect(inscription("entity", "declaration")).toBeNull();
+    expect(inscription("mapper", "role")).toHaveTextContent("Mapper");
   });
 
   it("recovers to the static vector stack after WebGL context loss", async () => {

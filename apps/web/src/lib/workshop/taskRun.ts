@@ -2,8 +2,10 @@ import {
   TASK1_REQUIRED_FIELDS,
   TASK1_SAMPLE_PAYLOAD,
 } from "@/lib/exercises/task1";
-import { TASK2_FIELDS, TASK2_RAW_PAYLOAD } from "@/lib/exercises/task2";
-import { TASK3_FIELDS, TASK3_RAW_PAYLOAD } from "@/lib/exercises/task3";
+import {
+  TASK2_FIELDS,
+  TASK2_LEGACY_REGISTRATION_PAYLOAD,
+} from "@/lib/exercises/task2";
 import {
   TASK4_ENTITY_SAMPLE,
   TASK4_FIELDS,
@@ -86,18 +88,19 @@ function task1Run(): TaskRun {
 
 function task2Run(): TaskRun {
   return {
-    inputCaption: "Raw request body — snake_case, untrimmed, mixed casing",
-    input: { ...TASK2_RAW_PAYLOAD },
+    inputCaption:
+      "Legacy registration form — snake_case, extra whitespace, mixed casing",
+    input: { ...TASK2_LEGACY_REGISTRATION_PAYLOAD },
     outputName: "CreateUserRequest",
     fields: TASK2_FIELDS.map((field) => {
-      const raw = TASK2_RAW_PAYLOAD[field.sourceKey];
-      const trimmed = raw.trim();
+      const formValue = TASK2_LEGACY_REGISTRATION_PAYLOAD[field.sourceKey];
+      const trimmed = formValue.trim();
       const normalised = field.needsLowercase ? trimmed.toLowerCase() : trimmed;
       const steps: string[] = [];
       if (field.sourceKey !== field.outputName) {
         steps.push("renamed");
       }
-      if (trimmed !== raw) {
+      if (trimmed !== formValue) {
         steps.push("trimmed");
       }
       if (field.needsLowercase && normalised !== trimmed) {
@@ -119,47 +122,72 @@ function task2Run(): TaskRun {
   };
 }
 
-function task3Run(): TaskRun {
+function welcomeEmailDtoRun(): TaskRun {
   return {
-    inputCaption: "Response from the external identity service",
-    input: { ...TASK3_RAW_PAYLOAD },
-    outputName: "IdentityCheckResult",
-    fields: TASK3_FIELDS.map((field) => {
-      const raw = TASK3_RAW_PAYLOAD[field.sourceKey];
-
-      if (field.kind === "integer") {
-        return {
-          key: field.outputName,
-          value: display(Number.parseInt(raw, 10)),
-          kind: "number" as const,
-          source: field.sourceKey,
-          transform: joinTransforms(["renamed", "parsed to a number"]),
-        };
-      }
-
-      if (field.kind === "boolean") {
-        return {
-          key: field.outputName,
-          value: display(raw.toUpperCase() === "VERIFIED"),
-          kind: "boolean" as const,
-          source: field.sourceKey,
-          transform: joinTransforms(["renamed", `"${raw}" read as true`]),
-        };
-      }
-
-      return {
-        key: field.outputName,
-        value: raw,
-        kind: "date" as const,
-        source: field.sourceKey,
-        transform: joinTransforms(["renamed", "parsed to a timestamp"]),
-      };
-    }),
+    inputCaption: "Notification contract for the welcome-email boundary",
+    input: {},
+    outputName: "WelcomeEmail",
+    fields: ["recipientEmail", "recipientName", "subject", "body"].map(
+      (key) => ({
+        key,
+        value:
+          key === "subject"
+            ? "Welcome to the new registration service"
+            : key === "body"
+              ? "Welcome, Ada Lovelace!"
+              : key === "recipientName"
+                ? "Ada Lovelace"
+                : "ada@example.test",
+        kind: "string" as const,
+        source: "WelcomeEmail contract",
+        transform: "declared for the email consumer",
+      }),
+    ),
     omitted: [],
   };
 }
 
-function task4Run(): TaskRun {
+function welcomeEmailMapperRun(): TaskRun {
+  const user = { ...TASK4_ENTITY_SAMPLE };
+  return {
+    inputCaption: "Created internal User — email is prepared locally only",
+    input: user,
+    outputName: "WelcomeEmail",
+    fields: [
+      {
+        key: "recipientEmail",
+        value: user.email,
+        kind: "string" as const,
+        source: "email",
+        transform: "renamed",
+      },
+      {
+        key: "recipientName",
+        value: `${user.firstName} ${user.lastName}`,
+        kind: "string" as const,
+        source: "firstName + lastName",
+        transform: "joined",
+      },
+      {
+        key: "subject",
+        value: "Welcome to the new registration service",
+        kind: "string" as const,
+        source: "welcome template",
+        transform: "prepared, not sent",
+      },
+      {
+        key: "body",
+        value: `Welcome, ${user.firstName} ${user.lastName}!`,
+        kind: "string" as const,
+        source: "firstName + lastName",
+        transform: "prepared, not sent",
+      },
+    ],
+    omitted: [],
+  };
+}
+
+function registrationResponseRun(): TaskRun {
   const entity: Record<string, string | number> = { ...TASK4_ENTITY_SAMPLE };
   const mapped = new Set<string>();
 
@@ -213,7 +241,7 @@ function task4Run(): TaskRun {
   return {
     inputCaption: "Internal User entity, as the demo API stores it",
     input: entity,
-    outputName: "UserResponse",
+    outputName: "RegistrationResponse",
     fields,
     omitted,
   };
@@ -222,8 +250,10 @@ function task4Run(): TaskRun {
 const RUNS: Record<TaskId, () => TaskRun> = {
   "request-dto": task1Run,
   "request-mapper": task2Run,
-  "external-api": task3Run,
-  "response-dto": task4Run,
+  "welcome-email-dto": welcomeEmailDtoRun,
+  "welcome-email-mapper": welcomeEmailMapperRun,
+  "registration-response-dto": registrationResponseRun,
+  "registration-response-mapper": registrationResponseRun,
 };
 
 export function runTask(taskId: TaskId): TaskRun {

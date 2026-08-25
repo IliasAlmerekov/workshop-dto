@@ -19,22 +19,22 @@ export const TASK4_ENTITY_SAMPLE = {
 } as const;
 
 export const TASK4_DEFINITION: TaskDefinition = {
-  id: "response-dto",
+  id: "welcome-email-mapper",
   order: 4,
-  title: "Response DTO and Entity Mapper",
-  shortTitle: "Response DTO",
-  question: "How do we produce a safe, stable public response?",
+  title: "Welcome Email Mapper",
+  shortTitle: "Email Mapper",
+  question: "How do we prepare a welcome email without sending it?",
   description:
-    "The internal User entity carries more than the public contract should expose. Map it onto a response that is safe to serialize.",
+    "Map the created User into WelcomeEmail. This prepares data only; it has no email provider or side effect.",
   fields: [
-    "id, userName, email kept as is",
-    "firstName + lastName → displayName",
-    "birthDate formatted YYYY-MM-DD",
-    "passwordHash & internalNote omitted",
+    "email → recipientEmail",
+    "firstName + lastName → recipientName",
+    "welcome subject",
+    "body names participant",
   ],
-  estimatedMinutes: 10,
+  estimatedMinutes: 8,
   explanation:
-    "The public contract contains only what the client actually needs. Building it explicitly — rather than serializing the entity directly — means passwordHash and internalNote can never leak by accident, even as the entity grows new fields over time.",
+    "The mapper makes the outbound notification boundary explicit. It prepares only the data the email consumer needs.",
   /**
    * Every entity member, `passwordHash` and `internalNote` included. Hiding
    * them would be the wrong lesson: a real IDE offers them too, and the whole

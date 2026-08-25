@@ -35,3 +35,26 @@ _Avoid_: Tip, suggestion, completion
 **Completion**:
 Symbol suggestions the editor offers unasked while a Participant types, drawn from the task's inputs and the track's built-ins. It is never counted and never names the target the Participant is building.
 _Avoid_: Hint, autocomplete, IntelliSense
+
+### Exercise content
+
+**Task Brief**:
+The compact exercise card that tells a Participant the concrete situation, the intended outcome, and the boundaries before they edit code.
+_Avoid_: Field list, code recipe, solution
+
+**Legacy Registration Payload**:
+The unnormalised field names and values submitted by the older registration screen before the Workshop Web App maps them into its own request contract.
+_Avoid_: Raw data, request DTO, external API response
+
+### Completion
+
+**Certificate**:
+The keepsake document a Participant generates in the browser after solving all four tasks and
+passing the knowledge check. It records completion, not attendance, and nothing issues, registers
+or verifies it.
+_Avoid_: Diploma, badge, credential, Teilnahmezertifikat
+
+**Issuing Institute**:
+The fictional body named on the Certificate as its author. It exists so the document can look like
+a diploma without any real organisation appearing to vouch for it.
+_Avoid_: Organisation, sponsor, authority

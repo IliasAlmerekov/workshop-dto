@@ -79,7 +79,7 @@ export default function Home() {
         <LocaleSwitcher />
       </div>
 
-      <main className="relative flex flex-1 flex-col overflow-x-hidden bg-bg-canvas min-[1280px]:h-svh min-[1280px]:max-h-svh min-[1280px]:overflow-hidden">
+      <main className="relative z-10 flex flex-1 flex-col overflow-x-hidden min-[1280px]:h-svh min-[1280px]:max-h-svh min-[1280px]:overflow-hidden">
         <section className="relative mx-auto flex w-full max-w-[1672px] flex-col px-[clamp(24px,6.28vw,105px)] pt-[clamp(56px,8vw,131px)] pb-[48px] min-[1280px]:h-[min(100svh,941px)] min-[1280px]:shrink-0 min-[1280px]:px-0 min-[1280px]:pt-0 min-[1280px]:pb-0">
           <div className="relative z-10 flex w-full max-w-[921px] flex-col min-[1280px]:absolute min-[1280px]:top-[clamp(56px,13.92svh,131px)] min-[1280px]:left-[105px]">
             <p className="flex items-center gap-[11px] text-[15px] leading-[1.2] font-bold tracking-[0.0133em] text-text-primary uppercase">

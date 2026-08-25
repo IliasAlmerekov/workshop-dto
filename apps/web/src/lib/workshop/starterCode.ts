@@ -22,24 +22,24 @@ class CreateUserRequest:
 ) {}`,
   },
   "request-mapper": {
-    typescript: `export function mapCreateUserRequest(raw: RawInput): CreateUserRequest {
+    typescript: `export function mapCreateUserRequest(form: RegistrationFormInput): CreateUserRequest {
   return {
     // TODO: rename, trim, lowercase, convert
   }
 }`,
     php: `final class CreateUserRequestMapper
 {
-    public function map(array $raw): CreateUserRequest
+    public function map(array $form): CreateUserRequest
     {
         // TODO: rename, trim, lowercase, convert
     }
 }`,
     python: `class CreateUserRequestMapper:
-    def map(self, raw: dict) -> CreateUserRequest:
+    def map(self, form: dict) -> CreateUserRequest:
         # TODO: rename, trim, lowercase, convert
         ...`,
     java: `public final class CreateUserRequestMapper {
-    public CreateUserRequest map(Map<String, String> raw) {
+    public CreateUserRequest map(Map<String, String> form) {
         // TODO: rename, trim, lowercase, convert
     }
 }`,
@@ -102,5 +102,5 @@ class CreateUserRequest:
 };
 
 export function starterCode(taskId: TaskId, language: Language): string {
-  return STARTER_CODE[taskId][language];
+  return STARTER_CODE[taskId]?.[language] ?? "";
 }

@@ -27,6 +27,7 @@ const quality: SceneQuality = {
   dpr: [1, 1.5],
   transmissionResolutionScale: 1,
   environmentResolution: 512,
+  shadowMapSize: 2048,
 };
 
 describe("DtoLayerStackCanvas", () => {
@@ -43,6 +44,8 @@ describe("DtoLayerStackCanvas", () => {
         selectedTrack={null}
         expanded={false}
         hovered={false}
+        pointer={{ current: { x: 0, y: 0, inside: false } }}
+        anchorRect={{ current: null }}
         focusLayerIndex={null}
         visible
         description="DTO layer stack"

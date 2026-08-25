@@ -6,10 +6,14 @@ import { TASK1_DEFINITION } from "@/lib/exercises/task1";
 import { TASK2_DEFINITION } from "@/lib/exercises/task2";
 import { TASK3_DEFINITION } from "@/lib/exercises/task3";
 import { TASK4_DEFINITION } from "@/lib/exercises/task4";
+import { TASK5_DEFINITION } from "@/lib/exercises/task5";
+import { TASK6_DEFINITION } from "@/lib/exercises/task6";
 import { loadTask1Adapter } from "@/lib/exercises/task1Adapters";
 import { loadTask2Adapter } from "@/lib/exercises/task2Adapters";
 import { loadTask3Adapter } from "@/lib/exercises/task3Adapters";
 import { loadTask4Adapter } from "@/lib/exercises/task4Adapters";
+import { loadTask5Adapter } from "@/lib/exercises/task5Adapters";
+import { loadTask6Adapter } from "@/lib/exercises/task6Adapters";
 import type { TaskDefinition } from "@/lib/exercises/types";
 import type { TaskLanguageAdapter } from "@/lib/exercises/types";
 import type { Language, TaskId } from "@/lib/workshop/types";
@@ -41,14 +45,22 @@ const REAL_TASKS: Partial<
     definition: TASK2_DEFINITION,
     loadAdapter: loadTask2Adapter,
   },
-  "external-api": {
+  "welcome-email-dto": {
     definition: TASK3_DEFINITION,
     loadAdapter: loadTask3Adapter,
   },
-  "response-dto": {
+  "welcome-email-mapper": {
     definition: TASK4_DEFINITION,
     loadAdapter: loadTask4Adapter,
     successPanel: <EntityDtoComparisonPanel />,
+  },
+  "registration-response-dto": {
+    definition: TASK5_DEFINITION,
+    loadAdapter: loadTask5Adapter,
+  },
+  "registration-response-mapper": {
+    definition: TASK6_DEFINITION,
+    loadAdapter: loadTask6Adapter,
   },
 };
 

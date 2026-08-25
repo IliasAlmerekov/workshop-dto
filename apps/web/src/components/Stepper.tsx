@@ -116,7 +116,7 @@ export function Stepper({ tasks, activeTaskId }: StepperProps) {
                       "hidden text-[var(--muted)] md:inline",
                 )}
               >
-                {messages.tasks[task.id].shortTitle}
+                {messages.tasks[task.id]?.shortTitle ?? task.shortTitle}
               </span>
               {isLocked && (
                 <span

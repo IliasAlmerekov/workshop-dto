@@ -8,14 +8,22 @@ import { loadTask1Adapter } from "@/lib/exercises/task1Adapters";
 import { loadTask2Adapter } from "@/lib/exercises/task2Adapters";
 import { loadTask3Adapter } from "@/lib/exercises/task3Adapters";
 import { loadTask4Adapter } from "@/lib/exercises/task4Adapters";
-import type { TaskId } from "@/lib/workshop/types";
+import { loadTask5Adapter } from "@/lib/exercises/task5Adapters";
+import { loadTask6Adapter } from "@/lib/exercises/task6Adapters";
 
-const LOADERS = {
+const LOADERS: Record<
+  string,
+  (
+    language: (typeof LANGUAGES)[number],
+  ) => Promise<import("@/lib/exercises/types").TaskLanguageAdapter>
+> = {
   "request-dto": loadTask1Adapter,
   "request-mapper": loadTask2Adapter,
-  "external-api": loadTask3Adapter,
-  "response-dto": loadTask4Adapter,
-} as const;
+  "welcome-email-dto": loadTask3Adapter,
+  "welcome-email-mapper": loadTask4Adapter,
+  "registration-response-dto": loadTask5Adapter,
+  "registration-response-mapper": loadTask6Adapter,
+};
 
 /**
  * The German catalogue is typed as `Messages`, so a *missing* key is already
@@ -59,7 +67,7 @@ describe("message catalogues", () => {
   it("keeps the English hints in the catalogue identical to the adapters'", async () => {
     for (const taskId of TASK_IDS) {
       for (const language of LANGUAGES) {
-        const adapter = await LOADERS[taskId as TaskId](language);
+        const adapter = await LOADERS[taskId](language);
         const copy = en.hints[taskId][language];
         expect(adapter.hints.map((hint) => hint.text)).toEqual([
           copy.concept,

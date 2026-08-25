@@ -171,7 +171,7 @@ flowchart LR
     C -. ungewollt gekoppelt .-> E
 ```
 
-## 6. Die vier Übungen
+## 6. Die sechs Übungen der Registration Migration
 
 Die Aufgaben sind sequenziell. Eine Aufgabe wird erst freigeschaltet, wenn die aktuelle Lösung alle Regeln erfüllt. Überspringen ist nicht möglich.
 
@@ -186,6 +186,14 @@ Die Teilnehmenden vervollständigen ein unveränderliches `CreateUserRequest` mi
 - `lastName: string`;
 - `birthDate: date`;
 - `email: string`.
+
+Der sichtbare Task Brief beschreibt den konkreten Einsatzfall: Eine Person erstellt in der
+Anwendung ein Konto und das Registrierungsformular sendet fünf Informationen an die Anwendung.
+Die Aufgabe lautet, in der track-spezifischen Datei `CreateUserRequest` ein unveränderliches DTO
+für genau diese Eingabegrenze anzulegen. Der Brief nennt als Erfolgskriterium die fünf Felder mit
+geeigneten Typen und Unveränderlichkeit und grenzt Validierung, Speichern und Transformation
+ausdrücklich aus. Er ist vollständig auf Englisch und Deutsch lokalisiert; die leichte englische
+Formulierung lautet: „No database drama yet — this step only defines the shape of the data.“
 
 Sprachdarstellung:
 
@@ -223,6 +231,14 @@ Der `CreateUserRequestMapper` erzeugt das DTO aus Aufgabe 1 und führt aus:
 - Benutzername und E-Mail kleinschreiben;
 - `birth_date` vom Text in den jeweiligen Datumstyp konvertieren.
 
+Der lokalisierte Task Brief verankert diese Schritte in der Registration: Ein älterer
+Registrierungsbildschirm liefert `snake_case`-Schlüssel sowie möglicherweise Leerzeichen und
+uneinheitliche Groß- und Kleinschreibung. Die Teilnehmenden lesen diese Werte als `form`, bereinigen
+und übersetzen sie einmal an der Grenze in das `CreateUserRequest`; sie verändern weder das
+ursprüngliche Formular noch ergänzen sie Validierungsregeln. Ein sichtbares Vorher-/Nachher-Beispiel
+macht `user_name: "  Ada.Lovelace "` → `userName: "ada.lovelace"` konkret, ohne den Codeweg
+vorzugeben.
+
 Erwartetes fachliches Ergebnis:
 
 ```text
@@ -235,58 +251,21 @@ email = ada@example.test
 
 Lernpunkt: Der Mapper konzentriert Grenzlogik an einem sichtbaren, testbaren Ort.
 
-### 6.3 Aufgabe 3 – External API DTO and Mapper
+### 6.3 Aufgabe 3 – WelcomeEmail DTO
 
-Leitfrage: Wie schützen wir unsere Anwendung vor einem fremden API-Vertrag?
+Vor dem Mapper wird der Vertrag für die Benachrichtigungsgrenze definiert: `recipientEmail`, `recipientName`, `subject` und `body`. Das DTO ist unveränderlich. Es gibt keinen Mail-Provider und keine Nebenwirkung.
 
-Antwort des externen Identity-Service:
+### 6.4 Aufgabe 4 – WelcomeEmail Mapper
 
-```json
-{
-  "subject_id": "7",
-  "verification_state": "VERIFIED",
-  "checked_at": "2026-08-01T10:15:00Z"
-}
-```
+Ein bereits erzeugter interner `User` wird in `WelcomeEmail` abgebildet: `email` wird `recipientEmail`, Vor- und Nachname ergeben `recipientName`, Betreff und Text begrüßen die Person. Die Website bereitet ausschließlich lokale Demonstrationsdaten vor.
 
-Die Teilnehmenden vervollständigen die Abbildung auf ein eigenes `IdentityCheckResult`:
+### 6.5 Aufgabe 5 – RegistrationResponse DTO
 
-- `subject_id` als Integer `userId`;
-- `verification_state` als Boolean `verified`;
-- `checked_at` als typisierten Zeitpunkt `checkedAt`.
+Vor der öffentlichen Abbildung definieren Teilnehmende den unveränderlichen Vertrag `RegistrationResponse` mit `id`, `userName`, `displayName`, `birthDate` und `email`. Private Entity-Felder gehören nicht zu diesem Vertrag.
 
-Lernpunkt: Änderungen und Vokabular eines Drittanbieters werden an der Integrationsgrenze isoliert.
+### 6.6 Aufgabe 6 – RegistrationResponse Mapper
 
-### 6.4 Aufgabe 4 – Response DTO and Entity Mapper
-
-Leitfrage: Wie erzeugen wir eine sichere, stabile öffentliche Response?
-
-Das sichtbare PHP-Zielbeispiel folgt dieser Form:
-
-```php
-final class UserResponseMapper
-{
-    public function map(User $user): UserResponse
-    {
-        return new UserResponse(
-            id: $user->getId(),
-            // TODO
-        );
-    }
-}
-```
-
-Die äquivalenten Syntaxvarianten werden für TypeScript, Python und Java angezeigt. Die Lösung muss:
-
-- `userName` übernehmen;
-- `firstName` und `lastName` zu `displayName` verbinden;
-- `birthDate` als `YYYY-MM-DD` formatieren;
-- `email` übernehmen;
-- `passwordHash` und `internalNote` auslassen.
-
-Nach erfolgreicher Validierung vergleicht die Website den realen Entity- und DTO-Endpunkt nebeneinander.
-
-Lernpunkt: Der öffentliche Vertrag enthält nur das, was der Client wirklich benötigt.
+Der Mapper erzeugt aus dem internen `User` die sichere öffentliche Response: Er übernimmt öffentliche Felder, verbindet Namen zu `displayName`, formatiert `birthDate` als `YYYY-MM-DD` und lässt `passwordHash` sowie `internalNote` aus. Das Ergebnis ist nur lokale, deterministische Lehr-Evidenz.
 
 ## 7. Lerninteraktion
 
@@ -337,13 +316,13 @@ Die Meldung verrät nicht sofort die vollständige Lösung.
 
 ### 7.5 Abschluss
 
-Nach Aufgabe 4 folgen:
+Nach Aufgabe 6 zeigt die Abschlussansicht die sichere `RegistrationResponse` und die vorbereitete `WelcomeEmail`; danach folgen:
 
-- Vorher-/Nachher-JSON aus der echten Symfony-API;
-- visualisierter Datenfluss Entity → Mapper → DTO → Client;
 - drei kurze Verständnisfragen;
-- Zusammenfassung von Nutzen, Kosten und Entscheidungskriterien;
-- Link zum Repository und zu den Musterlösungen;
+- Möglichkeit, ein Abschlusszertifikat lokal im Browser zu erzeugen: es bescheinigt die vier
+  gelösten Aufgaben und den bestandenen Wissenscheck, nicht die bloße Teilnahme. Das Dokument
+  ist als Diplom eines fiktiven Instituts gestaltet, trägt keine Registriernummer und keinen
+  prüfbaren Nachweis und heißt immer `Certificate-Workshop.pdf`;
 - Möglichkeit, den Workshop lokal zurückzusetzen.
 
 ## 8. Zeitplan
@@ -353,12 +332,14 @@ Nach Aufgabe 4 folgen:
 | 0–5 min | Einstieg, Ziel und Sprachwahl |
 | 5–12 min | Problemgeschichte, Herkunft und Begriffe |
 | 12–17 min | Live-Vergleich: Entity-Response und gewünschter Vertrag |
-| 17–25 min | Aufgabe 1: Typed Request DTO |
-| 25–34 min | Aufgabe 2: Request Mapper |
-| 34–43 min | Aufgabe 3: External API DTO and Mapper |
-| 43–53 min | Aufgabe 4: Response DTO and Entity Mapper |
-| 53–57 min | Vorteile, Nachteile und Einsatzentscheidung |
-| 57–60 min | Wissenscheck und Zusammenfassung |
+| 17–23 min | Aufgabe 1: CreateUserRequest DTO |
+| 23–30 min | Aufgabe 2: Legacy-Profile Mapper |
+| 30–35 min | Aufgabe 3: WelcomeEmail DTO |
+| 35–41 min | Aufgabe 4: WelcomeEmail Mapper |
+| 41–46 min | Aufgabe 5: RegistrationResponse DTO |
+| 46–52 min | Aufgabe 6: RegistrationResponse Mapper |
+| 52–56 min | Vorteile, Nachteile und Einsatzentscheidung |
+| 56–60 min | Wissenscheck und Zusammenfassung |
 | +15 min | Unterstützung, Diskussion und spätere Abschlüsse |
 
 Der Kern endet nach 60 Minuten. Der Puffer ist kein zusätzlicher Pflichtinhalt.
@@ -555,9 +536,9 @@ Vor der Abgabe müssen enthalten sein:
 Der Workshop gilt als inhaltlich und technisch bereit, wenn:
 
 1. eine Person ohne Anmeldung und Installation starten kann;
-2. alle vier Sprachtracks dieselben fachlichen Ergebnisse erzeugen;
+2. alle vier Sprachtracks dieselben fachlichen Ergebnisse für alle sechs Schritte erzeugen;
 3. keine Aufgabe übersprungen werden kann;
-4. alle 16 Aufgaben-/Sprachkombinationen gültige und typische ungültige Lösungen erkennen;
+4. alle 24 Aufgaben-/Sprachkombinationen gültige und typische ungültige Lösungen erkennen;
 5. `Insert solution` jede Aufgabe korrekt abschließt und erklärt;
 6. Sprachwechsel und Reload keinen abgeschlossenen Fortschritt verlieren;
 7. die echte Symfony-API den Entity-Leak und die sichere DTO-Response zeigt;
@@ -591,10 +572,9 @@ Der Workshop gilt als inhaltlich und technisch bereit, wenn:
 Diese Punkte werden bewusst erst nach Freigabe der Produktspezifikation entschieden:
 
 - konkrete visuelle Sprache, Farben und Typografie in `DESIGN.md`;
-- exakte englische Texte und Moderationsformulierungen;
+- exakte englische Texte und Moderationsformulierungen für die Aufgaben 2–4;
 - konkrete Symfony- und PHP-Version beim Repository-Setup;
 - genaue CodeMirror-/Lezer-Regeln pro Aufgabe und Sprache;
 - endgültige Render-Domain beziehungsweise eigene Domain;
 - Asset-Auswahl für PBR und HDRI;
 - Browser- und Geräte-Testmatrix.
-

@@ -9,6 +9,7 @@ import {
   createDefaultState,
 } from "@/lib/workshop/storage";
 import { LANGUAGES } from "@/lib/workshop/types";
+import { setActiveLocale } from "@/lib/i18n/locale";
 
 /**
  * Issue #8 ("Integrate and verify all four language tracks"): proves the
@@ -48,12 +49,15 @@ vi.mock("@/components/CodeMirrorEditor", () => ({
 const TASK_HEADINGS = [
   "Typed Request DTO",
   "Request Mapper",
-  "External API DTO and Mapper",
-  "Response DTO and Entity Mapper",
+  "Welcome Email DTO",
+  "Welcome Email Mapper",
+  "Registration Response DTO",
+  "Registration Response Mapper",
 ];
 
 beforeEach(() => {
   window.localStorage.clear();
+  setActiveLocale("en");
   // Task 4's success panel calls the real demo API (spec 6.4) — stubbed
   // here the same way page.test.tsx already does, since this test only
   // cares about the exercise journey, not the live API integration (which
@@ -67,7 +71,7 @@ beforeEach(() => {
 });
 
 describe.each(LANGUAGES)("full workshop journey — %s", (language) => {
-  it("unlocks all four tasks strictly in order via Insert solution and reaches the completion screen", async () => {
+  it("unlocks all six registration stages strictly in order via Insert solution", async () => {
     const seeded = createDefaultState();
     seeded.language = language;
     saveState(seeded);
@@ -83,8 +87,12 @@ describe.each(LANGUAGES)("full workshop journey — %s", (language) => {
       expect(screen.getByRole("button", { name: /continue/i })).toBeDisabled();
 
       await user.click(screen.getByRole("button", { name: /show hint/i }));
-      await user.click(screen.getByRole("button", { name: /next hint/i }));
-      await user.click(screen.getByRole("button", { name: /next hint/i }));
+      await user.click(
+        await screen.findByRole("button", { name: /next hint/i }),
+      );
+      await user.click(
+        await screen.findByRole("button", { name: /next hint/i }),
+      );
       await user.click(
         screen.getByRole("button", { name: /insert solution/i }),
       );
@@ -94,20 +102,22 @@ describe.each(LANGUAGES)("full workshop journey — %s", (language) => {
       );
       // The checks driving Continue are real, not a rubber stamp: the result
       // column reports every rule as passed in words, not by colour alone.
-      expect(screen.getByText("All checks passed")).toBeInTheDocument();
+      expect(await screen.findByText("All checks passed")).toBeInTheDocument();
       expect(screen.getAllByText("Passed").length).toBeGreaterThan(0);
 
       await user.click(screen.getByRole("button", { name: /continue/i }));
     }
 
-    await screen.findByText("All four exercises complete 🎉");
+    await screen.findByText(/All six registration stages complete/i);
 
     const finalState = loadState();
     for (const taskId of [
       "request-dto",
       "request-mapper",
-      "external-api",
-      "response-dto",
+      "welcome-email-dto",
+      "welcome-email-mapper",
+      "registration-response-dto",
+      "registration-response-mapper",
     ] as const) {
       expect(finalState.tasks[taskId].completed).toBe(true);
     }

@@ -13,7 +13,7 @@ import type { Language } from "@/lib/workshop/types";
 import { workshopCompletion, workshopCompletionSource } from "./completion";
 import { restrictedEditing } from "./restrictedEditing";
 
-const BEFORE = "function map(raw) {\n  return {\n";
+const BEFORE = "function map(form) {\n  return {\n";
 const AFTER = "\n  };\n}\n";
 
 /**
@@ -50,13 +50,13 @@ const TASK2_INPUT = TASK2_DEFINITION.completionInput!;
 describe("workshopCompletionSource — member access per track", () => {
   const cases: Array<{ language: Language; typed: string; expected: string }> =
     [
-      { language: "typescript", typed: "raw.", expected: "raw.user_name" },
-      { language: "php", typed: "$raw['", expected: "$raw['user_name']" },
-      { language: "python", typed: 'raw["', expected: 'raw["user_name"]' },
+      { language: "typescript", typed: "form.", expected: "form.user_name" },
+      { language: "php", typed: "$form['", expected: "$form['user_name']" },
+      { language: "python", typed: 'form["', expected: 'form["user_name"]' },
       {
         language: "java",
-        typed: 'raw.get("',
-        expected: 'raw.get("user_name")',
+        typed: 'form.get("',
+        expected: 'form.get("user_name")',
       },
     ];
 
@@ -77,17 +77,17 @@ describe("workshopCompletionSource — member access per track", () => {
   );
 
   it("offers every input field of the task, and only those", () => {
-    expect(labelsFor("typescript", "raw.", TASK2_INPUT)).toEqual([
-      "raw.user_name",
-      "raw.first_name",
-      "raw.last_name",
-      "raw.birth_date",
-      "raw.email",
+    expect(labelsFor("typescript", "form.", TASK2_INPUT)).toEqual([
+      "form.user_name",
+      "form.first_name",
+      "form.last_name",
+      "form.birth_date",
+      "form.email",
     ]);
   });
 
   it("replaces the whole access expression, unbalanced bracket included", () => {
-    const { region, context } = contextFor("$raw['use");
+    const { region, context } = contextFor("$form['use");
     const result = workshopCompletionSource(
       "php",
       region,
@@ -96,14 +96,14 @@ describe("workshopCompletionSource — member access per track", () => {
     // `from` points at the `$`, so accepting rewrites `$raw['use` in full
     // rather than appending to a bracket that is still open.
     expect(context.state.doc.sliceString(result!.from, context.pos)).toBe(
-      "$raw['use",
+      "$form['use",
     );
   });
 });
 
 describe("workshopCompletionSource — what it must never offer", () => {
   it("does not offer the target DTO's members", () => {
-    const labels = labelsFor("typescript", "raw.", TASK2_INPUT) ?? [];
+    const labels = labelsFor("typescript", "form.", TASK2_INPUT) ?? [];
     // The mapper's job is turning user_name into userName; the popup must not
     // be the thing that names the target field.
     for (const target of ["userName", "firstName", "birthDate"]) {
@@ -112,7 +112,7 @@ describe("workshopCompletionSource — what it must never offer", () => {
   });
 
   it("stays silent before the editable region", () => {
-    const { region, context: atEnd } = contextFor("raw.");
+    const { region, context: atEnd } = contextFor("form.");
     const inPrefix = new CompletionContext(atEnd.state, 5, false);
     expect(
       workshopCompletionSource("typescript", region, TASK2_INPUT)(inPrefix),
@@ -120,7 +120,7 @@ describe("workshopCompletionSource — what it must never offer", () => {
   });
 
   it("stays silent after the editable region", () => {
-    const { region, context: atEnd } = contextFor("raw.");
+    const { region, context: atEnd } = contextFor("form.");
     const inSuffix = new CompletionContext(
       atEnd.state,
       atEnd.state.doc.length - 2,
@@ -174,8 +174,8 @@ describe("workshopCompletionSource — identifiers and built-ins", () => {
   });
 
   it("offers the receiver itself, spelled for the track", () => {
-    expect(labelsFor("php", "ra", TASK2_INPUT)).toContain("$raw");
-    expect(labelsFor("typescript", "ra", TASK2_INPUT)).toContain("raw");
+    expect(labelsFor("php", "fo", TASK2_INPUT)).toContain("$form");
+    expect(labelsFor("typescript", "fo", TASK2_INPUT)).toContain("form");
   });
 
   it("offers only built-ins for a task with no input, such as Task 1", () => {
@@ -225,7 +225,7 @@ describe("workshopCompletion — Tab", () => {
   }
 
   it("inserts the selected completion", async () => {
-    const view = mountView("raw.");
+    const view = mountView("form.");
     startCompletion(view);
     await vi.waitFor(() => expect(completionStatus(view.state)).toBe("active"));
     // CodeMirror ignores accept keys for `interactionDelay` (75ms) after the
@@ -235,18 +235,18 @@ describe("workshopCompletion — Tab", () => {
 
     const event = pressTab(view);
 
-    expect(view.state.doc.toString()).toContain("raw.user_name");
+    expect(view.state.doc.toString()).toContain("form.user_name");
     expect(event.defaultPrevented).toBe(true);
     view.destroy();
   });
 
   it("falls through to the browser when no completion is open, so focus can leave the editor", () => {
-    const view = mountView("raw.");
+    const view = mountView("form.");
 
     const event = pressTab(view);
 
     expect(event.defaultPrevented).toBe(false);
-    expect(view.state.doc.toString()).not.toContain("raw.user_name");
+    expect(view.state.doc.toString()).not.toContain("form.user_name");
     view.destroy();
   });
 });

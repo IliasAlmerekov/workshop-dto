@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import dynamic from "next/dynamic";
 import { supportsWebGL } from "@/lib/three/capabilities";
 import {
@@ -15,6 +16,8 @@ import {
 } from "./DtoLayerStackFallback";
 import { DtoLayerStackLoading } from "./DtoLayerStackLoading";
 import type { Language } from "@/lib/workshop/types";
+import type { AnchorRect } from "./DtoLayerStackScene";
+import type { HeroPointer } from "./SnowField";
 import {
   HERO_LOADER_EXIT_MS,
   HERO_PREVIEW_MS,
@@ -24,13 +27,16 @@ import {
 } from "./heroMotion";
 
 /**
- * Gate in front of the hero's glass scene. It owns the two decisions that
- * must not reach the scene itself:
+ * Gate in front of the hero's snow scene. It owns the three decisions that must
+ * not reach the scene itself:
  *
- *  - whether WebGL exists at all, which decides 3D against the static vector;
+ *  - whether WebGL exists at all, which decides the world against the static
+ *    vector;
  *  - how expensive this device may render, from `pickSceneQuality`;
+ *  - where on the page the stack's column is, which is what the camera frames
+ *    the object inside.
  *
- * Both are read after mount. A lightweight CSS glass study holds the reserved
+ * All three are read after mount. A lightweight CSS study holds the reserved
  * area during capability checks and renderer warm-up. The labelled vector is
  * reserved for an actual unavailable/failed WebGL path, so successful devices
  * never flash a lower-fidelity copy of the finished pipeline.
@@ -211,8 +217,8 @@ function TrackOverlay({
             preview ? "translate-x-0 opacity-100" : "-translate-x-3 opacity-0"
           } ${transitioning ? "hero-track-preview--committed" : ""}`}
         >
-          <div className="w-[118px] rounded-[10px] border border-[#dbe5fe]/90 bg-white/75 px-3 py-2.5 shadow-[0_12px_36px_rgba(79,126,255,0.10)] backdrop-blur-md">
-            <p className="text-[9px] leading-none font-bold tracking-[0.16em] text-[#6673b3] uppercase">
+          <div className="w-[118px] rounded-[10px] border border-[#c9d8f2]/90 bg-white/78 px-3 py-2.5 shadow-[0_12px_36px_rgba(30,98,253,0.10)] backdrop-blur-md">
+            <p className="text-[9px] leading-none font-bold tracking-[0.16em] text-[#4a5a7e] uppercase">
               Track
             </p>
             <span className="mt-1.5 block">
@@ -234,8 +240,8 @@ function TrackOverlay({
               />
             </code>
           </div>
-          <span className="relative h-px w-[82px] bg-gradient-to-r from-[#8caefb] to-[#b8c8ea]">
-            <span className="absolute top-1/2 right-0 size-[6px] -translate-y-1/2 rounded-full bg-[#4a6bfa] shadow-[0_0_12px_rgba(74,107,250,0.65)]" />
+          <span className="relative h-px w-[82px] bg-gradient-to-r from-[#7ba2f7] to-[#b3c4de]">
+            <span className="absolute top-1/2 right-0 size-[6px] -translate-y-1/2 rounded-full bg-[#1e62fd] shadow-[0_0_12px_rgba(30,98,253,0.65)]" />
           </span>
         </div>
       </div>
@@ -247,7 +253,7 @@ function TrackOverlay({
           transitioning ? "hero-exercise-reveal--active" : "opacity-0"
         }`}
       >
-        <p className="text-[10px] leading-none font-bold tracking-[0.18em] text-[#6673b3] uppercase">
+        <p className="text-[10px] leading-none font-bold tracking-[0.18em] text-[#4a5a7e] uppercase">
           Exercise
         </p>
         <p className="mt-1 text-[28px] leading-none font-semibold tracking-[-0.045em] text-[#111421]">
@@ -317,11 +323,92 @@ export function DtoLayerStack({
   const handleEnter = useCallback(() => setHovered(true), []);
   const handleLeave = useCallback(() => setHovered(false), []);
 
+  /**
+   * The stack's column, in viewport pixels, republished whenever the page moves
+   * under it.
+   *
+   * This element is the only thing left in the layout: it reserves the space
+   * the illustration used to occupy, carries the track card, and tells the
+   * camera where to put the object. The scene itself has moved out of it
+   * entirely — the snow is the page's ground now, and a ground that stopped at
+   * a column's edge would be a picture of one.
+   */
+  const anchorEl = useRef<HTMLDivElement>(null);
+  const anchorRect = useRef<AnchorRect | null>(null);
+  const pointer = useRef<HeroPointer>({ x: 0, y: 0, inside: false });
+
   useEffect(() => {
     if (settled) {
       onSettled?.();
     }
   }, [settled, onSettled]);
+
+  useEffect(() => {
+    const element = anchorEl.current;
+    if (!element) {
+      return;
+    }
+
+    // Written to a ref rather than to state. The camera reads it inside its own
+    // frame loop and rebuilds its frustum only when the numbers actually
+    // changed, so a scroll costs one `getBoundingClientRect` per frame instead
+    // of a React render of the whole hero.
+    const publish = () => {
+      const box = element.getBoundingClientRect();
+      anchorRect.current = {
+        x: box.x,
+        y: box.y,
+        width: box.width,
+        height: box.height,
+      };
+    };
+    publish();
+
+    const observer =
+      typeof ResizeObserver === "undefined"
+        ? null
+        : new ResizeObserver(publish);
+    observer?.observe(element);
+    window.addEventListener("scroll", publish, { passive: true });
+    window.addEventListener("resize", publish, { passive: true });
+
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener("scroll", publish);
+      window.removeEventListener("resize", publish);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!hoverable || mode.kind !== "glass" || mode.reducedMotion) {
+      return;
+    }
+
+    // Listened for on the window, not on the illustration. The snow reaches
+    // every corner of the page, so the gesture that marks it has to as well —
+    // walking the pointer across the headline should leave a trail through the
+    // headline's own snow.
+    const probe = pointer.current;
+    const move = (event: PointerEvent) => {
+      probe.x = (event.clientX / window.innerWidth) * 2 - 1;
+      probe.y = -(event.clientY / window.innerHeight) * 2 + 1;
+      probe.inside = true;
+    };
+    const leave = () => {
+      probe.inside = false;
+    };
+
+    window.addEventListener("pointermove", move, { passive: true });
+    document.addEventListener("pointerleave", leave);
+    window.addEventListener("blur", leave);
+
+    return () => {
+      window.removeEventListener("pointermove", move);
+      document.removeEventListener("pointerleave", leave);
+      window.removeEventListener("blur", leave);
+      probe.inside = false;
+    };
+  }, [hoverable, mode]);
 
   useEffect(() => {
     const frame = requestAnimationFrame(() => {
@@ -356,7 +443,7 @@ export function DtoLayerStack({
   }, []);
 
   return (
-    <div className={className} style={{ pointerEvents: "none" }}>
+    <div ref={anchorEl} className={className} style={{ pointerEvents: "none" }}>
       {loaderMounted ? (
         <DtoLayerStackLoading
           exiting={!loaderNeeded}
@@ -366,6 +453,7 @@ export function DtoLayerStack({
       {mode.kind === "flat" ? (
         <DtoLayerStackFallback
           activeTrack={activeTrack}
+          selectedTrack={selectedTrack}
           focusLayerIndex={focusLayerIndex}
           expanded={expanded}
           hovered={hovered}
@@ -373,24 +461,36 @@ export function DtoLayerStack({
           className="absolute inset-0 h-full w-full"
         />
       ) : null}
-      {mode.kind === "glass" ? (
-        <SceneErrorBoundary fallback={null} onError={handleSceneError}>
-          <DtoLayerStackCanvas
-            className="absolute inset-0 h-full w-full"
-            quality={mode.quality}
-            reducedMotion={mode.reducedMotion}
-            previewTrack={previewTrack}
-            selectedTrack={selectedTrack}
-            expanded={expanded}
-            hovered={hovered}
-            focusLayerIndex={focusLayerIndex}
-            visible={revealed}
-            description={description}
-            onReady={handleReady}
-            onContextLost={handleContextLost}
-          />
-        </SceneErrorBoundary>
-      ) : null}
+
+      {/* Portalled to the body, and fixed to the viewport. The world is the
+          page's ground, so it cannot live inside the hero's own box — and a
+          `position: fixed` plane is clipped by any ancestor that establishes a
+          containing block, which a hero subtree carrying transforms and blurs
+          is exactly the kind of thing to acquire. */}
+      {mode.kind === "glass" && typeof document !== "undefined"
+        ? createPortal(
+            <SceneErrorBoundary fallback={null} onError={handleSceneError}>
+              <DtoLayerStackCanvas
+                className="pointer-events-none fixed inset-0 z-0 h-full w-full"
+                quality={mode.quality}
+                reducedMotion={mode.reducedMotion}
+                previewTrack={previewTrack}
+                selectedTrack={selectedTrack}
+                expanded={expanded}
+                hovered={hovered}
+                pointer={pointer}
+                anchorRect={anchorRect}
+                focusLayerIndex={focusLayerIndex}
+                visible={revealed}
+                description={description}
+                onReady={handleReady}
+                onContextLost={handleContextLost}
+              />
+            </SceneErrorBoundary>,
+            document.body,
+          )
+        : null}
+
       {trackOverlay ? (
         <TrackOverlay
           track={selectedTrack ?? previewTrack}
@@ -408,11 +508,10 @@ export function DtoLayerStack({
           column at `z-10` is painted above it and keeps winning the hit test
           wherever the two overlap.
 
-          Hover is read from the DOM rather than from R3F's raycaster. The
-          question is only "is the pointer over the illustration", which needs
-          no per-frame ray against four refracting meshes — and leaving the
-          canvas itself untouchable keeps `state.pointer` at rest, so nothing
-          else in the scene starts reacting to the pointer as a side effect. */}
+          It answers one question only — is the pointer over the stack, which
+          opens it further. Where the pointer is *on the snow* is a separate
+          question with a separate listener, because the snow is the whole page
+          and this box is one column of it. */}
       {hoverable ? (
         <div
           data-testid="hero-hover-area"

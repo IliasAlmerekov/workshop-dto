@@ -13,7 +13,8 @@ import type {
   ValidationResult,
 } from "@/lib/exercises/types";
 import type { Language, TaskId } from "@/lib/workshop/types";
-import { useMessages } from "@/lib/i18n";
+import { useLocale, useMessages } from "@/lib/i18n";
+import { setActiveLocale } from "@/lib/i18n/locale";
 import { cn } from "@/lib/utils";
 import { useStagedCheckRun } from "@/lib/workshop/checkRun";
 import { CheckRunSteps } from "./CheckRunSteps";
@@ -77,8 +78,9 @@ export function ExerciseRunner({
   const progress = state.tasks[taskId];
 
   const messages = useMessages();
-  const copy = messages.tasks[taskId];
-  const hintCopy = messages.hints[taskId][language];
+  const { locale } = useLocale();
+  const copy = messages.tasks[taskId] ?? definition;
+  const hintCopy = messages.hints[taskId]?.[language];
   const publishResult = usePublishExerciseResult();
   const hasResultSurface = useHasResultSurface();
   const [adapter, setAdapter] = useState<TaskLanguageAdapter | null>(null);
@@ -163,6 +165,7 @@ export function ExerciseRunner({
   function handleCheck() {
     const document =
       adapter!.starterCode.before + editableValue + adapter!.starterCode.after;
+    setActiveLocale(locale);
     startCheckRun(adapter!.validate(document), {
       fileName: adapter!.fileName,
     });
@@ -179,6 +182,7 @@ export function ExerciseRunner({
     setInsertGeneration((value) => value + 1);
     // The escape hatch settles at once: someone who asked for the answer is
     // owed the explanation, not a progress animation about it.
+    setActiveLocale(locale);
     startCheckRun(
       adapter!.validate(adapter!.solutionCode),
       { fileName: adapter!.fileName },
@@ -191,12 +195,15 @@ export function ExerciseRunner({
 
   // The hint *text* is translated; the code snippet beside it is not — it is
   // the language's own syntax, which every locale reads identically.
-  const hintTexts = [hintCopy.concept, hintCopy.fields, hintCopy.syntax];
+  const hintTexts = hintCopy
+    ? [hintCopy.concept, hintCopy.fields, hintCopy.syntax]
+    : adapter.hints.map((hint) => hint.text);
   const hintCards = adapter.hints.map((hint, index) => ({
     ...hint,
     text: hintTexts[index] ?? hint.text,
   }));
   const canShowMoreCards = hintStage < 3;
+  const brief = copy.brief;
 
   return (
     /* The work column is height-bound by the page frame, so it lays out as
@@ -217,17 +224,20 @@ export function ExerciseRunner({
           {copy.title}
         </h1>
         <p className="tracking-body-question mt-6 text-[clamp(0.9375rem,1.15vw,19px)] leading-[1.45] text-[var(--foreground)]">
-          {copy.question}
+          {brief ? brief.situation.body : copy.question}
         </p>
         {/* The framing paragraph is the one genuinely optional line here, so a
             short viewport drops it rather than squeezing the editor. */}
-        <p className="text-body-small leading-body-small mt-10 hidden max-w-[68ch] text-[var(--muted)] [@media(min-height:820px)]:block">
-          {copy.description}
-        </p>
+        {!brief && (
+          <p className="text-body-small leading-body-small mt-10 hidden max-w-[68ch] text-[var(--muted)] [@media(min-height:820px)]:block">
+            {copy.description}
+          </p>
+        )}
       </div>
 
       {/* Task Brief (Figma 40:61): a 72px goal badge beside the instruction
-          sentence and the required field contract as chips. */}
+          and the required field contract. Task 1 additionally exposes its
+          real registration scenario, so the contract is never just a list. */}
       <div className="flex shrink-0 gap-14 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-14 2xl:gap-20 2xl:p-18">
         {/* The 72px goal badge is the library's; it steps down with the column
             so the brief stays one compact band on a laptop. */}
@@ -241,12 +251,53 @@ export function ExerciseRunner({
           <p className="text-heading-card leading-heading-card tracking-heading-card font-bold text-[var(--foreground)]">
             {messages.exercise.yourTask}
           </p>
-          <p className="text-body-small leading-body-small text-[var(--muted)]">
-            <code className="text-body-compact font-mono text-[var(--accent)]">
-              {adapter.fileName}
-            </code>{" "}
-            {messages.exercise.completeWith(adapter.fileName)}
-          </p>
+          {brief ? (
+            <>
+              <div className="grid gap-x-10 gap-y-6 pt-2 sm:grid-cols-2">
+                {[
+                  [
+                    brief.mission.title,
+                    brief.mission.body.replace("{fileName}", adapter.fileName),
+                  ],
+                  [brief.doneWhen.title, brief.doneWhen.body],
+                  [brief.notInThisStep.title, brief.notInThisStep.body],
+                ].map(([title, body]) => (
+                  <div key={title}>
+                    <p className="text-label-caption leading-label-caption tracking-label-eyebrow font-bold uppercase text-[var(--accent)]">
+                      {title}
+                    </p>
+                    <p className="text-body-small leading-body-small mt-1 text-[var(--muted)]">
+                      {body}
+                    </p>
+                  </div>
+                ))}
+              </div>
+              {brief.example ? (
+                <div className="flex flex-wrap items-center gap-x-6 gap-y-2 pt-2 text-body-compact leading-body-compact text-[var(--muted)]">
+                  <span className="font-semibold">
+                    {brief.example.beforeLabel}
+                  </span>
+                  <code className="whitespace-pre font-mono text-[var(--accent)]">
+                    {brief.example.beforeValue}
+                  </code>
+                  <IconArrowRight aria-hidden="true" size={16} />
+                  <span className="font-semibold">
+                    {brief.example.afterLabel}
+                  </span>
+                  <code className="whitespace-pre font-mono text-[var(--accent)]">
+                    {brief.example.afterValue}
+                  </code>
+                </div>
+              ) : null}
+            </>
+          ) : (
+            <p className="text-body-small leading-body-small text-[var(--muted)]">
+              <code className="text-body-compact font-mono text-[var(--accent)]">
+                {adapter.fileName}
+              </code>{" "}
+              {messages.exercise.completeWith(adapter.fileName)}
+            </p>
+          )}
           <div className="flex flex-wrap gap-10 pt-2">
             {copy.fields.map((field) => (
               <span

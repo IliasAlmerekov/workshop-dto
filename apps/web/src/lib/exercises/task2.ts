@@ -1,8 +1,8 @@
 import type { TaskDefinition } from "./types";
 
 /**
- * Language-neutral definition of Task 2 (spec section 6.2). Owns the raw
- * payload, the learning goal, and the expected normalized result; adapters
+ * Language-neutral definition of Task 2 (spec section 6.2). Owns the legacy
+ * registration payload, the learning goal, and the expected normalized result; adapters
  * own everything language-specific about how to express and check it.
  */
 export const TASK2_DEFINITION: TaskDefinition = {
@@ -14,23 +14,24 @@ export const TASK2_DEFINITION: TaskDefinition = {
   description:
     "Raw request data arrives with snake_case keys, stray whitespace, and mixed casing. Map it onto the typed CreateUserRequest from step one.",
   fields: [
-    "user_name → userName",
-    "trim whitespace",
-    "lowercase userName & email",
-    "birth_date → typed date",
+    "user_name → userName · trim · lowercase",
+    "first_name → firstName · trim",
+    "last_name → lastName · trim",
+    "birth_date → birthDate · parse as date",
+    "email → email · trim · lowercase",
   ],
   estimatedMinutes: 9,
   explanation:
     "The mapper concentrates boundary logic in one visible, testable place. Renaming, trimming, and case normalization all happen here — once — instead of being repeated (or forgotten) everywhere the request is used.",
   completionInput: {
-    receiver: "raw",
+    receiver: "form",
     shape: "map",
     members: ["user_name", "first_name", "last_name", "birth_date", "email"],
   },
 };
 
-/** The raw payload every language track maps from (spec section 6.2). */
-export const TASK2_RAW_PAYLOAD = {
+/** The legacy registration payload every language track maps from (spec section 6.2). */
+export const TASK2_LEGACY_REGISTRATION_PAYLOAD = {
   user_name: "  Ada.Lovelace ",
   first_name: " Ada ",
   last_name: " Lovelace ",
@@ -40,7 +41,7 @@ export const TASK2_RAW_PAYLOAD = {
 
 export type Task2FieldSpec = {
   outputName: string;
-  sourceKey: keyof typeof TASK2_RAW_PAYLOAD;
+  sourceKey: keyof typeof TASK2_LEGACY_REGISTRATION_PAYLOAD;
   needsLowercase: boolean;
   isDate: boolean;
 };

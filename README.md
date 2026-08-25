@@ -1,87 +1,45 @@
 # DTO & Mapper Workshop
 
-A 60-minute, browser-only workshop for junior developers. Participants learn
-DTOs and mappers through four sequential exercises in PHP, TypeScript, Python,
-or Java.
+A browser-only, 60-minute workshop for junior developers. It teaches how DTOs
+and explicit mappers protect application boundaries through four guided
+exercises in PHP, TypeScript, Python, or Java.
 
-## Project documents
+## What participants do
 
-- [Workshop specification](docs/SPECIFICATION.md)
-- [Assessment rubric](Bewertungsraster_Barcamp_DP.docx)
+Participants follow one User Registration story:
 
-## Monorepo layout
+1. define an immutable request DTO;
+2. map and normalize incoming data;
+3. isolate an external API contract;
+4. map an internal entity to a safe public response.
 
-```text
-apps/
-├── web/   # Next.js (TypeScript, static export)
-└── api/   # Symfony demo API (PHP 8.3)
-```
+The workshop compares an intentionally unsafe entity endpoint with a DTO-based
+response. Code is edited and validated locally in the browser; it is never run
+or sent to the API.
 
-## Prerequisites
+## Repository
 
-- [Node.js 22+](https://nodejs.org/) with [pnpm](https://pnpm.io/) (enable via
-  `corepack enable`)
-- [Docker](https://www.docker.com/) and Docker Compose, to run the Symfony API
-  without installing PHP locally
+- `apps/web` — Next.js workshop interface with CodeMirror exercises.
+- `apps/api` — Symfony demo API with deterministic sample data.
+- `docs/SPECIFICATION.md` — product and learning contract.
+- `render.yaml` — deployment blueprint for the web app and demo API.
 
-No database is required.
+## Run locally
 
-## Local development
-
-Install JavaScript dependencies once, from the repository root:
+Requires Node.js 22+, pnpm, Docker, and Docker Compose. No database or local
+PHP installation is needed.
 
 ```bash
 corepack enable
 pnpm install
-```
-
-Start both applications with one command:
-
-```bash
 pnpm dev
 ```
 
-This runs the Symfony API in Docker (`docker compose up --build api`) on
-[http://localhost:8000](http://localhost:8000) and the Next.js dev server
-(`pnpm --filter web dev`) on [http://localhost:3000](http://localhost:3000).
-The web app reads the API base URL from `NEXT_PUBLIC_API_URL`, defaulting to
-`http://localhost:8000` for local development.
+Open [the workshop](http://localhost:3000). The Symfony demo API runs at
+[http://localhost:8000](http://localhost:8000); its health check is available
+at [http://localhost:8000/api/health](http://localhost:8000/api/health).
 
-Health check: [http://localhost:8000/api/health](http://localhost:8000/api/health)
-should return `{"status":"ok"}`, and the same status is shown on the Next.js
-landing page.
+## Documentation
 
-To run either app on its own:
-
-```bash
-pnpm dev:api   # Symfony API only, via Docker
-pnpm dev:web   # Next.js only
-```
-
-### Quality checks
-
-```bash
-# Web (apps/web)
-pnpm run format:check:web
-pnpm run lint:web
-pnpm run typecheck:web
-pnpm run test:web
-pnpm run build:web
-
-# API (apps/api) — run inside the apps/api directory with PHP 8.3 available,
-# e.g. via `docker run --rm -v "$PWD":/app -w /app php:8.3-cli php <command>`
-composer install
-composer run cs-check   # formatting
-composer run phpstan    # static analysis
-composer run test       # PHPUnit
-```
-
-The same checks run in CI on every push and pull request (see
-[.github/workflows/ci.yml](.github/workflows/ci.yml)).
-
-## Deployment
-
-[render.yaml](render.yaml) defines a [Render Blueprint](https://render.com/docs/blueprints)
-with two services: the Next.js app as a static site, and the Symfony API as a
-Docker web service. Connect the repository in the Render dashboard via
-"New > Blueprint" to deploy both from `main`.
+- [Workshop specification](docs/SPECIFICATION.md)
+- [Render deployment blueprint](render.yaml)

@@ -50,37 +50,73 @@ export const TASK_DEFINITIONS: TaskDefinition[] = [
     fileName: "CreateUserRequestMapper",
   },
   {
-    id: "external-api",
+    id: "welcome-email-dto",
     order: 3,
-    title: "External API DTO and Mapper",
-    shortTitle: "External API",
-    question: "How do we protect our application from a foreign API contract?",
+    title: "Welcome Email DTO",
+    shortTitle: "Email DTO",
+    question: "What contract does a welcome email need?",
     description:
-      "The external identity service returns its own vocabulary. Map its response onto a dedicated result type owned by our application.",
+      "Define the small immutable WelcomeEmail contract before mapping a created User for the notification boundary.",
     fields: [
-      "subject_id → userId: number",
-      "verification_state → verified: boolean",
-      "checked_at → checkedAt: timestamp",
+      "recipientEmail: string",
+      "recipientName: string",
+      "subject: string",
+      "body: string",
     ],
-    estimatedMinutes: 9,
-    fileName: "IdentityCheckResultMapper",
+    estimatedMinutes: 7,
+    fileName: "WelcomeEmail",
   },
   {
-    id: "response-dto",
+    id: "welcome-email-mapper",
     order: 4,
-    title: "Response DTO and Entity Mapper",
-    shortTitle: "Response DTO",
-    question: "How do we produce a safe, stable public response?",
+    title: "Welcome Email Mapper",
+    shortTitle: "Email Mapper",
+    question: "How do we prepare a welcome email without sending it?",
     description:
-      "The internal User entity carries more than the public contract should expose. Map it onto a response that is safe to serialize.",
+      "Map the created User into WelcomeEmail. The workshop prepares data only; it does not call an email provider.",
     fields: [
-      "userName kept as is",
-      "firstName + lastName → displayName",
-      "birthDate formatted YYYY-MM-DD",
-      "passwordHash & internalNote omitted",
+      "email → recipientEmail",
+      "firstName + lastName → recipientName",
+      "welcome subject",
+      "body names participant",
     ],
-    estimatedMinutes: 10,
-    fileName: "UserResponseMapper",
+    estimatedMinutes: 8,
+    fileName: "WelcomeEmailMapper",
+  },
+  {
+    id: "registration-response-dto",
+    order: 5,
+    title: "Registration Response DTO",
+    shortTitle: "Response DTO",
+    question: "What may the Registration Complete screen receive?",
+    description:
+      "Define the immutable public RegistrationResponse before exposing a created User.",
+    fields: [
+      "id: number",
+      "userName: string",
+      "displayName: string",
+      "birthDate: string",
+      "email: string",
+    ],
+    estimatedMinutes: 7,
+    fileName: "RegistrationResponse",
+  },
+  {
+    id: "registration-response-mapper",
+    order: 6,
+    title: "Registration Response Mapper",
+    shortTitle: "Response Mapper",
+    question: "How do we return a safe registration result?",
+    description:
+      "Map the created User into RegistrationResponse and deliberately exclude private entity fields.",
+    fields: [
+      "id, userName, email",
+      "firstName + lastName → displayName",
+      "birthDate → YYYY-MM-DD",
+      "omit passwordHash and internalNote",
+    ],
+    estimatedMinutes: 8,
+    fileName: "RegistrationResponseMapper",
   },
 ];
 
@@ -93,6 +129,6 @@ export function taskDefinition(id: TaskId): TaskDefinition {
 }
 
 export function nextTaskId(id: TaskId): TaskId | null {
-  const index = TASK_IDS.indexOf(id);
+  const index = TASK_IDS.indexOf(id as (typeof TASK_IDS)[number]);
   return TASK_IDS[index + 1] ?? null;
 }

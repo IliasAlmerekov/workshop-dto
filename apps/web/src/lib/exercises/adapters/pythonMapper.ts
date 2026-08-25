@@ -15,11 +15,11 @@ const TOKENS: Task2Tokens = {
   date: "fromisoformat",
 };
 
-const SOLUTION_EDITABLE = `            userName=raw["user_name"].strip().lower(),
-            firstName=raw["first_name"].strip(),
-            lastName=raw["last_name"].strip(),
-            birthDate=date.fromisoformat(raw["birth_date"].strip()),
-            email=raw["email"].strip().lower(),
+const SOLUTION_EDITABLE = `            userName=form["user_name"].strip().lower(),
+            firstName=form["first_name"].strip(),
+            lastName=form["last_name"].strip(),
+            birthDate=date.fromisoformat(form["birth_date"].strip()),
+            email=form["email"].strip().lower(),
 `;
 
 function extractFieldExpressions(doc: string): {
@@ -92,12 +92,12 @@ export const pythonMapperAdapter: TaskLanguageAdapter = {
     },
     {
       kind: "fields",
-      text: 'Read each raw["..."] field, strip it, and for userName/email also lowercase it. Convert birth_date into a real date.',
+      text: 'Read each form["..."] field, strip it, and for userName/email also lowercase it. Convert birth_date into a real date.',
     },
     {
       kind: "syntax",
-      text: "Chain .strip() and .lower() directly on the raw field access.",
-      code: 'userName=raw["user_name"].strip().lower(),',
+      text: "Chain .strip() and .lower() directly on the form field access.",
+      code: 'userName=form["user_name"].strip().lower(),',
     },
   ],
   validate,

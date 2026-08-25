@@ -15,11 +15,11 @@ const TOKENS: Task2Tokens = {
   date: "parse",
 };
 
-const SOLUTION_EDITABLE = `            raw.get("user_name").trim().toLowerCase(),
-            raw.get("first_name").trim(),
-            raw.get("last_name").trim(),
-            LocalDate.parse(raw.get("birth_date").trim()),
-            raw.get("email").trim().toLowerCase()
+const SOLUTION_EDITABLE = `            form.get("user_name").trim().toLowerCase(),
+            form.get("first_name").trim(),
+            form.get("last_name").trim(),
+            LocalDate.parse(form.get("birth_date").trim()),
+            form.get("email").trim().toLowerCase()
 `;
 
 const PUNCTUATION = new Set(["(", ")", ","]);
@@ -96,12 +96,12 @@ export const javaMapperAdapter: TaskLanguageAdapter = {
     },
     {
       kind: "fields",
-      text: 'Read each raw.get("...") field, trim it, and for userName/email also lowercase it. Convert birth_date into a real LocalDate — arguments are positional, in the same order as the record.',
+      text: 'Read each form.get("...") field, trim it, and for userName/email also lowercase it. Convert birth_date into a real LocalDate — arguments are positional, in the same order as the record.',
     },
     {
       kind: "syntax",
       text: "Chain .trim() and .toLowerCase() directly on the map lookup.",
-      code: 'raw.get("user_name").trim().toLowerCase(),',
+      code: 'form.get("user_name").trim().toLowerCase(),',
     },
   ],
   validate,

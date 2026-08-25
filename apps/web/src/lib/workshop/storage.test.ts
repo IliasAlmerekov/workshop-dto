@@ -24,6 +24,20 @@ describe("workshop storage", () => {
     });
   });
 
+  it("creates the six-stage registration migration and resets four-task state", () => {
+    expect(Object.keys(createDefaultState().tasks)).toHaveLength(6);
+    window.localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        version: 2,
+        language: "php",
+        tasks: {},
+        quizCompleted: true,
+      }),
+    );
+    expect(loadState()).toEqual(createDefaultState());
+  });
+
   it("round-trips a saved state", () => {
     const state = createDefaultState();
     state.language = "typescript";

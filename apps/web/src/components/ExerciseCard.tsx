@@ -59,7 +59,7 @@ export function ExerciseCard({ task, progress, language }: ExerciseCardProps) {
   // untouched task pristine across language switches, and lets a deliberately
   // emptied editor stay empty instead of snapping the template back.
   const messages = useMessages();
-  const copy = messages.tasks[task.id];
+  const copy = messages.tasks[task.id] ?? task;
   const editorValue = progress.touched
     ? progress.draft
     : starterCode(task.id, language);

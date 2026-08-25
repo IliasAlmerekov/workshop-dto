@@ -132,7 +132,7 @@ describe("ExerciseResultPanel", () => {
     render(
       <ExerciseResultProvider>
         <Publisher taskId="request-dto" result={passing} />
-        <ExerciseResultPanel task={taskDefinition("external-api")} />
+        <ExerciseResultPanel task={taskDefinition("welcome-email-dto")} />
       </ExerciseResultProvider>,
     );
 
@@ -145,7 +145,10 @@ describe("ExerciseResultPanel", () => {
   });
 
   it("never prints the entity fields the response must not carry", () => {
-    const { container } = renderWithResult("response-dto", passing);
+    const { container } = renderWithResult(
+      "registration-response-mapper",
+      passing,
+    );
 
     expect(screen.getByText('"Ada Lovelace"')).toBeInTheDocument();
     expect(container.textContent).not.toContain("passwordHash");

@@ -5,6 +5,7 @@ import { LANGUAGES, type Language } from "@/lib/workshop/types";
 import { LANGUAGE_LABELS } from "@/lib/workshop/languageLabels";
 import { useWorkshop } from "@/lib/workshop/WorkshopContext";
 import { useMessages } from "@/lib/i18n";
+import { taskDefinition } from "@/lib/workshop/tasks";
 import { LanguageIcon } from "./LanguageIcon";
 import { ConfirmDialog } from "./ConfirmDialog";
 import {
@@ -62,7 +63,8 @@ export function LanguageSwitcher() {
   }
 
   const activeTaskTitle = activeTaskId
-    ? messages.tasks[activeTaskId].title
+    ? (messages.tasks[activeTaskId]?.title ??
+      taskDefinition(activeTaskId).title)
     : "";
 
   return (

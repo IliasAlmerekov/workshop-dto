@@ -15,11 +15,11 @@ const TOKENS: Task2Tokens = {
   date: "DateTimeImmutable",
 };
 
-const SOLUTION_EDITABLE = `            userName: strtolower(trim($raw['user_name'])),
-            firstName: trim($raw['first_name']),
-            lastName: trim($raw['last_name']),
-            birthDate: new \\DateTimeImmutable(trim($raw['birth_date'])),
-            email: strtolower(trim($raw['email'])),
+const SOLUTION_EDITABLE = `            userName: strtolower(trim($form['user_name'])),
+            firstName: trim($form['first_name']),
+            lastName: trim($form['last_name']),
+            birthDate: new \\DateTimeImmutable(trim($form['birth_date'])),
+            email: strtolower(trim($form['email'])),
 `;
 
 function extractFieldExpressions(doc: string): {
@@ -86,12 +86,12 @@ export const phpMapperAdapter: TaskLanguageAdapter = {
     },
     {
       kind: "fields",
-      text: "Read each $raw['...'] field, trim it, and for userName/email also lowercase it. Convert birth_date into a real DateTimeImmutable.",
+      text: "Read each $form['...'] field, trim it, and for userName/email also lowercase it. Convert birth_date into a real DateTimeImmutable.",
     },
     {
       kind: "syntax",
       text: "Use PHP's named arguments and wrap trim() with strtolower() where needed.",
-      code: "userName: strtolower(trim($raw['user_name'])),",
+      code: "userName: strtolower(trim($form['user_name'])),",
     },
   ],
   validate,

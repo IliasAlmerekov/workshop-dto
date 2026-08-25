@@ -108,7 +108,9 @@ describe("ExerciseRunner — Task 1 (request-dto)", () => {
     expect(checking).toBeDisabled();
     expect(checking).toHaveAttribute("aria-busy", "true");
     expect(screen.getByText("Running checks")).toBeInTheDocument();
-    expect(screen.getByText(/Parsing CreateUserRequest.ts/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Parsing CreateUserRequest.ts/),
+    ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /continue/i })).toBeDisabled();
 
     // …and once it settles, the stage list is gone and the real per-check

@@ -3,6 +3,7 @@
 import { KnowledgeCheck } from "./KnowledgeCheck";
 import { EntityDtoComparisonPanel } from "./EntityDtoComparisonPanel";
 import { FlowDiagram } from "./FlowDiagram";
+import { CertificateForm } from "./CertificateForm";
 import { useMessages } from "@/lib/i18n";
 
 const REPO_URL = "https://github.com/IliasAlmerekov/workshop-dto";
@@ -38,6 +39,8 @@ export function CompletionScreen() {
           {messages.completion.body}
         </p>
       </div>
+
+      <CertificateForm />
 
       <section className="flex flex-col gap-4">
         <h2 className="text-xl font-bold">{messages.completion.quizHeading}</h2>

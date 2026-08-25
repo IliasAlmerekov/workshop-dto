@@ -64,6 +64,17 @@ beforeEach(() => {
 });
 
 describe("CompletionScreen", () => {
+  it("offers the certificate download once the workshop is complete", () => {
+    renderWithWorkshop(<CompletionScreen />);
+
+    expect(
+      screen.getByRole("textbox", { name: /your name/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /download certificate/i }),
+    ).toBeInTheDocument();
+  });
+
   it("compares the real entity and DTO JSON and shows the safe data flow", async () => {
     renderWithWorkshop(<CompletionScreen />);
 

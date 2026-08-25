@@ -21,6 +21,18 @@ export type TaskCopy = {
   description: string;
   fields: string[];
   explanation: string;
+  brief?: {
+    situation: { title: string; body: string };
+    mission: { title: string; body: string };
+    doneWhen: { title: string; body: string };
+    notInThisStep: { title: string; body: string };
+    example?: {
+      beforeLabel: string;
+      beforeValue: string;
+      afterLabel: string;
+      afterValue: string;
+    };
+  };
 };
 
 export type HintCopy = {
@@ -178,6 +190,10 @@ export type Messages = {
     protectedHeading: string;
     repositoryHeading: string;
     viewRepository: string;
+    resultHeading: string;
+    responseHeading: string;
+    emailHeading: string;
+    resultNote: string;
   };
   quiz: {
     questions: {
@@ -225,10 +241,10 @@ export type Messages = {
     heading: string;
     body: string;
   };
-  tasks: Record<TaskId, TaskCopy>;
-  hints: Record<TaskId, Record<Language, HintCopy>>;
+  tasks: Record<string, TaskCopy>;
+  hints: Record<string, Record<Language, HintCopy>>;
   /** The one structural check each language adapter runs before the field checks. */
-  construct: Record<TaskId, Record<Language, ConstructCopy>>;
+  construct: Record<string, Record<Language, ConstructCopy>>;
   checks: {
     fieldMissingRequest: (field: string) => string;
     fieldWrongType: (field: string, expected: string, found: string) => string;
@@ -267,7 +283,7 @@ export type Messages = {
   };
 };
 
-const CONCEPT_HINTS: Record<TaskId, string> = {
+const CONCEPT_HINTS: Record<string, string> = {
   "request-dto":
     "A request DTO makes the input contract explicit and prevents it from being changed after creation.",
   "request-mapper":
@@ -277,6 +293,19 @@ const CONCEPT_HINTS: Record<TaskId, string> = {
   "response-dto":
     "The public response contains only what a client needs — building it explicitly means passwordHash and internalNote can never leak by accident.",
 };
+
+function hintsForEveryTrack(
+  concept: string,
+  fields: string,
+  syntax: string,
+): Record<Language, HintCopy> {
+  return {
+    php: { concept, fields, syntax },
+    typescript: { concept, fields, syntax },
+    python: { concept, fields, syntax },
+    java: { concept, fields, syntax },
+  };
+}
 
 export const en: Messages = {
   locale: {
@@ -411,8 +440,8 @@ export const en: Messages = {
     body: "Both panels call the real demo API for the same user. The left endpoint serializes the internal entity directly; the right one goes through the real UserResponseMapper your solution mirrors.",
   },
   completion: {
-    heading: "All four exercises complete 🎉",
-    body: "You defined typed DTOs, wrote explicit mappers, isolated a foreign API contract, and produced a safe public response.",
+    heading: "All six registration stages complete 🎉",
+    body: "You imported a legacy profile, prepared a welcome email, and returned a safe public registration response.",
     quizHeading: "Quick knowledge check",
     beforeAfterHeading: "Before and after, one more time",
     flowTitle: "The safe data flow you just built",
@@ -420,6 +449,11 @@ export const en: Messages = {
     protectedHeading: "What each exercise protected",
     repositoryHeading: "Repository and model solutions",
     viewRepository: "View the repository",
+    resultHeading: "The registration result you built",
+    responseHeading: "Safe RegistrationResponse",
+    emailHeading: "Prepared WelcomeEmail",
+    resultNote:
+      "This is deterministic teaching evidence: no account was created and no email was sent.",
   },
   quiz: {
     questions: [
@@ -460,7 +494,7 @@ export const en: Messages = {
           {
             text: "Explicit translation between two data shapes: renaming, normalizing, converting, and choosing what to include or drop.",
             feedback:
-              "Right — that's exactly what every mapper across all four exercises did.",
+              "Right — that is exactly what the mappers in this registration pipeline do.",
           },
           {
             text: "Deciding whether the incoming request is authorized.",
@@ -508,7 +542,7 @@ export const en: Messages = {
     },
     {
       title: "Normalizing that input",
-      body: "Exercise 2: raw request fields get renamed, trimmed, and converted before anything else touches them.",
+      body: "Exercise 2: fields from the legacy registration screen get renamed, trimmed, and converted before anything else touches them.",
     },
     {
       title: "External API → your application",
@@ -608,7 +642,7 @@ export const en: Messages = {
       shortTitle: "Request DTO",
       question: "How do we define a clear and typed input contract?",
       description:
-        "We start by modeling the input contract for creating a user. Complete an immutable CreateUserRequest that captures all required fields with strong types.",
+        "Your team is migrating registration from an old system to a new service. Across six small steps, you will import a legacyProfile, prepare a welcome email, and return a safe public response. First, define the contract the new service accepts.",
       fields: [
         "userName: string",
         "firstName: string",
@@ -618,6 +652,24 @@ export const en: Messages = {
       ],
       explanation:
         "CreateUserRequest is a DTO, not the domain entity: it exists only to make the data crossing this boundary explicit and typed. Marking every field immutable means nothing downstream can silently mutate the request after it was created.",
+      brief: {
+        situation: {
+          title: "The situation",
+          body: "Your team is replacing an old registration system. Its Registration API supplies a legacyProfile with old field names and untidy values. The new service must turn it into an account. Across the next six steps, you will import the profile, create the account data, prepare a welcome email, and return a safe response to the Registration Complete screen. This first DTO is the target contract that the next mapper will produce.",
+        },
+        mission: {
+          title: "Your mission",
+          body: "In {fileName}, define the immutable CreateUserRequest contract: exactly the data the new Registration Service accepts when it creates an account.",
+        },
+        doneWhen: {
+          title: "Done when",
+          body: "It has userName, firstName, lastName, birthDate, and email, each with the appropriate type and unable to change after creation.",
+        },
+        notInThisStep: {
+          title: "Not in this step",
+          body: "No database drama yet — this step only defines the shape of the data. Do not validate, save, or transform anything yet.",
+        },
+      },
     },
     "request-mapper": {
       title: "Request Mapper",
@@ -626,13 +678,38 @@ export const en: Messages = {
       description:
         "Raw request data arrives with snake_case keys, stray whitespace, and mixed casing. Map it onto the typed CreateUserRequest from step one.",
       fields: [
-        "user_name → userName",
-        "trim whitespace",
-        "lowercase userName & email",
-        "birth_date → typed date",
+        "user_name → userName · trim · lowercase",
+        "first_name → firstName · trim",
+        "last_name → lastName · trim",
+        "birth_date → birthDate · parse as date",
+        "email → email · trim · lowercase",
       ],
       explanation:
         "The mapper concentrates boundary logic in one visible, testable place. Renaming, trimming, and case normalization all happen here — once — instead of being repeated (or forgotten) everywhere the request is used.",
+      brief: {
+        situation: {
+          title: "The situation",
+          body: "An older registration screen sends its form values to your application. It uses snake_case keys and may include spaces or mixed capitalization.",
+        },
+        mission: {
+          title: "Your mission",
+          body: "In {fileName}, turn that form into the typed CreateUserRequest used to create an account.",
+        },
+        doneWhen: {
+          title: "Done when",
+          body: "Map all five fields: user_name → userName (trim + lowercase), first_name → firstName (trim), last_name → lastName (trim), birth_date → birthDate (parse as a date), and email → email (trim + lowercase).",
+        },
+        notInThisStep: {
+          title: "Not in this step",
+          body: "No data chaos — clean each value once at this boundary. Do not change the original form or add validation rules.",
+        },
+        example: {
+          beforeLabel: "Before mapping",
+          beforeValue: 'user_name: "  Ada.Lovelace "',
+          afterLabel: "After mapping",
+          afterValue: 'userName: "ada.lovelace"',
+        },
+      },
     },
     "external-api": {
       title: "External API DTO and Mapper",
@@ -663,6 +740,139 @@ export const en: Messages = {
       ],
       explanation:
         "The public contract contains only what the client actually needs. Building it explicitly — rather than serializing the entity directly — means passwordHash and internalNote can never leak by accident, even as the entity grows new fields over time.",
+    },
+    "welcome-email-dto": {
+      title: "Welcome Email DTO",
+      shortTitle: "Email DTO",
+      question: "What contract does a welcome email need?",
+      description:
+        "Define the small immutable WelcomeEmail contract before mapping a created User for the notification boundary.",
+      fields: [
+        "recipientEmail: string",
+        "recipientName: string",
+        "subject: string",
+        "body: string",
+      ],
+      explanation:
+        "WelcomeEmail is an explicit notification contract. Define the consumer's data before writing its mapper.",
+      brief: {
+        situation: {
+          title: "The situation",
+          body: "A new account was created. The notification boundary needs data for a welcome email.",
+        },
+        mission: {
+          title: "Your mission",
+          body: "In {fileName}, define the immutable contract the email consumer receives.",
+        },
+        doneWhen: {
+          title: "Done when",
+          body: "It contains recipientEmail, recipientName, subject, and body with string values.",
+        },
+        notInThisStep: {
+          title: "Not in this step",
+          body: "Do not send an email or call a provider. This step only defines data.",
+        },
+      },
+    },
+    "welcome-email-mapper": {
+      title: "Welcome Email Mapper",
+      shortTitle: "Email Mapper",
+      question: "How do we prepare a welcome email without sending it?",
+      description:
+        "Map the created User into WelcomeEmail. The workshop prepares data only; it does not call an email provider.",
+      fields: [
+        "email → recipientEmail",
+        "firstName + lastName → recipientName",
+        "welcome subject",
+        "body names participant",
+      ],
+      explanation:
+        "This mapper makes the outbound notification boundary explicit and prepares only what its consumer needs.",
+      brief: {
+        situation: {
+          title: "The situation",
+          body: "A created User is ready for a welcome email, but the workshop has no mail provider.",
+        },
+        mission: {
+          title: "Your mission",
+          body: "In {fileName}, map the User into WelcomeEmail.",
+        },
+        doneWhen: {
+          title: "Done when",
+          body: "Use the email and full name, then prepare a welcome subject and body.",
+        },
+        notInThisStep: {
+          title: "Not in this step",
+          body: "Do not send anything or expose unrelated User fields.",
+        },
+      },
+    },
+    "registration-response-dto": {
+      title: "Registration Response DTO",
+      shortTitle: "Response DTO",
+      question: "What may the Registration Complete screen receive?",
+      description:
+        "Define the immutable public RegistrationResponse before exposing a created User.",
+      fields: [
+        "id: number",
+        "userName: string",
+        "displayName: string",
+        "birthDate: string",
+        "email: string",
+      ],
+      explanation:
+        "RegistrationResponse is a public contract, not the internal User entity.",
+      brief: {
+        situation: {
+          title: "The situation",
+          body: "The Registration Complete screen needs a safe public result.",
+        },
+        mission: {
+          title: "Your mission",
+          body: "In {fileName}, define the immutable RegistrationResponse contract.",
+        },
+        doneWhen: {
+          title: "Done when",
+          body: "It has id, userName, displayName, birthDate, and email.",
+        },
+        notInThisStep: {
+          title: "Not in this step",
+          body: "Do not add private entity fields to a public contract.",
+        },
+      },
+    },
+    "registration-response-mapper": {
+      title: "Registration Response Mapper",
+      shortTitle: "Response Mapper",
+      question: "How do we return a safe registration result?",
+      description:
+        "Map the created User into RegistrationResponse and deliberately exclude private entity fields.",
+      fields: [
+        "id, userName, email",
+        "firstName + lastName → displayName",
+        "birthDate → YYYY-MM-DD",
+        "omit passwordHash and internalNote",
+      ],
+      explanation:
+        "The public mapper isolates Registration Complete from internal User fields and prevents accidental leaks.",
+      brief: {
+        situation: {
+          title: "The situation",
+          body: "The account exists and the public Registration Complete screen needs its result.",
+        },
+        mission: {
+          title: "Your mission",
+          body: "In {fileName}, map the User into RegistrationResponse.",
+        },
+        doneWhen: {
+          title: "Done when",
+          body: "Return public fields, format birthDate, and keep passwordHash and internalNote out.",
+        },
+        notInThisStep: {
+          title: "Not in this step",
+          body: "Do not serialize the entity or include private fields.",
+        },
+      },
     },
   },
   hints: {
@@ -700,26 +910,27 @@ export const en: Messages = {
       php: {
         concept: CONCEPT_HINTS["request-mapper"],
         fields:
-          "Read each $raw['...'] field, trim it, and for userName/email also lowercase it. Convert birth_date into a real DateTimeImmutable.",
+          "Read each $form['...'] field, trim it, and for userName/email also lowercase it. Convert birth_date into a real DateTimeImmutable.",
         syntax:
           "Use PHP's named arguments and wrap trim() with strtolower() where needed.",
       },
       typescript: {
         concept: CONCEPT_HINTS["request-mapper"],
         fields:
-          "Read each raw.* field, trim it, and for userName/email also lowercase it. Convert birth_date into a real Date.",
-        syntax: "Chain the transformations directly on the raw field access.",
+          "Read each form.* field, trim it, and for userName/email also lowercase it. Convert birth_date into a real Date.",
+        syntax: "Chain the transformations directly on the form field access.",
       },
       python: {
         concept: CONCEPT_HINTS["request-mapper"],
         fields:
-          'Read each raw["..."] field, strip it, and for userName/email also lowercase it. Convert birth_date into a real date.',
-        syntax: "Chain .strip() and .lower() directly on the raw field access.",
+          'Read each form["..."] field, strip it, and for userName/email also lowercase it. Convert birth_date into a real date.',
+        syntax:
+          "Chain .strip() and .lower() directly on the form field access.",
       },
       java: {
         concept: CONCEPT_HINTS["request-mapper"],
         fields:
-          'Read each raw.get("...") field, trim it, and for userName/email also lowercase it. Convert birth_date into a real LocalDate — arguments are positional, in the same order as the record.',
+          'Read each form.get("...") field, trim it, and for userName/email also lowercase it. Convert birth_date into a real LocalDate — arguments are positional, in the same order as the record.',
         syntax: "Chain .trim() and .toLowerCase() directly on the map lookup.",
       },
     },
@@ -783,6 +994,26 @@ export const en: Messages = {
           "Concatenate strings for displayName and use .format(DateTimeFormatter.ISO_LOCAL_DATE) for the date.",
       },
     },
+    "welcome-email-dto": hintsForEveryTrack(
+      "Keep the notification contract explicit before anything maps into it.",
+      "Use recipientEmail, recipientName, subject, and body.",
+      "Use your track's immutable DTO syntax.",
+    ),
+    "welcome-email-mapper": hintsForEveryTrack(
+      "The mapper prepares an outbound message; it does not send one.",
+      "Map email, firstName, and lastName into the four WelcomeEmail fields.",
+      "Use your track's explicit mapper syntax.",
+    ),
+    "registration-response-dto": hintsForEveryTrack(
+      "A public response is a separate contract from the internal entity.",
+      "Use id, userName, displayName, birthDate, and email.",
+      "Use your track's immutable DTO syntax.",
+    ),
+    "registration-response-mapper": hintsForEveryTrack(
+      "Map only the public result at this boundary.",
+      "Build displayName and formatted birthDate; omit passwordHash and internalNote.",
+      "Use your track's explicit mapper syntax.",
+    ),
   },
   construct: {
     "request-dto": {

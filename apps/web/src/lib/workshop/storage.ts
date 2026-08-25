@@ -6,7 +6,7 @@ import {
 } from "./types";
 
 export const STORAGE_KEY = "dto-mapper-workshop";
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 
 export function createDefaultState(): WorkshopState {
   return {

@@ -1,5 +1,6 @@
 import type { Language } from "@/lib/workshop/types";
 import type { TaskLanguageAdapter } from "./types";
+import { registrationAdapter } from "./registrationAdapters";
 
 const LOADERS: Record<Language, () => Promise<TaskLanguageAdapter>> = {
   typescript: async () =>
@@ -17,5 +18,5 @@ const LOADERS: Record<Language, () => Promise<TaskLanguageAdapter>> = {
 export function loadTask4Adapter(
   language: Language,
 ): Promise<TaskLanguageAdapter> {
-  return LOADERS[language]();
+  return Promise.resolve(registrationAdapter("welcome-email-mapper", language));
 }

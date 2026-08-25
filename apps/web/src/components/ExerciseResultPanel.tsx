@@ -299,7 +299,8 @@ export function ExerciseResultPanel({ task }: ExerciseResultPanelProps) {
                       <p className="text-body-compact leading-body-compact font-semibold text-[var(--foreground)]">
                         {nextTask
                           ? messages.result.nextStepLead(
-                              messages.tasks[nextTask.id].shortTitle,
+                              messages.tasks[nextTask.id]?.shortTitle ??
+                                nextTask.shortTitle,
                             )
                           : messages.result.lastStepLead}
                       </p>

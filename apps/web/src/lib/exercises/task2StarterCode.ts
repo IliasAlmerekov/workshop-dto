@@ -4,7 +4,7 @@ import type { StarterCode } from "./types";
 /** Starter code per language for Task 2 (spec section 6.2), same split convention as task1StarterCode.ts. */
 export const TASK2_STARTER_CODE: Record<Language, StarterCode> = {
   typescript: {
-    before: `export function mapCreateUserRequest(raw: {
+    before: `export function mapCreateUserRequest(form: {
   user_name: string;
   first_name: string;
   last_name: string;
@@ -21,7 +21,7 @@ export const TASK2_STARTER_CODE: Record<Language, StarterCode> = {
 
 final class CreateUserRequestMapper
 {
-    public function map(array $raw): CreateUserRequest
+    public function map(array $form): CreateUserRequest
     {
         return new CreateUserRequest(
 `,
@@ -34,7 +34,7 @@ final class CreateUserRequestMapper
 
 
 class CreateUserRequestMapper:
-    def map(self, raw: dict) -> CreateUserRequest:
+    def map(self, form: dict) -> CreateUserRequest:
         return CreateUserRequest(
 `,
     editable:
@@ -46,7 +46,7 @@ class CreateUserRequestMapper:
 import java.util.Map;
 
 public final class CreateUserRequestMapper {
-    public CreateUserRequest map(Map<String, String> raw) {
+    public CreateUserRequest map(Map<String, String> form) {
         return new CreateUserRequest(
 `,
     editable:

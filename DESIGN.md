@@ -59,8 +59,8 @@ always ~4 values apart — enough to read as a lift, never enough to read as a c
 | `blue/50`      | `#eef1fd` | Accent wash behind icon badges                           |
 | `navy/900`     | `#02205a` | **Action Navy** — primary button only                    |
 | `navy/800`     | `#00267e` | Type names in code                                       |
-| `lavender/600` | `#15139c` | Illustration accent — the `Mapper` label                 |
-| `lavender/500` | `#6b6bf2` | Illustration glow — the `Mapper`'s own light             |
+| `lavender/600` | `#15139c` | Illustration accent — the active stage's label           |
+| `lavender/500` | `#6b6bf2` | Illustration glow — the active stage's own light         |
 | `lavender/400` | `#6673b3` | Illustration accent, receding — the `Response DTO` label |
 | `lavender/300` | `#cdcdfb` | Illustration tint                                        |
 | `lavender/100` | `#e9e9fb` | Illustration tint, lightest                              |
@@ -73,9 +73,11 @@ The `red` family exists only for the validation status below, and there is no gr
 passing reads in Accent Blue. The two tints are `red/600` mixed with white, so the family stays one
 hue instead of a borrowed ramp.
 
-The `lavender` family belongs to the hero illustration and nothing else. It is
-not a third accent: no component, screen or state may bind it. Accent Blue stays
-the interface's only attention colour.
+The `lavender` family belongs to the hero illustration. The only exception is
+the completion screen's decorative canvas balloon layer, where it appears with
+the existing blue and navy families as a non-semantic celebration material.
+It is not a third interface accent: no control, text, state, or other screen
+may bind it. Accent Blue stays the interface's only attention colour.
 
 ### Primitives — Code syntax
 
@@ -270,13 +272,32 @@ tighter roll on the top and bottom rims — and all four are the same size: the 
 equal boundaries, not a hierarchy of them. The rim is rolled rather than sharp because that is what
 sweeps the studio's softbox across a few millimetres of glass instead of returning it as one thin
 line, and the roll is held near a quarter of the block's thickness: past that there is no flat wall
-left between the two rolls and the block reads as a bar of soap. `Mapper` is the unmistakably active
-one: its body stays pale, near-neutral glass — the cool cast is carried by attenuation over the
-optical path, never by a tint painted on the surface — while a broad `lavender/500` pool glows from
-the centre and fades through `lavender/100` before reaching the perimeter. A denser tint makes it an
-opaque periwinkle block with the label sitting on top, which is the one thing the material may not
-become. The light spills softly onto the `Entity` slab below it and washes the canvas behind the
-stack. The renderer runs **unmapped**
+left between the two rolls and the block reads as a bar of soap. `Request DTO` is the unmistakably
+active one: its body stays pale, near-neutral glass — the cool cast is carried by attenuation over
+the optical path, never by a tint painted on the surface — while a broad `lavender/500` pool glows
+from the centre and fades through `lavender/100` before reaching the perimeter. A denser tint makes
+it an opaque periwinkle block with the label sitting on top, which is the one thing the material may
+not become. The light spills softly onto the `Mapper` slab below it and washes the canvas behind the
+stack.
+
+The material is a **volume, not a fill**, and everything about its settings serves that one claim.
+Surface colour stays within a few values of white and the whole tint is carried by
+`attenuationColor` integrated over a `thickness` well above the slab's own — that is what puts a
+gradient _inside_ each block, bright where the glass is thin and deepening where the path through it
+is long. Roughness is low and `clearcoat` is full, so the studio's softboxes land as shapes with an
+edge rather than as an even wash; the frost is supplied by the normal map's microsurface, which
+scatters the reflection without dissolving the refracted image behind it. A trace of chromatic
+aberration splits the rim, held far below where the labels beneath could fringe.
+
+Refraction can only bend what its buffer holds, so the buffer is authored rather than captured. A
+live screen-space capture drags the neighbouring slabs and their labels through the glass as dark
+bands; a flat white one removes the bands and every gradient with them, which is what makes a slab
+read as one grey value edge to edge. The scene refracts a shape-free studio field instead — a soft
+softbox high and left over a cool floor, the same quadrant the real key light occupies. Its
+resolution and the transmission target's are the crispness budget: below roughly one texel per
+screen pixel across a slab, a rim highlight arrives as a staircase rather than as a curve, which is
+why the high tier renders the transmission target at 1024 and the environment at 1K. The renderer
+runs **unmapped**
 (`flat`) and paints `bg/canvas` as its own backdrop, so the tokens above are the values that reach
 the screen and the canvas leaves no seam against the page. There is no post-processing pass; a bloom
 over a near-white scene only greys the labels down.
@@ -299,11 +320,12 @@ previewed and moves between the four stages.
 
 Every language points at the same stage: `Request DTO`, the first thing the participant writes in
 whichever language they pick. A language does not own a pipeline stage, so a one-language-per-slab
-mapping was arbitrary in a place the eye reads as meaningful — and it split the emphasis, annotating
-one slab while the resting violet core still sat on Mapper. The pointed-at stage inherits Mapper's
-blue inner light and blue label while Mapper returns to quiet white glass, so exactly one boundary is
-lit at any moment. Hover/focus changes only this local preview. Click commits one 1050ms
-transition: sibling cards fade, the stack opens along Z, the camera dollies toward Mapper, and
+mapping was arbitrary in a place the eye reads as meaningful. It is also the stack's **resting**
+accent, so previewing a track confirms the composition rather than relocating its one lit slab —
+and an explicit workshop focus, which is the only thing that does move the accent, reads as a
+deliberate change rather than as the illustration's ordinary behaviour. Exactly one boundary is lit
+at any moment. Hover/focus changes only this local preview. Click commits one 1050ms
+transition: sibling cards fade, the stack opens along Z, the camera dollies into the stack, and
 `Exercise 01` resolves from depth before navigation. Motion is demand-rendered at roughly 24 fps,
 sleeps outside the viewport or in a hidden tab, and navigation is immediate under Reduced Motion.
 
@@ -453,8 +475,9 @@ right column.
 - Don't set the display styles at their nominal tracking; `Display/Hero` without −6.80px falls apart.
 - Don't redraw the brand logos. Keep the static fallback and the live WebGL stack aligned to the
   same four boundaries, colours and accent order.
-- Don't bind a `lavender` token in a component or screen, and don't expose the labelled static vector
-  during successful WebGL warm-up.
+- Don't bind a `lavender` token in a component or screen, except the completion
+  canvas balloon illustration; don't expose the labelled static vector during
+  successful WebGL warm-up.
 - Don't let the context panel grow an action. It is read-only supporting material.
 
 ---

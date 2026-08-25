@@ -3,10 +3,12 @@
 import { useState } from "react";
 import { useWorkshop } from "@/lib/workshop/WorkshopContext";
 import { useMessages } from "@/lib/i18n";
+import { cn } from "@/lib/utils";
+import { IconCircleCheck, IconCircleX } from "./ui/icons";
 
 /**
  * Three concise questions (spec 7.5/16.4) checking Entity exposure, mapper
- * responsibility, and DTO trade-offs — the three things the four exercises
+ * responsibility, and DTO trade-offs — the concepts the six registration stages
  * actually taught. Not graded: every answer gets explanatory feedback
  * rather than a pass/fail, matching the workshop's non-punitive tone
  * elsewhere ("Insert solution" never punishes either).
@@ -35,19 +37,25 @@ export function KnowledgeCheck() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4">
       {QUESTIONS.map((question, questionIndex) => {
         const copy = messages.quiz.questions[questionIndex];
         const selected = answered[question.id];
         return (
           <fieldset
             key={question.id}
-            className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5"
+            className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 sm:p-6"
           >
-            <legend className="px-1 text-sm font-semibold">
-              {questionIndex + 1}. {copy.prompt}
+            <legend className="flex w-full items-start gap-3 px-1 text-body font-bold text-[var(--foreground)]">
+              <span
+                aria-hidden="true"
+                className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--accent-soft)] text-label-caption font-bold text-[var(--accent-on-soft)]"
+              >
+                {questionIndex + 1}
+              </span>
+              <span>{copy.prompt}</span>
             </legend>
-            <div className="mt-3 flex flex-col gap-2">
+            <div className="mt-5 flex flex-col gap-2">
               {copy.options.map((option, optionIndex) => {
                 const isSelected = selected === optionIndex;
                 const correct = optionIndex === question.correctIndex;
@@ -57,13 +65,17 @@ export function KnowledgeCheck() {
                     type="button"
                     onClick={() => handleAnswer(question.id, optionIndex)}
                     aria-pressed={isSelected}
-                    className={`rounded-lg border px-4 py-2.5 text-left text-sm ${
-                      isSelected
-                        ? correct
-                          ? "border-[var(--accent)] bg-[var(--accent-soft)]"
-                          : "border-amber-500 bg-amber-500/10"
-                        : "border-[var(--border)] hover:bg-[var(--background)]"
-                    }`}
+                    className={cn(
+                      "min-h-11 rounded-lg border px-4 py-3 text-left text-body-small leading-body-small text-[var(--foreground)] transition-colors motion-reduce:transition-none",
+                      isSelected &&
+                        correct &&
+                        "border-[var(--success-border)] bg-[var(--success-soft)]",
+                      isSelected &&
+                        !correct &&
+                        "border-[var(--danger-border)] bg-[var(--danger-soft)]",
+                      !isSelected &&
+                        "border-[var(--border)] hover:border-[var(--border-strong)] hover:bg-[var(--surface-raised)]",
+                    )}
                   >
                     {option.text}
                   </button>
@@ -73,13 +85,18 @@ export function KnowledgeCheck() {
             {selected !== undefined && (
               <p
                 role="status"
-                className={`mt-3 text-sm ${
+                className={cn(
+                  "mt-4 flex items-start gap-2 rounded-lg border px-4 py-3 text-body-small leading-body-small",
                   selected === question.correctIndex
-                    ? "text-[var(--accent)]"
-                    : "text-amber-600"
-                }`}
+                    ? "border-[var(--success-border)] bg-[var(--success-soft)] text-[var(--success-on-soft)]"
+                    : "border-[var(--danger-border)] bg-[var(--danger-soft)] text-[var(--danger)]",
+                )}
               >
-                {selected === question.correctIndex ? "✓ " : "! "}
+                {selected === question.correctIndex ? (
+                  <IconCircleCheck size={18} className="mt-0.5 shrink-0" />
+                ) : (
+                  <IconCircleX size={18} className="mt-0.5 shrink-0" />
+                )}
                 {copy.options[selected].feedback}
               </p>
             )}

@@ -15,11 +15,11 @@ const TOKENS: Task2Tokens = {
   date: "Date",
 };
 
-const SOLUTION_EDITABLE = `    userName: raw.user_name.trim().toLowerCase(),
-    firstName: raw.first_name.trim(),
-    lastName: raw.last_name.trim(),
-    birthDate: new Date(raw.birth_date.trim()),
-    email: raw.email.trim().toLowerCase(),
+const SOLUTION_EDITABLE = `    userName: form.user_name.trim().toLowerCase(),
+    firstName: form.first_name.trim(),
+    lastName: form.last_name.trim(),
+    birthDate: new Date(form.birth_date.trim()),
+    email: form.email.trim().toLowerCase(),
 `;
 
 function extractFieldExpressions(doc: string): {
@@ -88,12 +88,12 @@ export const typescriptMapperAdapter: TaskLanguageAdapter = {
     },
     {
       kind: "fields",
-      text: "Read each raw.* field, trim it, and for userName/email also lowercase it. Convert birth_date into a real Date.",
+      text: "Read each form.* field, trim it, and for userName/email also lowercase it. Convert birth_date into a real Date.",
     },
     {
       kind: "syntax",
-      text: "Chain the transformations directly on the raw field access.",
-      code: "userName: raw.user_name.trim().toLowerCase(),",
+      text: "Chain the transformations directly on the form field access.",
+      code: "userName: form.user_name.trim().toLowerCase(),",
     },
   ],
   validate,

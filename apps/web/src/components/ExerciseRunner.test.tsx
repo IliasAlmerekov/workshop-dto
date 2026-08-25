@@ -6,6 +6,8 @@ import { ExerciseRunner } from "./ExerciseRunner";
 import { renderWithWorkshop } from "@/test-utils/renderWithWorkshop";
 import { WorkshopProvider } from "@/lib/workshop/WorkshopContext";
 import { loadState } from "@/lib/workshop/storage";
+import { LocaleProvider } from "@/lib/i18n";
+import { LOCALE_STORAGE_KEY } from "@/lib/i18n/locale";
 import { TASK1_DEFINITION } from "@/lib/exercises/task1";
 import { loadTask1Adapter } from "@/lib/exercises/task1Adapters";
 import { typescriptAdapter } from "@/lib/exercises/adapters/typescript";
@@ -66,6 +68,67 @@ describe("ExerciseRunner — Task 1 (request-dto)", () => {
 
     expect(screen.getByText(/loading exercise/i)).toBeInTheDocument();
     await screen.findByRole("heading", { name: "Typed Request DTO" });
+  });
+
+  it("frames the request DTO as the registration form boundary", async () => {
+    renderWithWorkshop(
+      <ExerciseRunner
+        taskId="request-dto"
+        definition={TASK1_DEFINITION}
+        loadAdapter={loadTask1Adapter}
+        language="typescript"
+      />,
+    );
+
+    await screen.findByText("The situation");
+    expect(
+      screen.getByText(
+        "A visitor is creating an account in your app. Their registration form sends five pieces of information to the application.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Your mission")).toBeInTheDocument();
+    expect(screen.getByText("Done when")).toBeInTheDocument();
+    expect(screen.getByText("Not in this step")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /Read from form, use the application's field names, trim every text value/,
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /No database drama yet — this step only defines the shape of the data\. Do not validate, save, or transform anything yet\./,
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("translates the request DTO brief when German is selected", async () => {
+    window.localStorage.setItem(LOCALE_STORAGE_KEY, "de");
+
+    renderWithWorkshop(
+      <LocaleProvider>
+        <ExerciseRunner
+          taskId="request-dto"
+          definition={TASK1_DEFINITION}
+          loadAdapter={loadTask1Adapter}
+          language="typescript"
+        />
+      </LocaleProvider>,
+    );
+
+    expect(
+      await screen.findByText(
+        "Eine Person erstellt ein Konto in deiner Anwendung. Ihr Registrierungsformular sendet fünf Informationen an die Anwendung.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Dein Auftrag")).toBeInTheDocument();
+    expect(
+      screen.getByText(/Lies aus form, verwende die Feldnamen der Anwendung/),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /Noch kein Datenbank-Drama — in diesem Schritt definierst du nur die Form der Daten\./,
+      ),
+    ).toBeInTheDocument();
   });
 
   it("Check solution reports real per-field feedback for an incomplete draft, and Continue stays locked", async () => {
@@ -205,6 +268,11 @@ describe("ExerciseRunner — Task 1 (request-dto)", () => {
         screen.getAllByText("CreateUserRequest.java").length,
       ).toBeGreaterThan(0),
     );
+    expect(
+      screen.getByText(
+        "In CreateUserRequest.java, create an immutable DTO that represents exactly the data the application accepts at this boundary.",
+      ),
+    ).toBeInTheDocument();
     expect(screen.queryAllByText("CreateUserRequest.ts")).toHaveLength(0);
   });
 
@@ -226,6 +294,64 @@ describe("ExerciseRunner — Task 1 (request-dto)", () => {
 });
 
 describe("ExerciseRunner — Task 2 (request-mapper)", () => {
+  it("frames the mapper as the one place legacy registration input is cleaned", async () => {
+    renderWithWorkshop(
+      <ExerciseRunner
+        taskId="request-mapper"
+        definition={TASK2_DEFINITION}
+        loadAdapter={loadTask2Adapter}
+        language="typescript"
+      />,
+    );
+
+    await screen.findByText("The situation");
+    expect(
+      screen.getByText(
+        "An older registration screen sends its form values to your application. It uses snake_case keys and may include spaces or mixed capitalization.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Your mission")).toBeInTheDocument();
+    expect(screen.getByText("Done when")).toBeInTheDocument();
+    expect(screen.getByText("Not in this step")).toBeInTheDocument();
+    expect(screen.getByText("Before mapping")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        (_, element) => element?.textContent === 'user_name: "  Ada.Lovelace "',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByText("After mapping")).toBeInTheDocument();
+    expect(screen.getByText('userName: "ada.lovelace"')).toBeInTheDocument();
+  });
+
+  it("translates the mapper brief when German is selected", async () => {
+    window.localStorage.setItem(LOCALE_STORAGE_KEY, "de");
+
+    renderWithWorkshop(
+      <LocaleProvider>
+        <ExerciseRunner
+          taskId="request-mapper"
+          definition={TASK2_DEFINITION}
+          loadAdapter={loadTask2Adapter}
+          language="typescript"
+        />
+      </LocaleProvider>,
+    );
+
+    expect(
+      await screen.findByText(
+        "Ein älterer Registrierungsbildschirm sendet seine Formularwerte an deine Anwendung. Er verwendet snake_case-Schlüssel und kann Leerzeichen oder uneinheitliche Groß- und Kleinschreibung enthalten.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Dein Auftrag")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /Kein Datenchaos — bereinige jeden Wert genau einmal an dieser Grenze\./,
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Vor dem Mapping")).toBeInTheDocument();
+    expect(screen.getByText("Nach dem Mapping")).toBeInTheDocument();
+  });
+
   it("loads the mapper exercise and reports missing-field feedback", async () => {
     const user = userEvent.setup();
     renderWithWorkshop(

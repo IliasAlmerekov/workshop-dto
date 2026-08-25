@@ -1,4 +1,4 @@
-import type { TaskId } from "@/lib/workshop/types";
+import type { Language, TaskId } from "@/lib/workshop/types";
 import type { Messages } from "./en";
 
 /**
@@ -18,7 +18,7 @@ import type { Messages } from "./en";
  *    direct second-person English.
  */
 
-const CONCEPT_HINTS: Record<TaskId, string> = {
+const CONCEPT_HINTS: Record<string, string> = {
   "request-dto":
     "Ein Request-DTO macht den Eingabevertrag explizit und verhindert, dass er nach dem Erzeugen noch verändert wird.",
   "request-mapper":
@@ -28,6 +28,19 @@ const CONCEPT_HINTS: Record<TaskId, string> = {
   "response-dto":
     "Die öffentliche Response enthält nur das, was ein Client braucht — sie explizit aufzubauen bedeutet, dass passwordHash und internalNote niemals versehentlich nach außen gelangen.",
 };
+
+function hintsForEveryTrack(
+  concept: string,
+  fields: string,
+  syntax: string,
+): Record<Language, import("./en").HintCopy> {
+  return {
+    php: { concept, fields, syntax },
+    typescript: { concept, fields, syntax },
+    python: { concept, fields, syntax },
+    java: { concept, fields, syntax },
+  };
+}
 
 export const de: Messages = {
   locale: {
@@ -165,7 +178,7 @@ export const de: Messages = {
     body: "Beide Panels rufen für denselben Nutzer die echte Demo-API auf. Der linke Endpunkt serialisiert die interne Entity direkt; der rechte läuft durch denselben UserResponseMapper, den deine Lösung nachbildet.",
   },
   completion: {
-    heading: "Alle vier Übungen geschafft 🎉",
+    heading: "Alle sechs Registrierungsschritte geschafft 🎉",
     body: "Du hast typisierte DTOs definiert, explizite Mapper geschrieben, einen fremden API-Vertrag abgeschottet und eine sichere öffentliche Response erzeugt.",
     quizHeading: "Kurzer Wissenscheck",
     beforeAfterHeading: "Vorher und nachher, ein letztes Mal",
@@ -174,6 +187,11 @@ export const de: Messages = {
     protectedHeading: "Was jede Übung geschützt hat",
     repositoryHeading: "Repository und Musterlösungen",
     viewRepository: "Repository ansehen",
+    resultHeading: "Das von dir gebaute Registrierungsergebnis",
+    responseHeading: "Sichere RegistrationResponse",
+    emailHeading: "Vorbereitete WelcomeEmail",
+    resultNote:
+      "Das sind deterministische Lehrdaten: Es wurde kein Konto angelegt und keine E-Mail gesendet.",
   },
   quiz: {
     questions: [
@@ -214,7 +232,7 @@ export const de: Messages = {
           {
             text: "Die explizite Übersetzung zwischen zwei Datenformen: umbenennen, normalisieren, konvertieren und entscheiden, was übernommen oder weggelassen wird.",
             feedback:
-              "Richtig — genau das hat jeder Mapper in allen vier Übungen getan.",
+              "Richtig — genau das machen die Mapper in dieser Registration-Pipeline.",
           },
           {
             text: "Zu entscheiden, ob der eingehende Request autorisiert ist.",
@@ -263,7 +281,7 @@ export const de: Messages = {
     },
     {
       title: "Diese Eingabe normalisieren",
-      body: "Übung 2: Rohe Request-Felder werden umbenannt, getrimmt und konvertiert, bevor irgendetwas anderes sie anfasst.",
+      body: "Übung 2: Felder des älteren Registrierungsbildschirms werden umbenannt, getrimmt und konvertiert, bevor irgendetwas anderes sie anfasst.",
     },
     {
       title: "Externe API → deine Anwendung",
@@ -363,7 +381,7 @@ export const de: Messages = {
       shortTitle: "Request-DTO",
       question: "Wie definieren wir einen klaren, typisierten Eingabevertrag?",
       description:
-        "Wir beginnen damit, den Eingabevertrag für das Anlegen eines Nutzers zu modellieren. Vervollständige ein unveränderliches CreateUserRequest, das alle Pflichtfelder streng typisiert erfasst.",
+        "Dein Team migriert die Registrierung von einem alten System in einen neuen Service. In sechs kleinen Schritten importierst du ein legacyProfile, bereitest eine Welcome-E-Mail vor und gibst eine sichere öffentliche Response zurück. Zuerst definierst du den Vertrag, den der neue Service akzeptiert.",
       fields: [
         "userName: string",
         "firstName: string",
@@ -373,6 +391,24 @@ export const de: Messages = {
       ],
       explanation:
         "CreateUserRequest ist ein DTO, nicht die Domain-Entity: Es existiert nur, um die Daten an dieser Grenze explizit und typisiert zu machen. Jedes Feld unveränderlich zu halten bedeutet, dass niemand weiter unten den Request nach dem Erzeugen still verändern kann.",
+      brief: {
+        situation: {
+          title: "Die Situation",
+          body: "Dein Team ersetzt ein altes Registrierungssystem. Dessen Registration API liefert ein legacyProfile mit alten Feldnamen und unaufgeräumten Werten. Daraus soll im neuen Service ein Konto entstehen. In den nächsten sechs Schritten baust du den gesamten Weg: Profil importieren, Konto anlegen, Welcome-E-Mail vorbereiten und dem Registration-Complete-Screen eine sichere Response geben. Dieses erste DTO ist das Ziel, auf das der nächste Mapper abbildet.",
+        },
+        mission: {
+          title: "Dein Auftrag",
+          body: "Definiere in {fileName} den unveränderlichen CreateUserRequest-Vertrag: genau die Daten, die der neue Registration Service zum Anlegen eines Kontos annimmt.",
+        },
+        doneWhen: {
+          title: "Fertig, wenn",
+          body: "Es enthält userName, firstName, lastName, birthDate und email, jeweils mit passendem Typ und nach dem Erzeugen nicht mehr veränderbar.",
+        },
+        notInThisStep: {
+          title: "Noch nicht in diesem Schritt",
+          body: "Noch kein Datenbank-Drama — in diesem Schritt definierst du nur die Form der Daten. Validieren, speichern oder transformieren gehört noch nicht dazu.",
+        },
+      },
     },
     "request-mapper": {
       title: "Request-Mapper",
@@ -382,13 +418,38 @@ export const de: Messages = {
       description:
         "Rohe Request-Daten kommen mit snake_case-Schlüsseln, überflüssigen Leerzeichen und gemischter Groß-/Kleinschreibung an. Mappe sie auf das typisierte CreateUserRequest aus Schritt eins.",
       fields: [
-        "user_name → userName",
-        "Leerzeichen trimmen",
-        "userName & email kleinschreiben",
-        "birth_date → typisiertes Datum",
+        "user_name → userName · trimmen · kleinschreiben",
+        "first_name → firstName · trimmen",
+        "last_name → lastName · trimmen",
+        "birth_date → birthDate · als Datum parsen",
+        "email → email · trimmen · kleinschreiben",
       ],
       explanation:
         "Der Mapper bündelt die Logik der Grenze an einer sichtbaren, testbaren Stelle. Umbenennen, Trimmen und Normalisieren der Schreibweise passieren hier — einmal — statt überall dort wiederholt (oder vergessen) zu werden, wo der Request verwendet wird.",
+      brief: {
+        situation: {
+          title: "Die Situation",
+          body: "Ein älterer Registrierungsbildschirm sendet seine Formularwerte an deine Anwendung. Er verwendet snake_case-Schlüssel und kann Leerzeichen oder uneinheitliche Groß- und Kleinschreibung enthalten.",
+        },
+        mission: {
+          title: "Dein Auftrag",
+          body: "Verwandle dieses Formular in {fileName} in das typisierte CreateUserRequest, mit dem ein Konto angelegt wird.",
+        },
+        doneWhen: {
+          title: "Fertig, wenn",
+          body: "Mappe alle fünf Felder: user_name → userName (trimmen + kleinschreiben), first_name → firstName (trimmen), last_name → lastName (trimmen), birth_date → birthDate (als Datum parsen) und email → email (trimmen + kleinschreiben).",
+        },
+        notInThisStep: {
+          title: "Noch nicht in diesem Schritt",
+          body: "Kein Datenchaos — bereinige jeden Wert genau einmal an dieser Grenze. Verändere das ursprüngliche Formular nicht und füge keine Validierungsregeln hinzu.",
+        },
+        example: {
+          beforeLabel: "Vor dem Mapping",
+          beforeValue: 'user_name: "  Ada.Lovelace "',
+          afterLabel: "Nach dem Mapping",
+          afterValue: 'userName: "ada.lovelace"',
+        },
+      },
     },
     "external-api": {
       title: "DTO und Mapper für eine externe API",
@@ -419,6 +480,139 @@ export const de: Messages = {
       ],
       explanation:
         "Der öffentliche Vertrag enthält nur das, was der Client wirklich braucht. Ihn explizit aufzubauen — statt die Entity direkt zu serialisieren — bedeutet, dass passwordHash und internalNote nie versehentlich nach außen gelangen, auch wenn die Entity mit der Zeit neue Felder bekommt.",
+    },
+    "welcome-email-dto": {
+      title: "Welcome-E-Mail-DTO",
+      shortTitle: "E-Mail-DTO",
+      question: "Welchen Vertrag braucht eine Welcome-E-Mail?",
+      description:
+        "Definiere den kleinen unveränderlichen WelcomeEmail-Vertrag, bevor ein erzeugter User an der Benachrichtigungsgrenze gemappt wird.",
+      fields: [
+        "recipientEmail: string",
+        "recipientName: string",
+        "subject: string",
+        "body: string",
+      ],
+      explanation:
+        "WelcomeEmail ist ein expliziter Benachrichtigungsvertrag. Definiere die Daten des Verbrauchers vor seinem Mapper.",
+      brief: {
+        situation: {
+          title: "Die Situation",
+          body: "Ein neues Konto wurde erstellt. Die Benachrichtigungsgrenze braucht Daten für eine Welcome-E-Mail.",
+        },
+        mission: {
+          title: "Dein Auftrag",
+          body: "Definiere in {fileName} den unveränderlichen Vertrag für den E-Mail-Verbraucher.",
+        },
+        doneWhen: {
+          title: "Fertig, wenn",
+          body: "Er recipientEmail, recipientName, subject und body als Strings enthält.",
+        },
+        notInThisStep: {
+          title: "Noch nicht in diesem Schritt",
+          body: "Sende keine E-Mail und rufe keinen Provider auf. Hier definierst du nur Daten.",
+        },
+      },
+    },
+    "welcome-email-mapper": {
+      title: "Welcome-E-Mail-Mapper",
+      shortTitle: "E-Mail-Mapper",
+      question: "Wie bereiten wir eine Welcome-E-Mail vor, ohne sie zu senden?",
+      description:
+        "Mappe den erzeugten User auf WelcomeEmail. Der Workshop bereitet nur Daten vor und ruft keinen E-Mail-Provider auf.",
+      fields: [
+        "email → recipientEmail",
+        "firstName + lastName → recipientName",
+        "Welcome-Betreff",
+        "body nennt Teilnehmende",
+      ],
+      explanation:
+        "Der Mapper macht die ausgehende Benachrichtigungsgrenze explizit und bereitet nur die benötigten Daten vor.",
+      brief: {
+        situation: {
+          title: "Die Situation",
+          body: "Ein erzeugter User soll eine Welcome-E-Mail erhalten, aber der Workshop hat keinen Mail-Provider.",
+        },
+        mission: {
+          title: "Dein Auftrag",
+          body: "Mappe in {fileName} den User auf WelcomeEmail.",
+        },
+        doneWhen: {
+          title: "Fertig, wenn",
+          body: "Verwende E-Mail und vollständigen Namen und bereite Betreff und Text vor.",
+        },
+        notInThisStep: {
+          title: "Noch nicht in diesem Schritt",
+          body: "Sende nichts und gib keine weiteren User-Felder weiter.",
+        },
+      },
+    },
+    "registration-response-dto": {
+      title: "Registration-Response-DTO",
+      shortTitle: "Response-DTO",
+      question: "Was darf der Registration-Complete-Screen erhalten?",
+      description:
+        "Definiere die unveränderliche öffentliche RegistrationResponse, bevor ein erzeugter User veröffentlicht wird.",
+      fields: [
+        "id: number",
+        "userName: string",
+        "displayName: string",
+        "birthDate: string",
+        "email: string",
+      ],
+      explanation:
+        "RegistrationResponse ist ein öffentlicher Vertrag, nicht die interne User-Entity.",
+      brief: {
+        situation: {
+          title: "Die Situation",
+          body: "Der Registration-Complete-Screen braucht ein sicheres öffentliches Ergebnis.",
+        },
+        mission: {
+          title: "Dein Auftrag",
+          body: "Definiere in {fileName} den unveränderlichen RegistrationResponse-Vertrag.",
+        },
+        doneWhen: {
+          title: "Fertig, wenn",
+          body: "Er id, userName, displayName, birthDate und email enthält.",
+        },
+        notInThisStep: {
+          title: "Noch nicht in diesem Schritt",
+          body: "Füge einem öffentlichen Vertrag keine privaten Entity-Felder hinzu.",
+        },
+      },
+    },
+    "registration-response-mapper": {
+      title: "Registration-Response-Mapper",
+      shortTitle: "Response-Mapper",
+      question: "Wie geben wir ein sicheres Registrierungsergebnis zurück?",
+      description:
+        "Mappe den erzeugten User auf RegistrationResponse und schließe private Entity-Felder bewusst aus.",
+      fields: [
+        "id, userName, email",
+        "firstName + lastName → displayName",
+        "birthDate → YYYY-MM-DD",
+        "passwordHash und internalNote weglassen",
+      ],
+      explanation:
+        "Der öffentliche Mapper trennt Registration Complete von internen User-Feldern und verhindert versehentliche Leaks.",
+      brief: {
+        situation: {
+          title: "Die Situation",
+          body: "Das Konto existiert und der öffentliche Registration-Complete-Screen braucht sein Ergebnis.",
+        },
+        mission: {
+          title: "Dein Auftrag",
+          body: "Mappe in {fileName} den User auf RegistrationResponse.",
+        },
+        doneWhen: {
+          title: "Fertig, wenn",
+          body: "Gib nur öffentliche Felder zurück, formatiere birthDate und lasse passwordHash und internalNote weg.",
+        },
+        notInThisStep: {
+          title: "Noch nicht in diesem Schritt",
+          body: "Serialisiere nicht die Entity und schließe keine privaten Felder ein.",
+        },
+      },
     },
   },
   hints: {
@@ -456,28 +650,28 @@ export const de: Messages = {
       php: {
         concept: CONCEPT_HINTS["request-mapper"],
         fields:
-          "Lies jedes $raw['...']-Feld, trimme es, und schreibe userName/email zusätzlich klein. Konvertiere birth_date in ein echtes DateTimeImmutable.",
+          "Lies jedes $form['...']-Feld, trimme es, und schreibe userName/email zusätzlich klein. Konvertiere birth_date in ein echtes DateTimeImmutable.",
         syntax:
           "Nutze PHPs benannte Argumente und umschließe trim() dort, wo nötig, mit strtolower().",
       },
       typescript: {
         concept: CONCEPT_HINTS["request-mapper"],
         fields:
-          "Lies jedes raw.*-Feld, trimme es, und schreibe userName/email zusätzlich klein. Konvertiere birth_date in ein echtes Date.",
+          "Lies jedes form.*-Feld, trimme es, und schreibe userName/email zusätzlich klein. Konvertiere birth_date in ein echtes Date.",
         syntax:
-          "Verkette die Transformationen direkt am Zugriff auf das rohe Feld.",
+          "Verkette die Transformationen direkt am Zugriff auf das Formularfeld.",
       },
       python: {
         concept: CONCEPT_HINTS["request-mapper"],
         fields:
-          'Lies jedes raw["..."]-Feld, strippe es, und schreibe userName/email zusätzlich klein. Konvertiere birth_date in ein echtes date.',
+          'Lies jedes form["..."]-Feld, strippe es, und schreibe userName/email zusätzlich klein. Konvertiere birth_date in ein echtes date.',
         syntax:
-          "Verkette .strip() und .lower() direkt am Zugriff auf das rohe Feld.",
+          "Verkette .strip() und .lower() direkt am Zugriff auf das Formularfeld.",
       },
       java: {
         concept: CONCEPT_HINTS["request-mapper"],
         fields:
-          'Lies jedes raw.get("...")-Feld, trimme es, und schreibe userName/email zusätzlich klein. Konvertiere birth_date in ein echtes LocalDate — die Argumente sind positionsabhängig, in derselben Reihenfolge wie im Record.',
+          'Lies jedes form.get("...")-Feld, trimme es, und schreibe userName/email zusätzlich klein. Konvertiere birth_date in ein echtes LocalDate — die Argumente sind positionsabhängig, in derselben Reihenfolge wie im Record.',
         syntax: "Verkette .trim() und .toLowerCase() direkt am Map-Zugriff.",
       },
     },
@@ -541,6 +735,26 @@ export const de: Messages = {
           "Verkette Strings für displayName und nutze .format(DateTimeFormatter.ISO_LOCAL_DATE) für das Datum.",
       },
     },
+    "welcome-email-dto": hintsForEveryTrack(
+      "Halte den Benachrichtigungsvertrag explizit, bevor etwas hinein mappt.",
+      "Nutze recipientEmail, recipientName, subject und body.",
+      "Nutze die unveränderliche DTO-Syntax deines Tracks.",
+    ),
+    "welcome-email-mapper": hintsForEveryTrack(
+      "Der Mapper bereitet eine ausgehende Nachricht vor; er sendet sie nicht.",
+      "Mappe email, firstName und lastName in die vier WelcomeEmail-Felder.",
+      "Nutze die explizite Mapper-Syntax deines Tracks.",
+    ),
+    "registration-response-dto": hintsForEveryTrack(
+      "Eine öffentliche Response ist ein separater Vertrag zur internen Entity.",
+      "Nutze id, userName, displayName, birthDate und email.",
+      "Nutze die unveränderliche DTO-Syntax deines Tracks.",
+    ),
+    "registration-response-mapper": hintsForEveryTrack(
+      "Mappe an dieser Grenze nur das öffentliche Ergebnis.",
+      "Baue displayName und formatiertes birthDate; lasse passwordHash und internalNote weg.",
+      "Nutze die explizite Mapper-Syntax deines Tracks.",
+    ),
   },
   construct: {
     "request-dto": {

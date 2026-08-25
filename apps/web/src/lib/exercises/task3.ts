@@ -1,26 +1,22 @@
 import type { TaskDefinition } from "./types";
 
 export const TASK3_DEFINITION: TaskDefinition = {
-  id: "external-api",
+  id: "welcome-email-dto",
   order: 3,
-  title: "External API DTO and Mapper",
-  shortTitle: "External API",
-  question: "How do we protect our application from a foreign API contract?",
+  title: "Welcome Email DTO",
+  shortTitle: "Email DTO",
+  question: "What data does a welcome email need?",
   description:
-    "The external identity service returns its own vocabulary. Map its response onto a dedicated result type owned by our application.",
+    "Define the small immutable WelcomeEmail contract before mapping a created User for the notification boundary.",
   fields: [
-    "subject_id → userId: number",
-    "verification_state → verified: boolean",
-    "checked_at → checkedAt: timestamp",
+    "recipientEmail: string",
+    "recipientName: string",
+    "subject: string",
+    "body: string",
   ],
-  estimatedMinutes: 9,
+  estimatedMinutes: 7,
   explanation:
-    "Isolating the third-party vocabulary at the integration boundary means a provider change to field names, casing, or representation only touches this one mapper — the rest of the application keeps working against its own stable contract.",
-  completionInput: {
-    receiver: "raw",
-    shape: "map",
-    members: ["subject_id", "verification_state", "checked_at"],
-  },
+    "WelcomeEmail is an explicit notification contract. Defining it first makes the following mapping visible without sending an email.",
 };
 
 export const TASK3_RAW_PAYLOAD = {

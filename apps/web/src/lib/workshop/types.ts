@@ -5,11 +5,15 @@ export type Language = (typeof LANGUAGES)[number];
 export const TASK_IDS = [
   "request-dto",
   "request-mapper",
-  "external-api",
-  "response-dto",
+  "welcome-email-dto",
+  "welcome-email-mapper",
+  "registration-response-dto",
+  "registration-response-mapper",
 ] as const;
 
-export type TaskId = (typeof TASK_IDS)[number];
+/** A task identity is persisted data; legacy IDs remain readable while a schema
+ * migration replaces the active ordered list above. */
+export type TaskId = string;
 
 export type TaskProgress = {
   completed: boolean;

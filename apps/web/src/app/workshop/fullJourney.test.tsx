@@ -48,8 +48,10 @@ vi.mock("@/components/CodeMirrorEditor", () => ({
 const TASK_HEADINGS = [
   "Typed Request DTO",
   "Request Mapper",
-  "External API DTO and Mapper",
-  "Response DTO and Entity Mapper",
+  "Welcome Email DTO",
+  "Welcome Email Mapper",
+  "Registration Response DTO",
+  "Registration Response Mapper",
 ];
 
 beforeEach(() => {
@@ -67,7 +69,7 @@ beforeEach(() => {
 });
 
 describe.each(LANGUAGES)("full workshop journey — %s", (language) => {
-  it("unlocks all four tasks strictly in order via Insert solution and reaches the completion screen", async () => {
+  it("unlocks all six registration stages strictly in order via Insert solution", async () => {
     const seeded = createDefaultState();
     seeded.language = language;
     saveState(seeded);
@@ -83,8 +85,12 @@ describe.each(LANGUAGES)("full workshop journey — %s", (language) => {
       expect(screen.getByRole("button", { name: /continue/i })).toBeDisabled();
 
       await user.click(screen.getByRole("button", { name: /show hint/i }));
-      await user.click(screen.getByRole("button", { name: /next hint/i }));
-      await user.click(screen.getByRole("button", { name: /next hint/i }));
+      await user.click(
+        await screen.findByRole("button", { name: /next hint/i }),
+      );
+      await user.click(
+        await screen.findByRole("button", { name: /next hint/i }),
+      );
       await user.click(
         screen.getByRole("button", { name: /insert solution/i }),
       );
@@ -100,14 +106,16 @@ describe.each(LANGUAGES)("full workshop journey — %s", (language) => {
       await user.click(screen.getByRole("button", { name: /continue/i }));
     }
 
-    await screen.findByText("All four exercises complete 🎉");
+    await screen.findByText(/All six registration stages complete/i);
 
     const finalState = loadState();
     for (const taskId of [
       "request-dto",
       "request-mapper",
-      "external-api",
-      "response-dto",
+      "welcome-email-dto",
+      "welcome-email-mapper",
+      "registration-response-dto",
+      "registration-response-mapper",
     ] as const) {
       expect(finalState.tasks[taskId].completed).toBe(true);
     }

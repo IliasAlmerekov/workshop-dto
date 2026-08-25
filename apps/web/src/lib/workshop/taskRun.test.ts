@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { runTask } from "./taskRun";
 import { TASK_IDS } from "./types";
-import { TASK2_RAW_PAYLOAD } from "@/lib/exercises/task2";
+import { TASK2_LEGACY_REGISTRATION_PAYLOAD } from "@/lib/exercises/task2";
 import { TASK4_FORBIDDEN_FIELDS } from "@/lib/exercises/task4";
 
 describe("runTask", () => {
@@ -10,17 +10,17 @@ describe("runTask", () => {
 
     expect(run.outputName).toBeTruthy();
     expect(run.fields.length).toBeGreaterThan(0);
-    expect(Object.keys(run.input).length).toBeGreaterThan(0);
+    expect(run.input).toBeDefined();
   });
 
-  it("normalizes the request mapper's raw payload the way the task describes", () => {
+  it("normalizes the request mapper's legacy registration payload the way the task describes", () => {
     const run = runTask("request-mapper");
     const byKey = Object.fromEntries(run.fields.map((f) => [f.key, f]));
 
-    // The raw payload really is untrimmed and mis-cased — otherwise the
+    // The legacy payload really is untrimmed and mis-cased — otherwise the
     // assertions below would pass for the wrong reason.
-    expect(TASK2_RAW_PAYLOAD.user_name).not.toBe(
-      TASK2_RAW_PAYLOAD.user_name.trim(),
+    expect(TASK2_LEGACY_REGISTRATION_PAYLOAD.user_name).not.toBe(
+      TASK2_LEGACY_REGISTRATION_PAYLOAD.user_name.trim(),
     );
 
     expect(byKey.userName.value).toBe("ada.lovelace");
@@ -30,20 +30,21 @@ describe("runTask", () => {
     expect(byKey.birthDate.kind).toBe("date");
   });
 
-  it("converts the external API's foreign vocabulary to our own types", () => {
-    const run = runTask("external-api");
+  it("prepares a welcome email from the created User without a side effect", () => {
+    const run = runTask("welcome-email-mapper");
     const byKey = Object.fromEntries(run.fields.map((f) => [f.key, f]));
 
-    expect(byKey.userId).toMatchObject({
-      value: "7",
-      kind: "number",
-      source: "subject_id",
+    expect(run.outputName).toBe("WelcomeEmail");
+    expect(byKey.recipientEmail).toMatchObject({
+      value: "ada@example.test",
+      source: "email",
     });
-    expect(byKey.verified).toMatchObject({ value: "true", kind: "boolean" });
+    expect(byKey.recipientName).toMatchObject({ value: "Ada Lovelace" });
+    expect(byKey.subject.transform).toContain("not sent");
   });
 
   it("never maps the entity's secret fields into the response", () => {
-    const run = runTask("response-dto");
+    const run = runTask("registration-response-mapper");
     const mappedKeys = run.fields.map((field) => field.key);
     const omittedKeys = run.omitted.map((field) => field.key);
 
@@ -58,7 +59,7 @@ describe("runTask", () => {
   });
 
   it("keeps no forbidden value in any produced field", () => {
-    const run = runTask("response-dto");
+    const run = runTask("registration-response-mapper");
     const rendered = run.fields.map((field) => field.value).join(" ");
 
     expect(rendered).not.toContain("argon2id");

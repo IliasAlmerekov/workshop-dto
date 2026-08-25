@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { LANGUAGES } from "@/lib/workshop/types";
 import { loadTask4Adapter } from "./task4Adapters";
-import { TASK4_FIELDS } from "./task4";
 
 describe("loadTask4Adapter", () => {
   it.each(LANGUAGES)("loads a working adapter for %s", async (language) => {
@@ -19,23 +18,13 @@ describe("loadTask4Adapter", () => {
     const result = adapter.validate(adapter.solutionCode);
     expect(result.passed).toBe(true);
 
-    // Every field has appropriate checks, so feedback can point at the
-    // specific rule that's missing (spec 7.4).
-    for (const field of TASK4_FIELDS) {
-      const hasFieldCheck = result.checks.some(
-        (c) =>
-          c.id === `field-${field.outputName}-source` ||
-          c.id === `field-${field.outputName}-firstName`,
-      );
-      expect(hasFieldCheck).toBe(true);
-    }
-
-    // passwordHash and internalNote must never be exposed (spec 5.1/6.4).
-    expect(result.checks.some((c) => c.id === "no-leak-passwordHash")).toBe(
-      true,
-    );
-    expect(result.checks.some((c) => c.id === "no-leak-internalNote")).toBe(
-      true,
+    expect(result.checks.map((check) => check.id)).toEqual(
+      expect.arrayContaining([
+        "field-recipientEmail",
+        "field-recipientName",
+        "field-subject",
+        "field-body",
+      ]),
     );
 
     // Three progressive hint cards before "Insert solution" (spec 7.3).

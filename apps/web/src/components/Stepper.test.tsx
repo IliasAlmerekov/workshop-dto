@@ -8,12 +8,14 @@ describe("Stepper", () => {
     const state = createDefaultState();
     render(<Stepper tasks={state.tasks} activeTaskId="request-dto" />);
 
-    expect(screen.getAllByLabelText("locked")).toHaveLength(3);
+    expect(screen.getAllByLabelText("locked")).toHaveLength(5);
     for (const label of [
       "Request DTO",
       "Request Mapper",
-      "External API",
+      "Email DTO",
+      "Email Mapper",
       "Response DTO",
+      "Response Mapper",
     ]) {
       expect(screen.getByText(label)).toBeInTheDocument();
     }

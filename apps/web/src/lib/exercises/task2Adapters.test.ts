@@ -32,6 +32,10 @@ describe("loadTask2Adapter", () => {
     expect(adapter.hints[0].kind).toBe("concept");
     expect(adapter.hints[1].kind).toBe("fields");
     expect(adapter.hints[2].kind).toBe("syntax");
+
+    const formReceiver = language === "php" ? "$form" : "form";
+    expect(adapter.starterCode.before).toContain(formReceiver);
+    expect(adapter.solutionEditable).toContain(formReceiver);
   });
 
   it("never returns hidden solution text for a failed check message", async () => {

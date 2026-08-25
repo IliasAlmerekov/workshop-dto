@@ -23,3 +23,15 @@ _Avoid_: Backend, workshop server
 **Walking Skeleton**:
 The smallest working connection from the Workshop Web App to the real Demo API. It proves the integration boundary without implementing workshop exercises.
 _Avoid_: Prototype, complete workshop
+
+### Editor assistance
+
+Two different things help a Participant write code. Calling either one "a hint" collapses the distinction and makes questions like "how much help do we give?" unanswerable.
+
+**Hint**:
+Staged guidance a Participant asks for and the Workshop Web App counts, moving from concept to the track's syntax over three cards.
+_Avoid_: Tip, suggestion, completion
+
+**Completion**:
+Symbol suggestions the editor offers unasked while a Participant types, drawn from the task's inputs and the track's built-ins. It is never counted and never names the target the Participant is building.
+_Avoid_: Hint, autocomplete, IntelliSense

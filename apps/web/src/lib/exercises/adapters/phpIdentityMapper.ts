@@ -7,6 +7,7 @@ import { TASK3_STARTER_CODE } from "../task3StarterCode";
 import { composeSolution } from "../composeSolution";
 import { toResult } from "../checks";
 import type { TaskLanguageAdapter } from "../types";
+import { activeMessages } from "@/lib/i18n/catalogue";
 
 const TOKENS: Task3Tokens = {
   integer: "intval",
@@ -60,8 +61,8 @@ function validate(doc: string) {
     id: "construct",
     passed: found,
     message: found
-      ? "map() returns a new IdentityCheckResult with named arguments."
-      : "map() should return new IdentityCheckResult(...) using named arguments.",
+      ? activeMessages().construct["external-api"].php.ok
+      : activeMessages().construct["external-api"].php.missing,
   };
 
   return toResult([

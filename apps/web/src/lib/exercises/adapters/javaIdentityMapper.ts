@@ -7,6 +7,7 @@ import { TASK3_STARTER_CODE } from "../task3StarterCode";
 import { composeSolution } from "../composeSolution";
 import { toResult } from "../checks";
 import type { TaskLanguageAdapter } from "../types";
+import { activeMessages } from "@/lib/i18n/catalogue";
 
 const TOKENS: Task3Tokens = {
   integer: "parseInt",
@@ -70,8 +71,8 @@ function validate(doc: string) {
     id: "construct",
     passed: found,
     message: found
-      ? "map() returns a new IdentityCheckResult."
-      : "map() should return new IdentityCheckResult(...) with all three arguments, in order.",
+      ? activeMessages().construct["external-api"].java.ok
+      : activeMessages().construct["external-api"].java.missing,
   };
 
   return toResult([

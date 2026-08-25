@@ -7,6 +7,7 @@ import { TASK2_STARTER_CODE } from "../task2StarterCode";
 import { composeSolution } from "../composeSolution";
 import { toResult } from "../checks";
 import type { TaskLanguageAdapter } from "../types";
+import { activeMessages } from "@/lib/i18n/catalogue";
 
 const TOKENS: Task2Tokens = {
   trim: "trim",
@@ -61,8 +62,8 @@ function validate(doc: string) {
     id: "construct",
     passed: found,
     message: found
-      ? "mapCreateUserRequest returns an object."
-      : "mapCreateUserRequest should return an object literal.",
+      ? activeMessages().construct["request-mapper"].typescript.ok
+      : activeMessages().construct["request-mapper"].typescript.missing,
   };
 
   return toResult([

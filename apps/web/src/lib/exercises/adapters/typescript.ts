@@ -10,6 +10,7 @@ import { child, children, findAll, textOf } from "../lezerUtils";
 import type { RequiredFieldKind } from "../task1";
 import { TASK1_STARTER_CODE, composeSolution } from "../task1StarterCode";
 import type { TaskLanguageAdapter } from "../types";
+import { activeMessages } from "@/lib/i18n/catalogue";
 
 const SOLUTION_EDITABLE = `  readonly userName: string;
   readonly firstName: string;
@@ -112,8 +113,8 @@ function validate(doc: string) {
     passed: Boolean(typeAlias || classDecl),
     message:
       typeAlias || classDecl
-        ? "CreateUserRequest is declared."
-        : "No CreateUserRequest type or class was found.",
+        ? activeMessages().construct["request-dto"].typescript.ok
+        : activeMessages().construct["request-dto"].typescript.missing,
   };
 
   return toResult([

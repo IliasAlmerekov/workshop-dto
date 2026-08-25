@@ -22,6 +22,11 @@ export const TASK2_DEFINITION: TaskDefinition = {
   estimatedMinutes: 9,
   explanation:
     "The mapper concentrates boundary logic in one visible, testable place. Renaming, trimming, and case normalization all happen here — once — instead of being repeated (or forgotten) everywhere the request is used.",
+  completionInput: {
+    receiver: "raw",
+    shape: "map",
+    members: ["user_name", "first_name", "last_name", "birth_date", "email"],
+  },
 };
 
 /** The raw payload every language track maps from (spec section 6.2). */

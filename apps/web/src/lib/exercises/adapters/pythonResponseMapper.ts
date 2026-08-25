@@ -11,6 +11,7 @@ import { TASK4_STARTER_CODE } from "../task4StarterCode";
 import { composeSolution } from "../composeSolution";
 import { toResult } from "../checks";
 import type { TaskLanguageAdapter } from "../types";
+import { activeMessages } from "@/lib/i18n/catalogue";
 
 const TOKENS: Task4Tokens = { date: "strftime" };
 
@@ -66,8 +67,8 @@ function validate(doc: string) {
     id: "construct",
     passed: container !== null,
     message: container
-      ? "map() returns UserResponse with keyword arguments."
-      : "map() should return UserResponse(...) using keyword arguments.",
+      ? activeMessages().construct["response-dto"].python.ok
+      : activeMessages().construct["response-dto"].python.missing,
   };
 
   const checks = [

@@ -34,3 +34,17 @@ export const TASK1_REQUIRED_FIELDS = [
 ] as const;
 
 export type RequiredFieldKind = (typeof TASK1_REQUIRED_FIELDS)[number]["kind"];
+
+/**
+ * The payload Task 1's contract is defined against. Task 1 owns only the
+ * shape, so this sample is already clean — normalisation is Task 2's job,
+ * and the values match the demo API's `UserSampleProvider` so the whole
+ * workshop tells one story about one user.
+ */
+export const TASK1_SAMPLE_PAYLOAD = {
+  userName: "ada.lovelace",
+  firstName: "Ada",
+  lastName: "Lovelace",
+  birthDate: "1815-12-10",
+  email: "ada@example.test",
+} as const;

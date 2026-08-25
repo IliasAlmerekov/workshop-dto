@@ -1,6 +1,7 @@
 import type { SyntaxNode } from "@lezer/common";
 import { subtreeContainsToken } from "./lezerUtils";
 import { TASK4_FIELDS, TASK4_FORBIDDEN_FIELDS } from "./task4";
+import { activeMessages } from "@/lib/i18n/catalogue";
 import type { ValidationCheck } from "./types";
 
 export type Task4Tokens = { date: string };
@@ -10,6 +11,8 @@ export function buildTransformationChecks(
   doc: string,
   tokens: Task4Tokens,
 ): ValidationCheck[] {
+  const { checks: text } = activeMessages();
+
   return TASK4_FIELDS.flatMap((field): ValidationCheck[] => {
     const expr = fieldExpressions[field.outputName];
     if (!expr) {
@@ -17,7 +20,7 @@ export function buildTransformationChecks(
         {
           id: `field-${field.outputName}`,
           passed: false,
-          message: `${field.outputName} is missing from the mapped response.`,
+          message: text.missingFromResponse(field.outputName),
         },
       ];
     }
@@ -29,8 +32,8 @@ export function buildTransformationChecks(
           id: `field-${field.outputName}-source`,
           passed: hasSource,
           message: hasSource
-            ? `${field.outputName} is carried over from the user.`
-            : `${field.outputName} should be carried over from the user.`,
+            ? text.carriedOver(field.outputName)
+            : text.shouldCarryOver(field.outputName),
         },
       ];
     }
@@ -44,15 +47,15 @@ export function buildTransformationChecks(
           id: `field-${field.outputName}-firstName`,
           passed: hasFirst,
           message: hasFirst
-            ? `${field.outputName} includes ${firstKey}.`
-            : `${field.outputName} should include ${firstKey}.`,
+            ? text.includes(field.outputName, firstKey)
+            : text.shouldInclude(field.outputName, firstKey),
         },
         {
           id: `field-${field.outputName}-lastName`,
           passed: hasLast,
           message: hasLast
-            ? `${field.outputName} includes ${lastKey}.`
-            : `${field.outputName} should include ${lastKey}.`,
+            ? text.includes(field.outputName, lastKey)
+            : text.shouldInclude(field.outputName, lastKey),
         },
       ];
     }
@@ -65,15 +68,15 @@ export function buildTransformationChecks(
         id: `field-${field.outputName}-source`,
         passed: hasSource,
         message: hasSource
-          ? `${field.outputName} reads from the user's ${field.sourceKey}.`
-          : `${field.outputName} should read from the user's ${field.sourceKey}.`,
+          ? text.readsFromUser(field.outputName, field.sourceKey!)
+          : text.shouldReadFromUser(field.outputName, field.sourceKey!),
       },
       {
         id: `field-${field.outputName}-format`,
         passed: hasFormat,
         message: hasFormat
-          ? `${field.outputName} is formatted as YYYY-MM-DD.`
-          : `${field.outputName} is not yet formatted as YYYY-MM-DD.`,
+          ? text.formatted(field.outputName)
+          : text.shouldFormat(field.outputName),
       },
     ];
   });
@@ -84,14 +87,14 @@ export function buildNoLeakChecks(
   container: SyntaxNode,
   doc: string,
 ): ValidationCheck[] {
+  const { checks: text } = activeMessages();
+
   return TASK4_FORBIDDEN_FIELDS.map((forbidden) => {
     const leaked = subtreeContainsToken(container, doc, forbidden);
     return {
       id: `no-leak-${forbidden}`,
       passed: !leaked,
-      message: leaked
-        ? `${forbidden} must not appear in the response.`
-        : `${forbidden} is not exposed.`,
+      message: leaked ? text.leaks(forbidden) : text.notExposed(forbidden),
     };
   });
 }

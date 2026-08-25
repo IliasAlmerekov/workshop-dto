@@ -11,6 +11,7 @@ import { TASK4_STARTER_CODE } from "../task4StarterCode";
 import { composeSolution } from "../composeSolution";
 import { toResult } from "../checks";
 import type { TaskLanguageAdapter } from "../types";
+import { activeMessages } from "@/lib/i18n/catalogue";
 
 const TOKENS: Task4Tokens = { date: "toISOString" };
 
@@ -60,8 +61,8 @@ function validate(doc: string) {
     id: "construct",
     passed: container !== null,
     message: container
-      ? "mapUserResponse returns an object."
-      : "mapUserResponse should return an object literal.",
+      ? activeMessages().construct["response-dto"].typescript.ok
+      : activeMessages().construct["response-dto"].typescript.missing,
   };
 
   const checks = [

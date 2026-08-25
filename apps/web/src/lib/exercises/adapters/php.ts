@@ -10,6 +10,7 @@ import { child, findAll, hasErrorTokenWithText, textOf } from "../lezerUtils";
 import type { RequiredFieldKind } from "../task1";
 import { TASK1_STARTER_CODE, composeSolution } from "../task1StarterCode";
 import type { TaskLanguageAdapter } from "../types";
+import { activeMessages } from "@/lib/i18n/catalogue";
 
 const SOLUTION_EDITABLE = `        public string $userName,
         public string $firstName,
@@ -96,11 +97,11 @@ function validate(doc: string) {
   const declaredCheck = {
     id: "construct",
     passed: Boolean(classDecl) && hasFinal,
-    message: classDecl
-      ? hasFinal
-        ? "CreateUserRequest is declared as a final class."
-        : 'CreateUserRequest should be a "final" class.'
-      : "No CreateUserRequest class was found.",
+    message: (() => {
+      const copy = activeMessages().construct["request-dto"].php;
+      if (!classDecl) return copy.missing;
+      return hasFinal ? copy.ok : (copy.notImmutable ?? copy.missing);
+    })(),
   };
 
   return toResult([

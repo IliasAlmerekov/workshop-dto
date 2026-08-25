@@ -270,7 +270,7 @@ describe("ExerciseRunner — Task 1 (request-dto)", () => {
     );
     expect(
       screen.getByText(
-        "In CreateUserRequest.java, create an immutable DTO that represents exactly the data the application accepts at this boundary.",
+        "In CreateUserRequest.java, define the immutable CreateUserRequest contract: exactly the data the new Registration Service accepts when it creates an account.",
       ),
     ).toBeInTheDocument();
     expect(screen.queryAllByText("CreateUserRequest.ts")).toHaveLength(0);

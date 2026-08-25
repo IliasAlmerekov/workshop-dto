@@ -397,7 +397,17 @@ export const SLIDES: Slide[] = [
     render: () => (
       <Body>
         <div className="flex items-center gap-[20px]">
-          <span style={{ color: "var(--color-text-accent)" }}>
+          {/* `inline-flex` so the glyph's own box is what gets centred, plus a
+              nudge down: the title's line box carries a descender's worth of
+              space the word "Agenda" never uses, which reads as the icon
+              sitting high next to it. */}
+          <span
+            className="inline-flex items-center"
+            style={{
+              color: "var(--color-text-accent)",
+              marginTop: "35px",
+            }}
+          >
             <IconList size={32} />
           </span>
           <Title>Agenda</Title>

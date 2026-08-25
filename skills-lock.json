@@ -6,6 +6,12 @@
       "sourceType": "github",
       "skillPath": "skills/presentation-creator/SKILL.md",
       "computedHash": "2d3051c45a29e1f40bdbbe706d1d2ce265e840e100e5fd96ca048ed359ba8e75"
+    },
+    "presentation-design": {
+      "source": "jwynia/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/general/communication/presentation-design/SKILL.md",
+      "computedHash": "cc83e20ff7b7df6ada2eada0a92843fe0e726cdffd40a8fd3297de3a8678be6e"
     }
   }
 }

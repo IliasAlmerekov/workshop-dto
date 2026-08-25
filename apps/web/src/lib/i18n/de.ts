@@ -79,6 +79,7 @@ export const de: Messages = {
     yourTask: "Deine Aufgabe",
     completeWith: () => "mit folgendem Inhalt vervollständigen:",
     checkSolution: "Lösung prüfen",
+    checking: "Wird geprüft…",
     showHint: "Hinweis anzeigen",
     insertSolution: "Lösung einfügen",
     continue: "Weiter",
@@ -127,6 +128,20 @@ export const de: Messages = {
     whatToFix: "Was zu beheben ist",
     needNudge:
       "Brauchst du einen Hinweis? Nutze „Hinweis zeigen“ unter dem Editor.",
+    run: {
+      title: "Prüfung läuft",
+      progress: (done, total) => `${done} / ${total}`,
+      announcement: "Prüfung läuft…",
+      steps: {
+        parse: (fileName) => `${fileName} wird geparst`,
+        structure: "Syntaxbaum wird gelesen",
+        rules: (count) =>
+          count === 1
+            ? "1 Fachregel wird angewendet"
+            : `${count} Fachregeln werden angewendet`,
+        report: "Ergebnis wird zusammengestellt",
+      },
+    },
   },
   health: {
     waking: "Die Demo-API wacht auf… die Übungen funktionieren auch ohne sie.",

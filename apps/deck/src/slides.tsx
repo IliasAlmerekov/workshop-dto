@@ -4,7 +4,6 @@ import {
   AGENDA,
   BOUNDARIES,
   ENTITY_FIELDS,
-  EXERCISES,
   LEGACY_PROFILE,
   MAPPER_JOBS,
   PARTS,
@@ -398,7 +397,17 @@ export const SLIDES: Slide[] = [
     render: () => (
       <Body>
         <div className="flex items-center gap-[20px]">
-          <span style={{ color: "var(--color-text-accent)" }}>
+          {/* `inline-flex` so the glyph's own box is what gets centred, plus a
+              nudge down: the title's line box carries a descender's worth of
+              space the word "Agenda" never uses, which reads as the icon
+              sitting high next to it. */}
+          <span
+            className="inline-flex items-center"
+            style={{
+              color: "var(--color-text-accent)",
+              marginTop: "35px",
+            }}
+          >
             <IconList size={32} />
           </span>
           <Title>Agenda</Title>
@@ -818,9 +827,9 @@ export const SLIDES: Slide[] = [
    * are the real legacy profile from exercise 02. */
   {
     id: "jobs",
-    fragments: 2,
+    fragments: 1,
     part: "mapper",
-    render: (fragment) => (
+    render: () => (
       <Body>
         <Title>A Mapper makes six small changes</Title>
         <div className="mt-[14px]">
@@ -847,49 +856,45 @@ export const SLIDES: Slide[] = [
               </Rise>
             ))}
           </div>
-          <AnimatePresence>
-            {fragment >= 1 ? (
+          <motion.div
+            key="transforms"
+            initial={{ opacity: 0, y: 28 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={MORPH}
+            className="mt-[34px] rounded-[var(--radius-xl)] border border-[var(--color-border-default)] bg-[var(--color-bg-surface-muted)] p-[var(--spacing-22)]"
+          >
+            {TRANSFORMS.map((transform, index) => (
               <motion.div
-                key="transforms"
-                initial={{ opacity: 0, y: 28 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={MORPH}
-                className="mt-[34px] rounded-[var(--radius-xl)] border border-[var(--color-border-default)] bg-[var(--color-bg-surface-muted)] p-[var(--spacing-22)]"
+                key={transform.id}
+                initial={{ opacity: 0, x: -28 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ ...MORPH, delay: 0.24 * index }}
+                className="flex items-center gap-[24px]"
               >
-                {TRANSFORMS.map((transform, index) => (
-                  <motion.div
-                    key={transform.id}
-                    initial={{ opacity: 0, x: -28 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ ...MORPH, delay: 0.24 * index }}
-                    className="flex items-center gap-[24px]"
-                  >
-                    <code
-                      style={{
-                        fontFamily: "var(--font-mono)",
-                        fontSize: "var(--text-body-small)",
-                        color: "var(--color-text-muted)",
-                        minWidth: "300px",
-                        whiteSpace: "pre",
-                      }}
-                    >
-                      {transform.from}
-                    </code>
-                    <span style={{ color: "var(--color-text-subtle)" }}>→</span>
-                    <code
-                      style={{
-                        fontFamily: "var(--font-mono)",
-                        fontSize: "var(--text-body-small)",
-                        color: "var(--color-text-accent)",
-                      }}
-                    >
-                      {transform.to}
-                    </code>
-                  </motion.div>
-                ))}
+                <code
+                  style={{
+                    fontFamily: "var(--font-mono)",
+                    fontSize: "var(--text-body-small)",
+                    color: "var(--color-text-muted)",
+                    minWidth: "300px",
+                    whiteSpace: "pre",
+                  }}
+                >
+                  {transform.from}
+                </code>
+                <span style={{ color: "var(--color-text-subtle)" }}>→</span>
+                <code
+                  style={{
+                    fontFamily: "var(--font-mono)",
+                    fontSize: "var(--text-body-small)",
+                    color: "var(--color-text-accent)",
+                  }}
+                >
+                  {transform.to}
+                </code>
               </motion.div>
-            ) : null}
-          </AnimatePresence>
+            ))}
+          </motion.div>
         </Fill>
       </Body>
     ),
@@ -1087,11 +1092,16 @@ export const SLIDES: Slide[] = [
    * with it, it is one step of replacing a registration system. The
    * caveat is not a footnote — the room has to know nothing is sent and
    * nothing is saved before it starts writing code that looks like it
-   * would. */
+   * would.
+   *
+   * One fragment, not four. The four systems are a single situation, and
+   * revealing them one press at a time made the speaker narrate a list the
+   * room could already have read. They arrive together, staggered only so
+   * the eye is given an order to read them in. */
   {
     id: "situation",
-    fragments: 4,
-    render: (fragment) => (
+    fragments: 1,
+    render: () => (
       <Body>
         <Eyebrow>Part 3 — Your exercises</Eyebrow>
         <div className="mt-[10px]">
@@ -1103,14 +1113,9 @@ export const SLIDES: Slide[] = [
         <Fill>
           <div className="flex flex-col gap-[20px]">
             {STORY.steps.map((step, index) => (
-              <motion.div
+              <Rise
                 key={step}
-                animate={{
-                  opacity: fragment >= index ? 1 : 0,
-                  x: fragment >= index ? 0 : 40,
-                }}
-                initial={false}
-                transition={MORPH}
+                i={index}
                 className="flex items-center gap-[24px]"
               >
                 <IconBadge size={62}>
@@ -1132,13 +1137,11 @@ export const SLIDES: Slide[] = [
                 >
                   {step}
                 </span>
-              </motion.div>
+              </Rise>
             ))}
           </div>
-          <motion.div
-            animate={{ opacity: fragment >= STORY.steps.length - 1 ? 1 : 0 }}
-            initial={false}
-            transition={{ ...MORPH, delay: 0.25 }}
+          <Rise
+            i={STORY.steps.length}
             className="mt-[40px] flex items-center gap-[14px]"
           >
             <span style={{ color: "var(--color-text-accent)" }}>
@@ -1154,124 +1157,37 @@ export const SLIDES: Slide[] = [
             >
               {STORY.caveat}
             </span>
-          </motion.div>
+          </Rise>
         </Fill>
       </Body>
     ),
   },
 
-  /* 12 — Six exercises ---------------------------------------------- *
-   * Drawn as three pairs, one per boundary, because the pairing is the
-   * lesson: a contract is defined, then a Mapper is written against it.
-   * A flat list of six would hide the only ordering rule that matters —
-   * and it is the rule issue #23 was written to enforce. */
+  /* 12 — Questions --------------------------------------------------- *
+   * One line, centred, nothing else. This is the pause before the room
+   * takes over, and anything else on the wall would be something to read
+   * instead of something to ask. */
   {
-    id: "exercises",
+    id: "questions",
     fragments: 1,
     render: () => (
       <Body>
-        <Title>Six exercises, three boundaries</Title>
         <Fill>
-          <div className="flex gap-[24px]">
-            {BOUNDARIES.map((boundary, column) => (
-              <div key={boundary.id} className="flex flex-1 flex-col gap-[16px]">
-                <Rise i={column}>
-                  <div className="flex items-center gap-[12px]">
-                    <span style={{ color: "var(--color-text-accent)" }}>
-                      {BOUNDARY_GLYPH[boundary.id]}
-                    </span>
-                    <LaneLabel text={boundary.label} />
-                  </div>
-                </Rise>
-                {EXERCISES.filter(
-                  (exercise) => exercise.boundary === boundary.id,
-                ).map((exercise, row) => (
-                  <Rise key={exercise.id} i={column + row * 0.5 + 1}>
-                    <Card
-                      layoutId={
-                        exercise.id === "request-mapper"
-                          ? "station-mapper"
-                          : undefined
-                      }
-                      accent={exercise.kind === "dto"}
-                      style={{
-                        minHeight: "160px",
-                        padding: "var(--spacing-22)",
-                      }}
-                    >
-                      <div className="flex flex-col gap-[14px]">
-                        <div className="flex items-center justify-between">
-                          <span
-                            style={{
-                              display: "inline-flex",
-                              width: "36px",
-                              height: "36px",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              borderRadius: "var(--radius-full)",
-                              background:
-                                exercise.kind === "dto"
-                                  ? "var(--color-bg-accent)"
-                                  : "var(--color-bg-surface-muted)",
-                              color:
-                                exercise.kind === "dto"
-                                  ? "var(--color-text-inverse)"
-                                  : "var(--color-text-subtle)",
-                              fontSize: "var(--text-body-small)",
-                              fontWeight: 500,
-                            }}
-                          >
-                            {exercise.n}
-                          </span>
-                          <span
-                            style={{
-                              color: "var(--color-text-accent)",
-                            }}
-                          >
-                            {exercise.kind === "dto" ? (
-                              <IconContract size={24} />
-                            ) : (
-                              <IconMapper size={24} />
-                            )}
-                          </span>
-                        </div>
-                        <div className="flex flex-col gap-[6px]">
-                          <span
-                            style={{
-                              fontSize: "var(--text-heading-card)",
-                              lineHeight: "var(--leading-heading-card)",
-                              letterSpacing: "var(--tracking-heading-card)",
-                              fontWeight: 700,
-                              color: "var(--color-text-primary)",
-                            }}
-                          >
-                            {exercise.title}
-                          </span>
-                          <code
-                            style={{
-                              fontFamily: "var(--font-mono)",
-                              fontSize: "var(--text-body-panel)",
-                              color: "var(--color-text-subtle)",
-                            }}
-                          >
-                            {exercise.contract}
-                          </code>
-                        </div>
-                      </div>
-                    </Card>
-                  </Rise>
-                ))}
-              </div>
-            ))}
-          </div>
-          <div className="mt-[34px]">
-            <Rise i={5}>
-              <Caption>
-                Every contract is defined before the Mapper that fills it. They
-                unlock in that order.
-              </Caption>
-            </Rise>
-          </div>
+          <Rise i={0}>
+            <p
+              className="text-center"
+              style={{
+                fontSize: "var(--text-heading-page)",
+                lineHeight: "var(--leading-heading-page)",
+                letterSpacing: "var(--tracking-heading-page)",
+                fontWeight: 700,
+                color: "var(--color-text-primary)",
+                margin: 0,
+              }}
+            >
+              Do you have any questions?
+            </p>
+          </Rise>
         </Fill>
       </Body>
     ),

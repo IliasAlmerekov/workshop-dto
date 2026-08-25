@@ -62,16 +62,20 @@ export default function DtoLayerStackCanvas({
       }}
     >
       <Canvas
-        // Percentage-closer soft shadows, because the scene now has a sun in
-        // it and a sun eight degrees above the horizon is the whole reason the
-        // stack reads as three-dimensional. Soft rather than hard filtering:
-        // the real sun is half a degree wide and its shadow edge softens with
+        // Percentage-closer filtering, because the scene now has a sun in it
+        // and a sun eight degrees above the horizon is the whole reason the
+        // stack reads as three-dimensional. Filtered rather than hard: the
+        // real sun is half a degree wide and its shadow edge softens with
         // distance from the caster, and a shadow this long spends most of its
         // length far enough away that a hard edge would be visibly a texture.
+        // `percentage` and not `soft` — three deprecated PCFSoftShadowMap in
+        // r185 and silently falls back to this anyway, and the current PCF
+        // path is the softer of the two: five Vogel-disk taps whose spread is
+        // `shadow.radius`, which the old fixed kernel ignored.
         // Whether the map is actually allocated is the light's decision, per
         // quality tier — the stack's *contact* with the ground is still real
         // displaced geometry, not a dark ellipse under a floating box.
-        shadows="soft"
+        shadows="percentage"
         dpr={quality.dpr}
         frameloop="demand"
         gl={{

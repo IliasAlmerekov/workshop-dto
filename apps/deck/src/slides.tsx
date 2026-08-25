@@ -26,7 +26,6 @@ import {
   IconDrop,
   IconFilter,
   IconGift,
-  IconHand,
   IconLayers,
   IconLink,
   IconList,
@@ -367,28 +366,21 @@ export const SLIDES: Slide[] = [
     render: () => (
       <div className="absolute inset-0 flex flex-col items-center justify-center px-[160px]">
         <Rise i={0}>
-          <IconBadge size={104}>
-            <IconHand size={50} />
-          </IconBadge>
+          <p
+            className="text-center"
+            style={{
+              fontSize: "var(--text-heading-page)",
+              lineHeight: "var(--leading-heading-page)",
+              letterSpacing: "var(--tracking-heading-page)",
+              fontWeight: 700,
+              color: "var(--color-text-primary)",
+              margin: 0,
+              maxWidth: "1120px",
+            }}
+          >
+            {ROOM_QUESTION}
+          </p>
         </Rise>
-        <div className="mt-[44px]">
-          <Rise i={1}>
-            <p
-              className="text-center"
-              style={{
-                fontSize: "var(--text-heading-page)",
-                lineHeight: "var(--leading-heading-page)",
-                letterSpacing: "var(--tracking-heading-page)",
-                fontWeight: 700,
-                color: "var(--color-text-primary)",
-                margin: 0,
-                maxWidth: "1120px",
-              }}
-            >
-              {ROOM_QUESTION}
-            </p>
-          </Rise>
-        </div>
       </div>
     ),
   },
@@ -574,7 +566,12 @@ export const SLIDES: Slide[] = [
           <div className="flex flex-col gap-[18px]">
             {BOUNDARIES.map((boundary, index) => (
               <Rise key={boundary.id} i={index}>
-                <Card style={{ padding: "var(--spacing-18) var(--spacing-22)" }}>
+                <Card
+                  style={{
+                    minHeight: "104px",
+                    padding: "var(--spacing-18) var(--spacing-22)",
+                  }}
+                >
                   <div className="flex items-center gap-[20px]">
                     <IconBadge size={52}>
                       {BOUNDARY_GLYPH[boundary.id]}
@@ -740,9 +737,9 @@ export const SLIDES: Slide[] = [
                 [<IconCalendar size={26} />, "Convert", "text date → real date"],
               ].map(([icon, title, note], index) => (
                 <Rise key={String(title)} i={index}>
-                  <div className="flex items-center gap-[16px]">
+                  <div className="flex min-h-[72px] items-center gap-[16px]">
                     <IconBadge size={52}>{icon as ReactNode}</IconBadge>
-                    <div className="flex flex-col gap-[2px]">
+                    <div className="flex min-w-0 flex-1 flex-col gap-[2px]">
                       <span style={{ fontSize: "var(--text-heading-card)", fontWeight: 700, color: "var(--color-text-primary)" }}>{title}</span>
                       <span style={{ fontSize: "var(--text-body-small)", color: "var(--color-text-secondary)" }}>{note}</span>
                     </div>
@@ -750,32 +747,53 @@ export const SLIDES: Slide[] = [
                 </Rise>
               ))}
             </div>
-            <div className="flex flex-1 items-center gap-[18px]">
-              <Card style={{ width: "270px", padding: "var(--spacing-22)" }}>
+            <div className="flex flex-none items-stretch gap-[18px]">
+              <Card
+                style={{
+                  width: "330px",
+                  minHeight: "224px",
+                  padding: "var(--spacing-22)",
+                }}
+              >
                 <div className="flex flex-col gap-[8px]">
                   <Caption>before</Caption>
-                  <code style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-body-small)", color: "var(--color-text-muted)", whiteSpace: "pre" }}>
+                  <code style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-body-small)", lineHeight: "var(--leading-body-small)", color: "var(--color-text-muted)", whiteSpace: "pre" }}>
                     user_name: &quot;  Ada.Lovelace &quot;
                   </code>
-                  <code style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-body-small)", color: "var(--color-text-muted)", whiteSpace: "pre" }}>
+                  <code style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-body-small)", lineHeight: "var(--leading-body-small)", color: "var(--color-text-muted)", whiteSpace: "pre" }}>
                     email: &quot; ADA@EXAMPLE.TEST &quot;
                   </code>
-                  <code style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-body-small)", color: "var(--color-text-muted)", whiteSpace: "pre" }}>
+                  <code style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-body-small)", lineHeight: "var(--leading-body-small)", color: "var(--color-text-muted)", whiteSpace: "pre" }}>
                     birth_date: &quot;1815-12-10&quot;
                   </code>
                 </div>
               </Card>
-              <Station id="mapper" label="Mapper" sub="one clear place" icon={<IconMapper size={34} />} width={190} lit />
-              <Card style={{ width: "270px", padding: "var(--spacing-22)" }} accent>
+              <Station
+                id="mapper"
+                label="Mapper"
+                sub="one clear place"
+                icon={<IconMapper size={34} />}
+                width={190}
+                minHeight={224}
+                lit
+              />
+              <Card
+                style={{
+                  width: "330px",
+                  minHeight: "224px",
+                  padding: "var(--spacing-22)",
+                }}
+                accent
+              >
                 <div className="flex flex-col gap-[8px]">
                   <Caption>after</Caption>
-                  <code style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-body-small)", color: "var(--color-text-accent)", whiteSpace: "pre" }}>
+                  <code style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-body-small)", lineHeight: "var(--leading-body-small)", color: "var(--color-text-accent)", whiteSpace: "pre" }}>
                     userName: &quot;ada.lovelace&quot;
                   </code>
-                  <code style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-body-small)", color: "var(--color-text-accent)", whiteSpace: "pre" }}>
+                  <code style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-body-small)", lineHeight: "var(--leading-body-small)", color: "var(--color-text-accent)", whiteSpace: "pre" }}>
                     email: &quot;ada@example.test&quot;
                   </code>
-                  <code style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-body-small)", color: "var(--color-text-accent)", whiteSpace: "pre" }}>
+                  <code style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-body-small)", lineHeight: "var(--leading-body-small)", color: "var(--color-text-accent)", whiteSpace: "pre" }}>
                     birthDate: Date(1815-12-10)
                   </code>
                 </div>
@@ -812,7 +830,12 @@ export const SLIDES: Slide[] = [
           <div className="grid grid-cols-3 gap-[16px]">
             {MAPPER_JOBS.map((job, index) => (
               <Rise key={job.id} i={index}>
-                <Card style={{ padding: "var(--spacing-18)" }}>
+                <Card
+                  style={{
+                    minHeight: "92px",
+                    padding: "var(--spacing-18)",
+                  }}
+                >
                   <div className="flex items-center gap-[14px]">
                     <IconBadge size={56}>{JOB_GLYPH[job.id]}</IconBadge>
                     <div className="flex flex-col gap-[2px]">
@@ -1171,7 +1194,10 @@ export const SLIDES: Slide[] = [
                           : undefined
                       }
                       accent={exercise.kind === "dto"}
-                      style={{ padding: "var(--spacing-22)" }}
+                      style={{
+                        minHeight: "160px",
+                        padding: "var(--spacing-22)",
+                      }}
                     >
                       <div className="flex flex-col gap-[14px]">
                         <div className="flex items-center justify-between">

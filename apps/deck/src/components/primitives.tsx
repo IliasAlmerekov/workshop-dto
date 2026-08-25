@@ -394,6 +394,7 @@ export function Station({
   dim,
   danger,
   width = 244,
+  minHeight,
 }: {
   id: string;
   label: string;
@@ -404,6 +405,7 @@ export function Station({
   dim?: boolean;
   danger?: boolean;
   width?: number;
+  minHeight?: number;
 }) {
   const border = danger
     ? "var(--color-status-danger-border)"
@@ -418,7 +420,7 @@ export function Station({
       className="flex flex-col items-center justify-center text-center"
       style={{
         width,
-        minHeight: icon ? "140px" : "128px",
+        minHeight: minHeight ?? (icon ? "140px" : "128px"),
         gap: "var(--spacing-6)",
         padding: "var(--spacing-18) var(--spacing-16)",
         borderRadius: "var(--radius-xl)",

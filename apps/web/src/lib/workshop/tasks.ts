@@ -1,4 +1,4 @@
-import { TASK_IDS, type TaskId } from "./types";
+import { TASK_IDS, type TaskId, type WorkshopState } from "./types";
 
 export type TaskDefinition = {
   id: TaskId;
@@ -131,4 +131,28 @@ export function taskDefinition(id: TaskId): TaskDefinition {
 export function nextTaskId(id: TaskId): TaskId | null {
   const index = TASK_IDS.indexOf(id as (typeof TASK_IDS)[number]);
   return TASK_IDS[index + 1] ?? null;
+}
+
+/** The first task in sequence order that has not been completed yet. */
+export function firstIncompleteTaskId(
+  tasks: WorkshopState["tasks"],
+): TaskId | null {
+  return TASK_IDS.find((id) => !tasks[id].completed) ?? null;
+}
+
+/**
+ * A task is open when it can be worked on or revisited: it has been
+ * completed already (so the participant may return to it), or it is the next
+ * task in sequence (the only incomplete one reachable — nothing ahead of it is
+ * open). This is what lets a participant revisit earlier steps without ever
+ * letting them skip ahead (spec 16.1).
+ */
+export function isTaskOpen(
+  tasks: WorkshopState["tasks"],
+  taskId: TaskId,
+): boolean {
+  if (tasks[taskId]?.completed) {
+    return true;
+  }
+  return taskId === firstIncompleteTaskId(tasks);
 }

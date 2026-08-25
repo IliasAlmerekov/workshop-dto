@@ -12,7 +12,7 @@ import { ExerciseResultProvider } from "@/lib/workshop/ExerciseResultContext";
 import { taskDefinition } from "@/lib/workshop/tasks";
 
 export default function WorkshopPage() {
-  const { state, hydrated, activeTaskId } = useWorkshop();
+  const { state, hydrated, activeTaskId, selectTask } = useWorkshop();
   const router = useRouter();
 
   useEffect(() => {
@@ -44,7 +44,11 @@ export default function WorkshopPage() {
           <div className="grid min-h-0 flex-1 grid-rows-[minmax(0,1fr)_auto] lg:grid-cols-[minmax(0,1fr)_minmax(340px,32vw)] 2xl:grid-cols-[minmax(0,1fr)_440px] lg:grid-rows-1">
             <div className="flex min-h-0 min-w-0 flex-col">
               <div className="workshop-gutter shrink-0 border-b border-[var(--border)] bg-[var(--surface)]">
-                <Stepper tasks={state.tasks} activeTaskId={activeTaskId} />
+                <Stepper
+                  tasks={state.tasks}
+                  activeTaskId={activeTaskId}
+                  onSelectTask={selectTask}
+                />
               </div>
               <ActiveExerciseCard />
             </div>

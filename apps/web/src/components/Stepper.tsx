@@ -1,6 +1,7 @@
 "use client";
 
-import { TASK_DEFINITIONS } from "@/lib/workshop/tasks";
+import type { ReactNode } from "react";
+import { TASK_DEFINITIONS, isTaskOpen } from "@/lib/workshop/tasks";
 import { useMessages } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { IconLock } from "./ui/icons";
@@ -9,6 +10,8 @@ import type { TaskId, WorkshopState } from "@/lib/workshop/types";
 type StepperProps = {
   tasks: WorkshopState["tasks"];
   activeTaskId: TaskId | null;
+  /** When given, completed (open) steps become buttons to revisit them. */
+  onSelectTask?: (taskId: TaskId) => void;
 };
 
 /** `Icon/check` for a step already passed — the library's badge glyph at 38px. */
@@ -52,7 +55,7 @@ function CheckGlyph() {
  * The connector is CSS rather than the exported asset: it is a plain dashed
  * rule whose length has to flex with the row, which a fixed-width SVG cannot.
  */
-export function Stepper({ tasks, activeTaskId }: StepperProps) {
+export function Stepper({ tasks, activeTaskId, onSelectTask }: StepperProps) {
   const messages = useMessages();
 
   return (
@@ -63,14 +66,19 @@ export function Stepper({ tasks, activeTaskId }: StepperProps) {
       {TASK_DEFINITIONS.map((task, index) => {
         const progress = tasks[task.id];
         const isActive = task.id === activeTaskId;
-        const isLocked = !progress.completed && !isActive;
+        const isOpen = isTaskOpen(tasks, task.id);
+        const isLocked = !isOpen && !isActive;
+        // A completed (open) step is a button when a handler is given; the
+        // active and locked steps stay inert, so the participant can revisit
+        // earlier steps but never skip ahead (spec 16.1).
+        const isSelectable = Boolean(onSelectTask) && isOpen && !isActive;
 
         return (
           <li
             key={task.id}
             className={cn(
               "flex min-w-0 items-center",
-              // Only the connectors stretch; the steps keep their own width.
+              // Only the gap stretches; the steps keep their own width.
               index > 0 && "min-w-0 flex-1",
             )}
           >
@@ -80,14 +88,10 @@ export function Stepper({ tasks, activeTaskId }: StepperProps) {
                 className="mx-8 h-0 min-w-8 flex-1 border-t-[1.5px] border-dashed border-[var(--border-strong)] xl:mx-14"
               />
             )}
-            <div
-              aria-current={isActive ? "step" : undefined}
-              className={cn(
-                "flex min-w-0 items-center gap-8 self-stretch border-b-[3px] py-10",
-                isActive
-                  ? "border-[var(--accent-solid)]"
-                  : "border-transparent",
-              )}
+            <StepElement
+              isSelectable={isSelectable}
+              isActive={isActive}
+              onSelect={() => onSelectTask?.(task.id)}
             >
               <span
                 aria-hidden="true"
@@ -127,10 +131,56 @@ export function Stepper({ tasks, activeTaskId }: StepperProps) {
                   <IconLock size={12} />
                 </span>
               )}
-            </div>
+            </StepElement>
           </li>
         );
       })}
     </ol>
+  );
+}
+
+type StepElementProps = {
+  isSelectable: boolean;
+  isActive: boolean;
+  onSelect: () => void;
+  children: ReactNode;
+};
+
+/**
+ * The interactive core of a step: a button when the participant may revisit
+ * the task (open and not the active one), a plain div otherwise. The active
+ * and locked steps stay inert, so nothing lets a participant skip ahead.
+ */
+function StepElement({
+  isSelectable,
+  isActive,
+  onSelect,
+  children,
+}: StepElementProps) {
+  const classes = cn(
+    "flex min-w-0 items-center gap-8 self-stretch border-b-[3px] py-10",
+    isActive ? "border-[var(--accent-solid)]" : "border-transparent",
+  );
+
+  if (isSelectable) {
+    return (
+      <button
+        type="button"
+        onClick={onSelect}
+        aria-current={isActive ? "step" : undefined}
+        className={cn(
+          classes,
+          "cursor-pointer bg-transparent text-left hover:bg-[var(--surface-raised)]",
+        )}
+      >
+        {children}
+      </button>
+    );
+  }
+
+  return (
+    <div aria-current={isActive ? "step" : undefined} className={classes}>
+      {children}
+    </div>
   );
 }

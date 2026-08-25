@@ -32,6 +32,15 @@ function Probe() {
       <button onClick={() => workshop.completeTask("request-dto")}>
         complete-request-dto
       </button>
+      <button onClick={() => workshop.selectTask("request-dto")}>
+        select-request-dto
+      </button>
+      <button onClick={() => workshop.selectTask("request-mapper")}>
+        select-request-mapper
+      </button>
+      <button onClick={() => workshop.selectTask("welcome-email-dto")}>
+        select-email-dto
+      </button>
       <button onClick={() => workshop.clearActiveDraft()}>
         clear-active-draft
       </button>
@@ -84,6 +93,80 @@ describe("WorkshopProvider", () => {
       ),
     );
     expect(loadState().tasks["request-dto"].completed).toBe(true);
+  });
+
+  it("selectTask lets the participant return to an already completed task without clearing its results", async () => {
+    const user = userEvent.setup();
+    render(
+      <WorkshopProvider>
+        <Probe />
+      </WorkshopProvider>,
+    );
+
+    await waitFor(() => screen.getByTestId("active-task"));
+    await user.click(screen.getByText("complete-request-dto"));
+    await waitFor(() =>
+      expect(screen.getByTestId("active-task")).toHaveTextContent(
+        "request-mapper",
+      ),
+    );
+
+    await user.click(screen.getByText("select-request-dto"));
+    await waitFor(() =>
+      expect(screen.getByTestId("active-task")).toHaveTextContent(
+        "request-dto",
+      ),
+    );
+    expect(loadState().tasks["request-dto"].completed).toBe(true);
+  });
+
+  it("selectTask refuses a task that is not yet open (spec 16.1: nothing skipped)", async () => {
+    const user = userEvent.setup();
+    render(
+      <WorkshopProvider>
+        <Probe />
+      </WorkshopProvider>,
+    );
+
+    await waitFor(() =>
+      expect(screen.getByTestId("active-task")).toHaveTextContent(
+        "request-dto",
+      ),
+    );
+
+    await user.click(screen.getByText("select-request-mapper"));
+    await user.click(screen.getByText("select-email-dto"));
+    expect(screen.getByTestId("active-task")).toHaveTextContent("request-dto");
+  });
+
+  it("completing a task from a revisited selection advances to the next open task", async () => {
+    const user = userEvent.setup();
+    render(
+      <WorkshopProvider>
+        <Probe />
+      </WorkshopProvider>,
+    );
+
+    await waitFor(() => screen.getByTestId("active-task"));
+    await user.click(screen.getByText("complete-request-dto"));
+    await waitFor(() =>
+      expect(screen.getByTestId("active-task")).toHaveTextContent(
+        "request-mapper",
+      ),
+    );
+    await user.click(screen.getByText("select-request-dto"));
+    await waitFor(() =>
+      expect(screen.getByTestId("active-task")).toHaveTextContent(
+        "request-dto",
+      ),
+    );
+
+    await user.click(screen.getByText("complete-request-dto"));
+    await waitFor(() =>
+      expect(screen.getByTestId("active-task")).toHaveTextContent(
+        "request-mapper",
+      ),
+    );
   });
 
   it("clearActiveDraft only clears the currently active task's draft", async () => {

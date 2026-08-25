@@ -9,12 +9,7 @@ import {
   useState,
 } from "react";
 import type { ReactNode } from "react";
-import {
-  TASK_IDS,
-  type Language,
-  type TaskId,
-  type WorkshopState,
-} from "./types";
+import { type Language, type TaskId, type WorkshopState } from "./types";
 import {
   createDefaultState,
   loadState,
@@ -22,6 +17,7 @@ import {
   clearState,
 } from "./storage";
 import { starterCode } from "./starterCode";
+import { isTaskOpen, firstIncompleteTaskId } from "./tasks";
 import { TASK1_STARTER_CODE } from "@/lib/exercises/task1StarterCode";
 import { TASK2_STARTER_CODE } from "@/lib/exercises/task2StarterCode";
 import { TASK3_STARTER_CODE } from "@/lib/exercises/task3StarterCode";
@@ -54,6 +50,12 @@ type WorkshopContextValue = {
   activeTaskId: TaskId | null;
   hasActiveDraft: boolean;
   selectLanguage: (language: Language) => void;
+  /**
+   * Moves the active task to an open one — a task the participant has already
+   * completed, or the next incomplete task. Locked tasks are ignored, so the
+   * participant can revisit earlier steps but never skip ahead (spec 16.1).
+   */
+  selectTask: (taskId: TaskId) => void;
   clearActiveDraft: () => void;
   updateDraft: (taskId: TaskId, draft: string) => void;
   /** Records that one more progressive hint (spec 7.3) has been revealed for this task. */
@@ -66,13 +68,14 @@ type WorkshopContextValue = {
 
 const WorkshopContext = createContext<WorkshopContextValue | null>(null);
 
-function firstIncompleteTaskId(state: WorkshopState): TaskId | null {
-  return TASK_IDS.find((id) => !state.tasks[id].completed) ?? null;
-}
-
 export function WorkshopProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<WorkshopState>(createDefaultState);
   const [hydrated, setHydrated] = useState(false);
+  // Which task the participant is looking at. Null means "the first
+  // incomplete task", which is how the workshop advances on its own; a value
+  // here is a deliberate revisit of an open (completed or next) task and is
+  // never persisted — reloads land back on the next thing to do.
+  const [selectedTaskId, setSelectedTaskId] = useState<TaskId | null>(null);
 
   useEffect(() => {
     // Deferred on purpose: localStorage is a client-only external system, so
@@ -94,7 +97,15 @@ export function WorkshopProvider({ children }: { children: ReactNode }) {
     setState((previous) => ({ ...previous, language }));
   }, []);
 
-  const activeTaskId = useMemo(() => firstIncompleteTaskId(state), [state]);
+  const activeTaskId = useMemo(() => {
+    // A deliberate revisit wins while it still points at an open task; any
+    // other state (a reset, completing it, or the selected task becoming
+    // locked) falls back to the next incomplete task.
+    if (selectedTaskId && isTaskOpen(state.tasks, selectedTaskId)) {
+      return selectedTaskId;
+    }
+    return firstIncompleteTaskId(state.tasks);
+  }, [selectedTaskId, state]);
 
   // Untouched starter code is not "work in progress", so switching language
   // while the editor is still pristine must not prompt for confirmation.
@@ -108,9 +119,19 @@ export function WorkshopProvider({ children }: { children: ReactNode }) {
     );
   }, [activeTaskId, state]);
 
+  const selectTask = useCallback(
+    (taskId: TaskId) => {
+      if (!isTaskOpen(state.tasks, taskId)) {
+        return;
+      }
+      setSelectedTaskId(taskId);
+    },
+    [state],
+  );
+
   const clearActiveDraft = useCallback(() => {
     setState((previous) => {
-      const taskId = firstIncompleteTaskId(previous);
+      const taskId = firstIncompleteTaskId(previous.tasks);
       if (!taskId) {
         return previous;
       }
@@ -153,6 +174,9 @@ export function WorkshopProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const completeTask = useCallback((taskId: TaskId) => {
+    // Completing a task dismisses any manual revisit, so the workshop moves on
+    // to the next incomplete task instead of lingering on the one just passed.
+    setSelectedTaskId((selected) => (selected === taskId ? null : selected));
     setState((previous) => ({
       ...previous,
       tasks: {
@@ -168,6 +192,7 @@ export function WorkshopProvider({ children }: { children: ReactNode }) {
 
   const resetWorkshop = useCallback(() => {
     clearState();
+    setSelectedTaskId(null);
     setState(createDefaultState());
   }, []);
 
@@ -178,6 +203,7 @@ export function WorkshopProvider({ children }: { children: ReactNode }) {
       activeTaskId,
       hasActiveDraft,
       selectLanguage,
+      selectTask,
       clearActiveDraft,
       updateDraft,
       recordHintUsed,
@@ -191,6 +217,7 @@ export function WorkshopProvider({ children }: { children: ReactNode }) {
       activeTaskId,
       hasActiveDraft,
       selectLanguage,
+      selectTask,
       clearActiveDraft,
       updateDraft,
       recordHintUsed,

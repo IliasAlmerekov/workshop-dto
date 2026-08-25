@@ -1092,11 +1092,16 @@ export const SLIDES: Slide[] = [
    * with it, it is one step of replacing a registration system. The
    * caveat is not a footnote — the room has to know nothing is sent and
    * nothing is saved before it starts writing code that looks like it
-   * would. */
+   * would.
+   *
+   * One fragment, not four. The four systems are a single situation, and
+   * revealing them one press at a time made the speaker narrate a list the
+   * room could already have read. They arrive together, staggered only so
+   * the eye is given an order to read them in. */
   {
     id: "situation",
-    fragments: 4,
-    render: (fragment) => (
+    fragments: 1,
+    render: () => (
       <Body>
         <Eyebrow>Part 3 — Your exercises</Eyebrow>
         <div className="mt-[10px]">
@@ -1108,14 +1113,9 @@ export const SLIDES: Slide[] = [
         <Fill>
           <div className="flex flex-col gap-[20px]">
             {STORY.steps.map((step, index) => (
-              <motion.div
+              <Rise
                 key={step}
-                animate={{
-                  opacity: fragment >= index ? 1 : 0,
-                  x: fragment >= index ? 0 : 40,
-                }}
-                initial={false}
-                transition={MORPH}
+                i={index}
                 className="flex items-center gap-[24px]"
               >
                 <IconBadge size={62}>
@@ -1137,13 +1137,11 @@ export const SLIDES: Slide[] = [
                 >
                   {step}
                 </span>
-              </motion.div>
+              </Rise>
             ))}
           </div>
-          <motion.div
-            animate={{ opacity: fragment >= STORY.steps.length - 1 ? 1 : 0 }}
-            initial={false}
-            transition={{ ...MORPH, delay: 0.25 }}
+          <Rise
+            i={STORY.steps.length}
             className="mt-[40px] flex items-center gap-[14px]"
           >
             <span style={{ color: "var(--color-text-accent)" }}>
@@ -1159,7 +1157,7 @@ export const SLIDES: Slide[] = [
             >
               {STORY.caveat}
             </span>
-          </motion.div>
+          </Rise>
         </Fill>
       </Body>
     ),

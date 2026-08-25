@@ -297,3 +297,25 @@ export function IconGift({ size = 24, className }: IconProps) {
     </svg>
   );
 }
+
+/** Someone else's system — the legacy Registration API on the far side. */
+export function IconServer({ size = 24, className }: IconProps) {
+  return (
+    <svg {...box(size, className)}>
+      <rect x="3" y="3.5" width="18" height="7" rx="1.75" {...stroke} />
+      <rect x="3" y="13.5" width="18" height="7" rx="1.75" {...stroke} />
+      <path d="M6.75 7h.01M6.75 17h.01" {...stroke} />
+      <path d="M11 7h5M11 17h5" {...stroke} />
+    </svg>
+  );
+}
+
+/** The notification boundary. Prepared, never sent. */
+export function IconMail({ size = 24, className }: IconProps) {
+  return (
+    <svg {...box(size, className)}>
+      <rect x="2.75" y="5" width="18.5" height="14" rx="2" {...stroke} />
+      <path d="M3.5 6.5 12 13l8.5-6.5" {...stroke} />
+    </svg>
+  );
+}

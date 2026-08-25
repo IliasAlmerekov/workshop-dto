@@ -1,7 +1,5 @@
 import { motion, type Transition } from "framer-motion";
 import {
-  createContext,
-  useContext,
   type CSSProperties,
   type ReactNode,
 } from "react";
@@ -20,42 +18,26 @@ import {
 /**
  * The site's own commitment curve, at the site's own commitment duration.
  *
- * DESIGN.md: clicking a language card commits "one 1050ms transition" on
- * `cubic-bezier(0.22, 1, 0.36, 1)`. The deck's first pass ran morphs at 620ms —
- * the curtain's *exit* duration — which was the wrong number borrowed from the
- * right file: a curtain lifting off a finished page can be brisk, but a shape
- * travelling across a wall while a room watches cannot. At 620ms the audience
- * sees that something moved; at 1050ms they can follow what.
+ * A small, low-bounce spring lets a connected object keep its momentum when the
+ * presenter advances quickly, without turning a teaching diagram into a toy.
+ * The visual duration stays long enough for a room to follow a shared element.
  */
 export const MORPH: Transition = {
-  duration: 1.05,
-  ease: [0.22, 1, 0.36, 1],
+  type: "spring",
+  visualDuration: 0.82,
+  bounce: 0.1,
 };
 
-/** Content arriving or leaving. Slower than a UI fade, for the same reason. */
+/** Content arrives quickly, then settles — it should never make the speaker wait. */
 export const FADE: Transition = {
-  duration: 0.72,
-  ease: [0.22, 1, 0.36, 1],
+  duration: 0.58,
+  ease: [0.23, 1, 0.32, 1],
 };
 
 /**
- * Which way the deck is going: `1` forward, `-1` back.
- *
- * Slides push in from the side the presenter is travelling towards, so the
- * transition carries direction and pressing back visibly undoes rather than
- * repeats. Only content *without* a `layoutId` takes this ride — Framer
- * measures layout animations in viewport space, so a morphing element inside a
- * sliding parent would be measured against a moving frame and land wrong. The
- * two motions are deliberately kept apart: the slide pushes, the morph travels.
- */
-export const DirectionContext = createContext(1);
-
-export function useDirection() {
-  return useContext(DirectionContext);
-}
-
-/**
- * A block of ordinary content, pushed in from the direction of travel.
+ * A block of ordinary content rises into focus with a trace of depth. The
+ * distance is deliberately small: visual hierarchy comes from the stagger,
+ * not from objects flying across the projector.
  *
  * `i` is its place in the reading order, and the stagger is generous on
  * purpose: a slide whose four blocks land within 200ms of each other reads as
@@ -72,15 +54,16 @@ export function Rise({
   className?: string;
   style?: CSSProperties;
 }) {
-  const direction = useDirection();
+  const enterTransform = "translate3d(0, 18px, 0) scale(0.985)";
+  const exitTransform = "translate3d(0, -10px, 0) scale(0.992)";
   return (
     <motion.div
-      initial={{ opacity: 0, x: 90 * direction }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -70 * direction }}
-      transition={{ ...FADE, delay: i * 0.13 }}
+      initial={{ opacity: 0, transform: enterTransform, filter: "blur(3px)" }}
+      animate={{ opacity: 1, transform: "none", filter: "blur(0px)" }}
+      exit={{ opacity: 0, transform: exitTransform, filter: "blur(2px)" }}
+      transition={{ ...FADE, delay: Math.min(i, 7) * 0.07 }}
       className={className}
-      style={style}
+      style={{ willChange: "transform, opacity, filter", ...style }}
     >
       {children}
     </motion.div>
@@ -111,8 +94,8 @@ export function IconBadge({
       color: "var(--color-status-danger)",
     },
     quiet: {
-      background: "var(--color-bg-surface-muted)",
-      color: "var(--color-text-subtle)",
+      background: "var(--color-bg-accent-subtle)",
+      color: "var(--color-text-accent)",
     },
   }[tone];
 
@@ -435,7 +418,7 @@ export function Station({
       className="flex flex-col items-center justify-center text-center"
       style={{
         width,
-        minHeight: icon ? "158px" : "128px",
+        minHeight: icon ? "140px" : "128px",
         gap: "var(--spacing-6)",
         padding: "var(--spacing-18) var(--spacing-16)",
         borderRadius: "var(--radius-xl)",
@@ -452,11 +435,7 @@ export function Station({
       {icon ? (
         <span
           style={{
-            color: danger
-              ? "var(--color-status-danger)"
-              : lit
-                ? "var(--color-text-accent)"
-                : "var(--color-text-subtle)",
+            color: "var(--color-text-accent)",
             marginBottom: "var(--spacing-2)",
           }}
         >

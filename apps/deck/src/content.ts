@@ -24,15 +24,13 @@ export const TALK = {
 /**
  * The room is asked this before anything is explained.
  *
- * It is the cheapest diagnostic in the workshop: two shows of hands tell both
- * speakers whether the next fifteen minutes should be an introduction or a
- * refresher. It is also the moment the audience does something instead of
- * watching, which is worth more here than any slide.
+ * One sentence, in the middle of the slide, and nothing else on it. It is the
+ * cheapest diagnostic in the workshop — a show of hands tells both speakers
+ * whether the next fifteen minutes are an introduction or a refresher — and it
+ * is the moment the audience does something instead of settling in to watch.
  */
-export const ROOM_QUESTIONS = [
-  "Who has heard of a DTO?",
-  "Who has written a Mapper?",
-] as const;
+export const ROOM_QUESTION =
+  "Who knows what a DTO or a Mapper is?";
 
 export type AgendaItem = {
   ordinal: string;
@@ -51,7 +49,7 @@ export type AgendaItem = {
 export const AGENDA: AgendaItem[] = [
   { ordinal: "1", title: "What is a DTO", icon: "dto" },
   { ordinal: "2", title: "What is a Mapper", icon: "mapper" },
-  { ordinal: "3", title: "Four exercises", icon: "exercises" },
+  { ordinal: "3", title: "Six exercises", icon: "exercises" },
   { ordinal: "4", title: "Three questions", icon: "questions" },
   { ordinal: "5", title: "A surprise", icon: "surprise" },
 ];
@@ -106,7 +104,13 @@ export const ENTITY_FIELDS: EntityField[] = [
   },
 ];
 
-/** What is left once the boundary has done its job. */
+/**
+ * `RegistrationResponse` — what is left once the boundary has done its job.
+ *
+ * These five fields are not chosen here: they are task 5's `fields` list in
+ * `apps/web/src/lib/exercises/task5.ts`, so the contract the room sees on the
+ * wall is the contract they are about to write.
+ */
 export const RESPONSE_FIELDS = [
   { id: "id", key: "id", value: "7" },
   { id: "userName", key: "userName", value: '"ada.lovelace"' },
@@ -132,9 +136,120 @@ export const TRANSFORMS = [
   { id: "birthDate", from: '"1815-12-10"', to: "Date(1815-12-10)" },
 ] as const;
 
+/**
+ * The Registration Migration pipeline — six steps, three boundaries.
+ *
+ * Titles, order and `kind` come from `apps/web/src/lib/exercises/task[1-6].ts`,
+ * not from this file. The pairing is the lesson: every boundary is a DTO
+ * *defined first* and a Mapper written against it, which is why the deck draws
+ * them as pairs rather than as a list of six.
+ */
 export const EXERCISES = [
-  { id: "task1", n: "01", title: "Typed Request DTO" },
-  { id: "task2", n: "02", title: "Request Mapper" },
-  { id: "task3", n: "03", title: "External API DTO" },
-  { id: "task4", n: "04", title: "Response DTO" },
+  {
+    id: "request-dto",
+    n: "01",
+    title: "Typed Request DTO",
+    contract: "CreateUserRequest",
+    kind: "dto",
+    boundary: "inbound",
+  },
+  {
+    id: "request-mapper",
+    n: "02",
+    title: "Request Mapper",
+    contract: "legacyProfile →",
+    kind: "mapper",
+    boundary: "inbound",
+  },
+  {
+    id: "welcome-email-dto",
+    n: "03",
+    title: "Welcome Email DTO",
+    contract: "WelcomeEmail",
+    kind: "dto",
+    boundary: "notification",
+  },
+  {
+    id: "welcome-email-mapper",
+    n: "04",
+    title: "Welcome Email Mapper",
+    contract: "User →",
+    kind: "mapper",
+    boundary: "notification",
+  },
+  {
+    id: "registration-response-dto",
+    n: "05",
+    title: "Registration Response DTO",
+    contract: "RegistrationResponse",
+    kind: "dto",
+    boundary: "public",
+  },
+  {
+    id: "registration-response-mapper",
+    n: "06",
+    title: "Registration Response Mapper",
+    contract: "User →",
+    kind: "mapper",
+    boundary: "public",
+  },
 ] as const;
+
+/**
+ * The situation the six exercises live in, from the spec in issue #23.
+ *
+ * The room needs this before it needs a task list: without it, "define
+ * `WelcomeEmail`" is a syntax puzzle, and with it, it is one step of replacing
+ * a registration system. Nothing here is a side effect — no email is sent, no
+ * record is written.
+ */
+export const STORY = {
+  headline: "Your task: replace an old registration system.",
+  steps: [
+    "A legacyProfile arrives from the old Registration API.",
+    "We create an account in the new system.",
+    "We prepare a welcome email.",
+    "We return a safe result for the Registration Complete screen.",
+  ],
+  caveat: "Nothing is sent. Nothing is saved. You write the contracts.",
+} as const;
+
+/**
+ * The three boundaries the pipeline crosses, and who is on the far side of
+ * each. This is the architecture slide's data.
+ */
+export const BOUNDARIES = [
+  {
+    id: "inbound",
+    label: "Inbound",
+    from: "Legacy Registration API",
+    contract: "CreateUserRequest",
+    to: "Registration Service",
+    note: "someone else's field names",
+  },
+  {
+    id: "notification",
+    label: "Notification",
+    from: "User",
+    contract: "WelcomeEmail",
+    to: "Mail",
+    note: "only what the email needs",
+  },
+  {
+    id: "public",
+    label: "Public API",
+    from: "User",
+    contract: "RegistrationResponse",
+    to: "Client",
+    note: "never the private fields",
+  },
+] as const;
+
+/** The real legacy payload from task 2 — untidy on purpose. */
+export const LEGACY_PROFILE = {
+  user_name: "  Ada.Lovelace ",
+  first_name: " Ada ",
+  last_name: " Lovelace ",
+  birth_date: "1815-12-10",
+  email: " ADA@EXAMPLE.TEST ",
+} as const;

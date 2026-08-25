@@ -1,13 +1,20 @@
 # deck — the workshop's opening talk
 
-Twelve slides for the ~15 minutes before the exercises, in the order
-`docs/SPECIFICATION.md` §8 puts them.
+Thirteen slides for the ~15 minutes before the exercises. Kamal presents part 1
+(DTO), Ilias part 2 (Mapper).
 
-The deck opens by asking the room something rather than telling it: two shows
-of hands — *who has heard of a DTO, who has written a Mapper* — before a single
-definition. That answer changes how the next fifteen minutes are pitched, and
-it costs one slide. Only then the agenda, then part 1 (DTO), then part 2
-(Mapper), then a hand-off to the app. Kamal presents part 1, Ilias part 2.
+**The order is the argument, and it is deliberate.** The deck opens by asking
+the room something rather than telling it — one sentence, *who has heard of or
+already written a DTO or a Mapper* — because a show of hands decides whether the
+next fifteen minutes are an introduction or a refresher. Then the agenda. Then a
+DTO is **defined**, and only after that is the leaking API shown as evidence: raw
+JSON put first is a puzzle, put second it is a point. The Mapper follows the same
+shape. The talk closes with the situation the exercises live in, the six
+exercises themselves, and the URL to join.
+
+That define-then-fill order is not a presentation habit; it is the rule the
+workshop itself now enforces. See issue #23: the six-step Registration Migration
+pipeline defines every contract before the Mapper that fills it.
 
 ## Run it
 
@@ -71,12 +78,26 @@ struggles.
   interactive whiteboard of unknown size; letterboxing is a better failure than
   a layout reflowing in front of an audience.
 - **No invented data.** The JSON is the real body of
-  `GET /api/demo/users/7/entity` (see `apps/api/src/Controller/DemoUserController.php`),
-  and the raw form values are task 2's from `docs/SPECIFICATION.md` §6.2. All
-  copy lives in `src/content.ts`.
+  `GET /api/demo/users/7/entity` (see `apps/api/src/Controller/DemoUserController.php`);
+  the legacy profile is task 2's `TASK2_LEGACY_REGISTRATION_PAYLOAD`; the
+  `RegistrationResponse` fields are task 5's own list. All copy lives in
+  `src/content.ts`.
+- **The QR code is baked, and verified.** `src/components/JoinQr.tsx` holds the
+  workshop URL as a single SVG path, generated once with the `qrcode` package at
+  error-correction level M. Its 414 modules were diffed against that library's
+  own SVG output to rule out a transposed matrix — a QR that renders but does
+  not scan is worse than none. It is baked rather than generated at runtime for
+  the same reason the fonts are inlined, and **if the URL changes the file must
+  be regenerated.** The URL is always spelled out beside it: a code nobody at
+  the back can scan is decoration.
 
 ## Scope
 
-The deck stops at "your turn". The four exercises, the knowledge check and the
-certificate belong to `apps/web` and are not duplicated here — the agenda
+The deck stops at the join screen. The six exercises, the knowledge check and
+the certificate belong to `apps/web` and are not duplicated here — the agenda
 promises them, the app delivers them.
+
+The exercise titles, contract names, boundary grouping and field lists in
+`src/content.ts` are transcribed from `apps/web/src/lib/exercises/task[1-6].ts`,
+not authored here. If the pipeline changes, that is where it changes first and
+this deck follows.

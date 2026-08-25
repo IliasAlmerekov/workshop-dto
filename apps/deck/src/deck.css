@@ -15,6 +15,14 @@
 @import "@fontsource/inter/latin-700.css";
 @import "@fontsource/jetbrains-mono/latin-400.css";
 
+/* Slide 05's `Legacy Registration API` label uses JetBrains Mono. Make that
+   deliberate voice the deck-wide typeface without changing the workshop's
+   shared site token: components using either `--font-inter` or `--font-mono`
+   now resolve to the same local, self-hosted family. */
+:root {
+  --font-inter: var(--font-mono);
+}
+
 html,
 body {
   margin: 0;

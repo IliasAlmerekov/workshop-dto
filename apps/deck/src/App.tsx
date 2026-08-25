@@ -9,7 +9,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { PARTS } from "./content";
 import { SLIDES } from "./slides";
 import {
-  DirectionContext,
   MORPH,
   SectionLabel,
   Wordmark,
@@ -39,9 +38,6 @@ export default function App() {
   const steps = useMemo(buildSteps, []);
   const [at, setAt] = useState(0);
   const [scale, setScale] = useState(1);
-  /* Which way the last press went. Slides push in from that side, so going back
-     visibly undoes the last step instead of replaying it. */
-  const [direction, setDirection] = useState(1);
   const reduced = useReducedMotion();
 
   const step = steps[at];
@@ -51,9 +47,6 @@ export default function App() {
     (delta: number) =>
       setAt((current) => {
         const next = Math.max(0, Math.min(steps.length - 1, current + delta));
-        if (next !== current) {
-          setDirection(next > current ? 1 : -1);
-        }
         return next;
       }),
     [steps.length],
@@ -91,12 +84,10 @@ export default function App() {
       }
       if (event.key === "Home") {
         event.preventDefault();
-        setDirection(-1);
         setAt(0);
       }
       if (event.key === "End") {
         event.preventDefault();
-        setDirection(1);
         setAt(steps.length - 1);
       }
     };
@@ -112,7 +103,6 @@ export default function App() {
       transition={reduced ? { duration: 0 } : MORPH}
       reducedMotion={reduced ? "always" : "never"}
     >
-      <DirectionContext.Provider value={reduced ? 0 : direction}>
       <div className="stage-fit">
         <div className="stage" style={{ transform: `scale(${scale})` }}>
           <LayoutGroup>
@@ -132,14 +122,16 @@ export default function App() {
                 arrives, because that overlap is where Framer matches the two
                 copies of a `layoutId` and morphs between them. `mode="wait"`
                 would play the deck as a stack of unrelated screens. */}
-            <AnimatePresence custom={direction}>
+            <AnimatePresence>
               <motion.div
                 key={slide.id}
                 className="absolute inset-0"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
+                variants={SLIDE_FADE}
+                initial="enter"
+                animate="center"
+                exit="exit"
                 transition={FADE_THROUGH}
+                style={{ willChange: "transform, opacity, filter" }}
               >
                 {slide.render(step.fragment)}
               </motion.div>
@@ -197,17 +189,35 @@ export default function App() {
 
           <motion.div
             className="pointer-events-none absolute bottom-0 left-0 z-30 h-[2px]"
-            style={{ background: "var(--color-bg-accent)" }}
-            animate={{ width: `${((at + 1) / steps.length) * 100}%` }}
+            style={{
+              width: "100%",
+              background: "var(--color-bg-accent)",
+              transformOrigin: "left center",
+              willChange: "transform",
+            }}
+            animate={{ transform: `scaleX(${(at + 1) / steps.length})` }}
             transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
           />
         </div>
       </div>
-      </DirectionContext.Provider>
     </MotionConfig>
   );
 }
 
-/* The crossfade under the push. Short, because the blocks riding on top of it
-   are doing the visible work — a long fade here would only grey the handover. */
-const FADE_THROUGH = { duration: 0.34, ease: [0.22, 1, 0.36, 1] } as const;
+/* A steady transition keeps every slide on the same visual axis. Blur and a
+   tiny scale change soften the handover without exposing the canvas at an edge. */
+const SLIDE_FADE = {
+  enter: {
+    opacity: 0,
+    transform: "scale(0.992)",
+    filter: "blur(4px)",
+  },
+  center: { opacity: 1, transform: "none", filter: "blur(0px)" },
+  exit: {
+    opacity: 0,
+    transform: "scale(0.996)",
+    filter: "blur(2px)",
+  },
+} as const;
+
+const FADE_THROUGH = { duration: 0.5, ease: [0.23, 1, 0.32, 1] } as const;

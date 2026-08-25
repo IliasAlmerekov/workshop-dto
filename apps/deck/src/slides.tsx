@@ -2,16 +2,20 @@ import { AnimatePresence, motion } from "framer-motion";
 import type { ReactNode } from "react";
 import {
   AGENDA,
+  BOUNDARIES,
   ENTITY_FIELDS,
   EXERCISES,
+  LEGACY_PROFILE,
   MAPPER_JOBS,
   PARTS,
   RESPONSE_FIELDS,
-  ROOM_QUESTIONS,
+  ROOM_QUESTION,
+  STORY,
   TALK,
   TRANSFORMS,
 } from "./content";
 import { JsonBlock, type JsonLineSpec } from "./components/JsonBlock";
+import { JOIN_URL, JoinQr } from "./components/JoinQr";
 import {
   IconBrowser,
   IconCalendar,
@@ -26,11 +30,13 @@ import {
   IconLayers,
   IconLink,
   IconList,
+  IconMail,
   IconMapper,
   IconMerge,
   IconNoLogic,
   IconPencil,
   IconQuestion,
+  IconServer,
   IconShield,
   IconTag,
   IconTrim,
@@ -51,14 +57,19 @@ import {
 } from "./components/primitives";
 
 /**
- * The twelve slides.
+ * The thirteen slides.
+ *
+ * The order is the one thing here that is not negotiable, because it is the
+ * argument. A DTO is *defined* before the leaking API is shown, not after: the
+ * room needs the idea before it can read the evidence, and a slide of raw JSON
+ * shown first is a puzzle rather than a point. The same rule runs through the
+ * exercises the deck hands over to — issue #23's pipeline defines every
+ * contract before the Mapper that fills it.
  *
  * A slide declares how many *fragments* it has — how many presses it takes to
- * get through it — and renders itself for a given fragment. Fragments are used
- * where a block must not be readable before it is spoken: the question put to
- * the room, the boundary doing its work, the two comparisons, and the three
- * costs at the end. Everything else arrives whole, because a slide that
- * withholds what the speaker has already said is a slide fighting its speaker.
+ * get through it. Fragments exist where a block must not be readable before it
+ * is spoken; everything else arrives whole, because a slide that withholds what
+ * the speaker has already said is a slide fighting its speaker.
  *
  * `part` names the section marker parked in the top-right corner. It is the
  * agenda's own line, still on screen eight slides later.
@@ -151,13 +162,21 @@ function LaneLabel({ text, danger }: { text: string; danger?: boolean }) {
 /**
  * The boundary itself, drawn.
  *
- * The deck says the word "boundary" more than any other, and for three slides
+ * The deck says the word "boundary" more than any other, and for several slides
  * it was only a word. This is the line data has to cross — the server on one
  * side, the world on the other — so that "what crosses the boundary" becomes
  * something the room can point at instead of a phrase it has to hold in its
  * head.
  */
-function Boundary({ label, breached }: { label: string; breached?: boolean }) {
+function Boundary({
+  label,
+  breached,
+  height = 430,
+}: {
+  label: string;
+  breached?: boolean;
+  height?: number;
+}) {
   return (
     <div className="flex flex-none flex-col items-center gap-[14px]">
       <span
@@ -177,7 +196,7 @@ function Boundary({ label, breached }: { label: string; breached?: boolean }) {
       <div
         style={{
           width: 0,
-          height: "430px",
+          height,
           borderLeft: `3px dashed ${
             breached
               ? "var(--color-status-danger-border)"
@@ -239,6 +258,13 @@ const JOB_GLYPH: Record<string, ReactNode> = {
   drop: <IconDrop size={20} />,
 };
 
+/** The far side of each boundary, per `BOUNDARIES`. */
+const BOUNDARY_GLYPH: Record<string, ReactNode> = {
+  inbound: <IconServer size={26} />,
+  notification: <IconMail size={26} />,
+  public: <IconBrowser size={26} />,
+};
+
 /** The job chip, shared by the scatter slide and the one that gathers it back. */
 function JobChip({ id, label }: { id: string; label: string }) {
   return (
@@ -285,10 +311,10 @@ const responseLines: JsonLineSpec[] = RESPONSE_FIELDS.map((field) => ({
 
 export const SLIDES: Slide[] = [
   /* 1 — Welcome ---------------------------------------------------- *
-   * The site's opening curtain, held still. Whoever is in the room has
-   * just been asked to open the workshop URL; the first thing they will
-   * see there is `WORKSHOP` typing itself onto white. Starting the talk
-   * with the same gesture makes the deck and the app one object. */
+   * The site's opening curtain, held still. Whoever is in the room is
+   * about to open the workshop URL; the first thing they will see there
+   * is `WORKSHOP` typing itself onto white. Starting the talk with the
+   * same gesture makes the deck and the app one object. */
   {
     id: "welcome",
     fragments: 1,
@@ -328,59 +354,42 @@ export const SLIDES: Slide[] = [
   },
 
   /* 2 — The question to the room ------------------------------------ *
-   * Before a single definition. Two shows of hands tell both speakers
-   * whether the next fifteen minutes are an introduction or a refresher
-   * — and, worth more than that, the room does something in minute two
-   * instead of settling in to watch.
+   * One sentence in the middle of an otherwise empty slide, before a
+   * single definition. A show of hands tells both speakers whether the
+   * next fifteen minutes are an introduction or a refresher — and it is
+   * the moment the room does something instead of watching.
    *
-   * One question per press, so the second is not read while the first is
-   * still being answered. */
+   * Nothing else belongs on this slide. A second line would be read
+   * while the first is still being answered. */
   {
     id: "ask",
-    fragments: 2,
-    render: (fragment) => (
-      <Body>
-        <Title>Before we start</Title>
-        <Fill>
-          <div className="flex flex-col gap-[44px]">
-            {ROOM_QUESTIONS.map((question, index) => (
-              <AnimatePresence key={question}>
-                {fragment >= index ? (
-                  <motion.div
-                    initial={{ opacity: 0, x: 80 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={MORPH}
-                    className="flex items-center gap-[32px]"
-                  >
-                    <IconBadge size={92} tone={index === 0 ? "accent" : "quiet"}>
-                      <IconHand size={44} />
-                    </IconBadge>
-                    <span
-                      style={{
-                        fontSize: "var(--text-heading-page)",
-                        lineHeight: "var(--leading-heading-page)",
-                        letterSpacing: "var(--tracking-heading-page)",
-                        fontWeight: 700,
-                        color:
-                          index === 0
-                            ? "var(--color-text-primary)"
-                            : "var(--color-text-secondary)",
-                      }}
-                    >
-                      {question}
-                    </span>
-                  </motion.div>
-                ) : null}
-              </AnimatePresence>
-            ))}
-          </div>
-          <div className="mt-[54px]">
-            <Rise i={3}>
-              <Caption>Hands up. There is no wrong answer.</Caption>
-            </Rise>
-          </div>
-        </Fill>
-      </Body>
+    fragments: 1,
+    render: () => (
+      <div className="absolute inset-0 flex flex-col items-center justify-center px-[160px]">
+        <Rise i={0}>
+          <IconBadge size={104}>
+            <IconHand size={50} />
+          </IconBadge>
+        </Rise>
+        <div className="mt-[44px]">
+          <Rise i={1}>
+            <p
+              className="text-center"
+              style={{
+                fontSize: "var(--text-heading-page)",
+                lineHeight: "var(--leading-heading-page)",
+                letterSpacing: "var(--tracking-heading-page)",
+                fontWeight: 700,
+                color: "var(--color-text-primary)",
+                margin: 0,
+                maxWidth: "1120px",
+              }}
+            >
+              {ROOM_QUESTION}
+            </p>
+          </Rise>
+        </div>
+      </div>
     ),
   },
 
@@ -425,7 +434,7 @@ export const SLIDES: Slide[] = [
                     >
                       {item.ordinal}
                     </span>
-                    <IconBadge size={64} tone={part ? "accent" : "quiet"}>
+                    <IconBadge size={64}>
                       {AGENDA_GLYPH[item.icon]}
                     </IconBadge>
                     {part ? (
@@ -465,34 +474,164 @@ export const SLIDES: Slide[] = [
     ),
   },
 
-  /* 4 — What our API sends today ------------------------------------ *
-   * The slide that has to earn the rest of the deck, so it must not read
-   * as "here is some JSON". It is an accusation, and the picture carries
-   * it: the Entity on the left, the client on the right, and between
-   * them the boundary — which right now stops nothing.
+  /* 4 — What is a DTO ---------------------------------------------- *
+   * The idea first, before any evidence. Three properties, and the
+   * contract they describe standing next to them so the abstract line
+   * and the concrete thing are read together.
    *
-   * Three fragments. The whole row goes out; three of the fields turn
-   * out to be things nobody meant to publish; then the boundary finally
-   * does its job and the response becomes a decision. That last
-   * transition is the definition of a DTO, given before the word is. */
+   * The card is `RegistrationResponse`, with task 5's own field list —
+   * the room is looking at something they will write, not an example. */
   {
-    id: "problem",
+    id: "what-is-dto",
+    fragments: 1,
+    part: "dto",
+    render: () => (
+      <Body>
+        <Eyebrow>DTO = Data Transfer Object</Eyebrow>
+        <div className="mt-[10px]">
+          <Title>What is a DTO?</Title>
+        </div>
+        <Fill>
+          <div className="flex items-center justify-center gap-[64px]">
+            <div className="flex w-[700px] flex-col gap-[28px]">
+              {[
+                {
+                  icon: <IconFilter size={30} />,
+                  text: "It carries only the data you choose.",
+                },
+                { icon: <IconType size={30} />, text: "It has clear types." },
+                {
+                  icon: <IconNoLogic size={30} />,
+                  text: "It has no business logic.",
+                },
+              ].map((point, index) => (
+                <Rise key={point.text} i={index}>
+                  <div className="flex items-center gap-[24px]">
+                    <IconBadge size={64}>{point.icon}</IconBadge>
+                    <span
+                      style={{
+                        fontSize: "var(--text-body-lead)",
+                        lineHeight: "var(--leading-body-lead)",
+                        color: "var(--color-text-secondary)",
+                      }}
+                    >
+                      {point.text}
+                    </span>
+                  </div>
+                </Rise>
+              ))}
+            </div>
+            <Card
+              layoutId="station-response-dto"
+              style={{ padding: "var(--spacing-30)" }}
+              accent
+            >
+              <div className="flex flex-col gap-[22px]">
+                <div className="flex items-center gap-[14px]">
+                  <span style={{ color: "var(--color-text-accent)" }}>
+                    <IconContract size={26} />
+                  </span>
+                  <span
+                    style={{
+                      fontFamily: "var(--font-mono)",
+                      fontSize: "var(--text-heading-card)",
+                      fontWeight: 700,
+                      color: "var(--color-text-primary)",
+                    }}
+                  >
+                    RegistrationResponse
+                  </span>
+                </div>
+                <div className="flex flex-col items-start gap-[10px]">
+                  {RESPONSE_FIELDS.map((field) => (
+                    <FieldChip key={field.id} id={field.id} label={field.key} />
+                  ))}
+                </div>
+              </div>
+            </Card>
+          </div>
+        </Fill>
+      </Body>
+    ),
+  },
+
+  /* 5 — When a DTO is useful ---------------------------------------- *
+   * One rule, then three concrete examples. The old version made the room
+   * decode a full architecture before it knew what to look for; each row now
+   * answers the same child-simple question: data is crossing a boundary, so
+   * put a named DTO in the middle. */
+  {
+    id: "where",
+    fragments: 1,
+    part: "dto",
+    render: () => (
+      <Body>
+        <Title>When do we use a DTO?</Title>
+        <div className="mt-[14px]">
+          <Lead>Use one whenever data crosses into or out of your code.</Lead>
+        </div>
+        <Fill>
+          <div className="flex flex-col gap-[18px]">
+            {BOUNDARIES.map((boundary, index) => (
+              <Rise key={boundary.id} i={index}>
+                <Card style={{ padding: "var(--spacing-18) var(--spacing-22)" }}>
+                  <div className="flex items-center gap-[20px]">
+                    <IconBadge size={52}>
+                      {BOUNDARY_GLYPH[boundary.id]}
+                    </IconBadge>
+                    <div className="w-[250px] flex-none">
+                      <LaneLabel text={boundary.label} />
+                      <div className="mt-[4px]"><Caption>{boundary.note}</Caption></div>
+                    </div>
+                    <span style={{ color: "var(--color-text-subtle)" }}>→</span>
+                    <div className="flex flex-1 items-center justify-center gap-[12px] rounded-[var(--radius-xl)] border border-[var(--color-border-accent)] bg-[var(--color-bg-accent-subtle)] px-[18px] py-[14px]">
+                      <span style={{ color: "var(--color-text-accent)" }}><IconContract size={24} /></span>
+                      <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-body-language)", color: "var(--color-text-accent)" }}>{boundary.contract}</span>
+                    </div>
+                    <span style={{ color: "var(--color-text-subtle)" }}>→</span>
+                    <span className="w-[205px]" style={{ fontSize: "var(--text-body-question)", color: "var(--color-text-secondary)" }}>{boundary.to}</span>
+                  </div>
+                </Card>
+              </Rise>
+            ))}
+          </div>
+          <div className="mt-[30px]">
+            <Rise i={4}>
+              <Caption>
+                The DTO is the labelled box in the middle. It says exactly what
+                may cross the boundary.
+              </Caption>
+            </Rise>
+          </div>
+        </Fill>
+      </Body>
+    ),
+  },
+
+  /* 6 — Without / With a DTO --------------------------------------- *
+   * Now the evidence, and only now — the room has the idea, so the JSON
+   * is an argument rather than a puzzle.
+   *
+   * Three fragments. The whole row goes out through a boundary that is
+   * not there; three of the fields turn out to be things nobody meant to
+   * publish; then the contract does its job. The last transition is the
+   * comparison, made as one movement instead of two pictures. */
+  {
+    id: "compare-dto",
     fragments: 3,
     part: "dto",
     render: (fragment) => (
       <Body>
-        <Eyebrow>
-          {fragment < 2 ? "Our API today" : "Our API after one decision"}
-        </Eyebrow>
+        <Eyebrow>{fragment < 2 ? "Without a DTO" : "With a DTO"}</Eyebrow>
         <div className="mt-[10px]">
           <Title>
             {fragment < 2
-              ? "The client asked for a user"
-              : "Now the client gets a contract"}
+              ? "The client sees everything"
+              : "The client sees a contract"}
           </Title>
         </div>
         <Fill>
-          <div className="flex items-center gap-[26px]">
+          <div className="flex items-center justify-center gap-[26px]">
             <Pole
               icon={<IconDatabase size={40} />}
               label="User"
@@ -579,150 +718,74 @@ export const SLIDES: Slide[] = [
     ),
   },
 
-  /* 5 — What is a DTO ---------------------------------------------- *
-   * The five surviving lines arrive here as the five chips of a field
-   * contract. Same nodes, new arrangement — so the definition reads as a
-   * consequence of what just happened, not as a new topic. */
+  /* 7 — What is a Mapper ------------------------------------------- *
+   * The second concept mirrors the first: the left side names the job in
+   * plain verbs; the right side proves it with one before/after translation. */
   {
-    id: "what-is-dto",
+    id: "what-is-mapper",
     fragments: 1,
-    part: "dto",
+    part: "mapper",
     render: () => (
       <Body>
-        <Title>A DTO is a promise</Title>
+        <Eyebrow>Mapper = one place for data changes</Eyebrow>
+        <div className="mt-[10px]">
+          <Title>What is a Mapper?</Title>
+        </div>
         <Fill>
-          <div className="flex items-center justify-between gap-[64px]">
-            <div className="flex flex-col gap-[28px]">
+          <div className="flex items-stretch justify-center gap-[56px]">
+            <div className="flex w-[330px] flex-none flex-col justify-center gap-[18px]">
               {[
-                {
-                  icon: <IconFilter size={30} />,
-                  text: "It carries only the data you choose.",
-                },
-                { icon: <IconType size={30} />, text: "It has clear types." },
-                {
-                  icon: <IconNoLogic size={30} />,
-                  text: "It has no business logic.",
-                },
-              ].map((point, index) => (
-                <Rise key={point.text} i={index}>
-                  <div className="flex items-center gap-[24px]">
-                    <IconBadge size={64}>{point.icon}</IconBadge>
-                    <span
-                      style={{
-                        fontSize: "var(--text-body-lead)",
-                        lineHeight: "var(--leading-body-lead)",
-                        color: "var(--color-text-secondary)",
-                      }}
-                    >
-                      {point.text}
-                    </span>
+                [<IconTag size={26} />, "Rename", "user_name → userName"],
+                [<IconTrim size={26} />, "Clean", "remove spaces, lowercase email"],
+                [<IconCalendar size={26} />, "Convert", "text date → real date"],
+              ].map(([icon, title, note], index) => (
+                <Rise key={String(title)} i={index}>
+                  <div className="flex items-center gap-[16px]">
+                    <IconBadge size={52}>{icon as ReactNode}</IconBadge>
+                    <div className="flex flex-col gap-[2px]">
+                      <span style={{ fontSize: "var(--text-heading-card)", fontWeight: 700, color: "var(--color-text-primary)" }}>{title}</span>
+                      <span style={{ fontSize: "var(--text-body-small)", color: "var(--color-text-secondary)" }}>{note}</span>
+                    </div>
                   </div>
                 </Rise>
               ))}
             </div>
-            <Card
-              layoutId="station-response-dto"
-              style={{ padding: "var(--spacing-30)" }}
-              accent
-            >
-              <div className="flex flex-col gap-[22px]">
-                <div className="flex items-center gap-[14px]">
-                  <span style={{ color: "var(--color-text-accent)" }}>
-                    <IconContract size={26} />
-                  </span>
-                  <span
-                    style={{
-                      fontFamily: "var(--font-mono)",
-                      fontSize: "var(--text-heading-card)",
-                      fontWeight: 700,
-                      color: "var(--color-text-primary)",
-                    }}
-                  >
-                    UserResponse
-                  </span>
+            <div className="flex flex-1 items-center gap-[18px]">
+              <Card style={{ width: "270px", padding: "var(--spacing-22)" }}>
+                <div className="flex flex-col gap-[8px]">
+                  <Caption>before</Caption>
+                  <code style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-body-small)", color: "var(--color-text-muted)", whiteSpace: "pre" }}>
+                    user_name: &quot;  Ada.Lovelace &quot;
+                  </code>
+                  <code style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-body-small)", color: "var(--color-text-muted)", whiteSpace: "pre" }}>
+                    email: &quot; ADA@EXAMPLE.TEST &quot;
+                  </code>
+                  <code style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-body-small)", color: "var(--color-text-muted)", whiteSpace: "pre" }}>
+                    birth_date: &quot;1815-12-10&quot;
+                  </code>
                 </div>
-                <div className="flex flex-col items-start gap-[10px]">
-                  {RESPONSE_FIELDS.map((field) => (
-                    <FieldChip key={field.id} id={field.id} label={field.key} />
-                  ))}
+              </Card>
+              <Station id="mapper" label="Mapper" sub="one clear place" icon={<IconMapper size={34} />} width={190} lit />
+              <Card style={{ width: "270px", padding: "var(--spacing-22)" }} accent>
+                <div className="flex flex-col gap-[8px]">
+                  <Caption>after</Caption>
+                  <code style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-body-small)", color: "var(--color-text-accent)", whiteSpace: "pre" }}>
+                    userName: &quot;ada.lovelace&quot;
+                  </code>
+                  <code style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-body-small)", color: "var(--color-text-accent)", whiteSpace: "pre" }}>
+                    email: &quot;ada@example.test&quot;
+                  </code>
+                  <code style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-body-small)", color: "var(--color-text-accent)", whiteSpace: "pre" }}>
+                    birthDate: Date(1815-12-10)
+                  </code>
                 </div>
-              </div>
-            </Card>
+              </Card>
+            </div>
           </div>
-        </Fill>
-      </Body>
-    ),
-  },
-
-  /* 6 — Where a DTO lives ------------------------------------------ *
-   * The 2D reading of the hero's four glass slabs, drawn once and reused
-   * for the rest of the deck. The card from the previous slide does not
-   * fade out and a diagram fade in: it shrinks and takes its place as
-   * one station in a line. */
-  {
-    id: "where",
-    fragments: 1,
-    part: "dto",
-    render: () => (
-      <Body>
-        <Title>DTOs live on boundaries</Title>
-        <div className="mt-[14px]">
-          <Lead>A boundary is where data leaves your code.</Lead>
-        </div>
-        <Fill>
-          <div className="flex items-center">
-            <Station
-              id="client-in"
-              label="Client"
-              sub="the form"
-              icon={<IconBrowser size={26} />}
-              width={172}
-            />
-            <Connector />
-            <Station
-              id="request-dto"
-              label="Request DTO"
-              sub="boundary"
-              icon={<IconContract size={26} />}
-            />
-            <Connector />
-            <Station
-              id="mapper"
-              label="Mapper"
-              sub="translate"
-              icon={<IconMapper size={26} />}
-              width={196}
-            />
-            <Connector />
-            <Station
-              id="entity"
-              label="Entity"
-              sub="your code"
-              icon={<IconDatabase size={26} />}
-              width={196}
-            />
-            <Connector />
-            <Station
-              id="response-dto"
-              label="Response DTO"
-              sub="boundary"
-              icon={<IconContract size={26} />}
-              lit
-            />
-            <Connector />
-            <Station
-              id="client-out"
-              label="Client"
-              sub="the app"
-              icon={<IconBrowser size={26} />}
-              width={172}
-            />
-          </div>
-          <div className="mt-[34px]">
+          <div className="mt-[30px]">
             <Rise i={3}>
               <Caption>
-                Two boundaries, one Entity in the middle. The Entity never
-                travels.
+                A DTO names the shape. A Mapper changes data into that shape.
               </Caption>
             </Rise>
           </div>
@@ -731,226 +794,31 @@ export const SLIDES: Slide[] = [
     ),
   },
 
-  /* 7 — Without / With DTO ----------------------------------------- *
-   * Two fragments, and the only correct use of one here: the second lane
-   * is the answer to the first, so showing both at once answers a
-   * question the room has not been asked yet. The pipeline tears apart
-   * to build them — the Entity goes up into the broken lane, the Mapper
-   * and the Response DTO come down into the working one. */
-  {
-    id: "compare-dto",
-    fragments: 2,
-    part: "dto",
-    render: (fragment) => (
-      <Body>
-        <Title>Same data, two contracts</Title>
-        <Fill>
-          <div className="flex flex-col gap-[54px]">
-            <div className="flex flex-col gap-[16px]">
-              <LaneLabel text="Without DTO" danger />
-              <div className="flex items-center">
-                <Station
-                  id="entity"
-                  label="Entity"
-                  icon={<IconDatabase size={26} />}
-                  width={196}
-                  danger
-                />
-                <Connector />
-                <Station id="serializer" label="Serializer" width={196} />
-                <Connector />
-                <Station
-                  id="client-out"
-                  label="Client"
-                  icon={<IconBrowser size={26} />}
-                  width={172}
-                />
-                <div className="ml-[44px] flex flex-col gap-[6px]">
-                  {[
-                    "The client sees your database.",
-                    "One rename breaks the client.",
-                  ].map((line) => (
-                    <span
-                      key={line}
-                      style={{
-                        fontSize: "var(--text-body-question)",
-                        color: "var(--color-status-danger)",
-                      }}
-                    >
-                      {line}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <AnimatePresence>
-              {fragment >= 1 ? (
-                <motion.div
-                  key="with"
-                  initial={{ opacity: 0, y: 28 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={MORPH}
-                  className="flex flex-col gap-[16px]"
-                >
-                  <LaneLabel text="With DTO" />
-                  <div className="flex items-center">
-                    <Station
-                      id="entity-safe"
-                      label="Entity"
-                      icon={<IconDatabase size={26} />}
-                      width={196}
-                    />
-                    <Connector />
-                    <Station
-                      id="mapper"
-                      label="Mapper"
-                      icon={<IconMapper size={26} />}
-                      width={196}
-                      lit
-                    />
-                    <Connector />
-                    <Station
-                      id="response-dto"
-                      label="Response DTO"
-                      icon={<IconContract size={26} />}
-                    />
-                    <Connector />
-                    <Station
-                      id="client-in"
-                      label="Client"
-                      icon={<IconBrowser size={26} />}
-                      width={172}
-                    />
-                    <div className="ml-[44px] flex flex-col gap-[6px]">
-                      {[
-                        "The client sees what you chose.",
-                        "You change the Entity freely.",
-                      ].map((line) => (
-                        <span
-                          key={line}
-                          style={{
-                            fontSize: "var(--text-body-question)",
-                            color: "var(--color-text-accent)",
-                          }}
-                        >
-                          {line}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </motion.div>
-              ) : null}
-            </AnimatePresence>
-          </div>
-        </Fill>
-      </Body>
-    ),
-  },
-
-  /* 8 — What is a Mapper ------------------------------------------- *
-   * The handover. The Mapper station leaves the pipeline and comes to
-   * the middle of the screen, so the room sees the subject change before
-   * the second speaker has opened his mouth. */
-  {
-    id: "what-is-mapper",
-    fragments: 1,
-    part: "mapper",
-    render: () => (
-      <Body>
-        <Title>A Mapper is a translator</Title>
-        <div className="mt-[14px]">
-          <Lead i={1}>It moves data from one shape into another.</Lead>
-        </div>
-        <Fill>
-          <div className="flex items-center gap-[32px]">
-            <Card style={{ padding: "var(--spacing-24)" }}>
-              <div className="flex flex-col gap-[12px]">
-                <Caption>what arrives</Caption>
-                <div className="flex flex-col gap-[8px]">
-                  {TRANSFORMS.map((transform) => (
-                    <code
-                      key={transform.id}
-                      style={{
-                        fontFamily: "var(--font-mono)",
-                        fontSize: "var(--text-body-question)",
-                        color: "var(--color-text-muted)",
-                        whiteSpace: "pre",
-                      }}
-                    >
-                      {transform.from}
-                    </code>
-                  ))}
-                </div>
-              </div>
-            </Card>
-            <Connector width={44} />
-            <Station
-              id="mapper"
-              label="Mapper"
-              sub="one file"
-              icon={<IconMapper size={34} />}
-              width={280}
-              lit
-            />
-            <Connector width={44} />
-            <Card style={{ padding: "var(--spacing-24)" }} accent>
-              <div className="flex flex-col gap-[12px]">
-                <Caption>what we keep</Caption>
-                <div className="flex flex-col gap-[8px]">
-                  {TRANSFORMS.map((transform) => (
-                    <code
-                      key={transform.id}
-                      style={{
-                        fontFamily: "var(--font-mono)",
-                        fontSize: "var(--text-body-question)",
-                        color: "var(--color-text-accent)",
-                      }}
-                    >
-                      {transform.to}
-                    </code>
-                  ))}
-                </div>
-              </div>
-            </Card>
-          </div>
-          <div className="mt-[34px]">
-            <Rise i={3}>
-              <Caption>One place. Visible. Easy to test.</Caption>
-            </Rise>
-          </div>
-        </Fill>
-      </Body>
-    ),
-  },
-
-  /* 9 — Six small jobs --------------------------------------------- *
+  /* 8 — Six small jobs --------------------------------------------- *
    * The six jobs are named and given identities here, because the next
    * slide throws them across a codebase. Nothing is invented: the values
-   * are the real raw form data from task 2. */
+   * are the real legacy profile from exercise 02. */
   {
     id: "jobs",
     fragments: 2,
     part: "mapper",
     render: (fragment) => (
       <Body>
-        <Title>Six small jobs</Title>
+        <Title>A Mapper makes six small changes</Title>
+        <div className="mt-[14px]">
+          <Lead>Small transformations stay visible when they live in one place.</Lead>
+        </div>
         <Fill>
-          <div className="flex gap-[16px]">
+          <div className="grid grid-cols-3 gap-[16px]">
             {MAPPER_JOBS.map((job, index) => (
               <Rise key={job.id} i={index}>
-                <Card style={{ width: "196px", padding: "var(--spacing-20)" }}>
-                  <div className="flex flex-col items-center gap-[14px] text-center">
+                <Card style={{ padding: "var(--spacing-18)" }}>
+                  <div className="flex items-center gap-[14px]">
                     <IconBadge size={56}>{JOB_GLYPH[job.id]}</IconBadge>
-                    <span
-                      style={{
-                        fontFamily: "var(--font-mono)",
-                        fontSize: "var(--text-body-small)",
-                        color: "var(--color-text-primary)",
-                      }}
-                    >
-                      {job.label}
-                    </span>
+                    <div className="flex flex-col gap-[2px]">
+                      <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-heading-card)", fontWeight: 700, color: "var(--color-text-primary)" }}>{job.label}</span>
+                      <Caption>one transformation</Caption>
+                    </div>
                   </div>
                 </Card>
               </Rise>
@@ -963,7 +831,7 @@ export const SLIDES: Slide[] = [
                 initial={{ opacity: 0, y: 28 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={MORPH}
-                className="mt-[52px] flex flex-col gap-[20px]"
+                className="mt-[34px] rounded-[var(--radius-xl)] border border-[var(--color-border-default)] bg-[var(--color-bg-surface-muted)] p-[var(--spacing-22)]"
               >
                 {TRANSFORMS.map((transform, index) => (
                   <motion.div
@@ -976,9 +844,9 @@ export const SLIDES: Slide[] = [
                     <code
                       style={{
                         fontFamily: "var(--font-mono)",
-                        fontSize: "var(--text-body-question)",
+                        fontSize: "var(--text-body-small)",
                         color: "var(--color-text-muted)",
-                        minWidth: "340px",
+                        minWidth: "300px",
                         whiteSpace: "pre",
                       }}
                     >
@@ -988,7 +856,7 @@ export const SLIDES: Slide[] = [
                     <code
                       style={{
                         fontFamily: "var(--font-mono)",
-                        fontSize: "var(--text-body-question)",
+                        fontSize: "var(--text-body-small)",
                         color: "var(--color-text-accent)",
                       }}
                     >
@@ -1004,7 +872,7 @@ export const SLIDES: Slide[] = [
     ),
   },
 
-  /* 10 — Where does this logic live --------------------------------- *
+  /* 9 — Where does this logic live --------------------------------- *
    * The argument for a Mapper, made by taking one away. The six jobs
    * scatter into four files, then gather back into one box. The scatter
    * is the only place in the deck where the layout is allowed to look
@@ -1024,7 +892,7 @@ export const SLIDES: Slide[] = [
             </Lead>
           </div>
           <Fill>
-            <div className="flex gap-[22px]">
+            <div className="flex justify-center gap-[22px]">
               {["Controller", "Service", "Repository", "Template"].map(
                 (home, index) => (
                   <Rise key={home} i={index}>
@@ -1090,7 +958,7 @@ export const SLIDES: Slide[] = [
                         color: "var(--color-text-accent)",
                       }}
                     >
-                      UserResponseMapper
+                      CreateUserRequestMapper
                     </span>
                   </div>
                   <div className="flex flex-wrap gap-[12px]">
@@ -1106,7 +974,7 @@ export const SLIDES: Slide[] = [
       ),
   },
 
-  /* 11 — The honest price ------------------------------------------ *
+  /* 10 — The honest price ------------------------------------------ *
    * The workshop's own position, from SPECIFICATION.md §4.5: no rule
    * that says "always a DTO", a reasoned decision at real boundaries.
    * Three fragments so each cost lands on its own, and the last one —
@@ -1119,7 +987,7 @@ export const SLIDES: Slide[] = [
       <Body>
         <Title>The honest price</Title>
         <Fill>
-          <div className="flex gap-[24px]">
+          <div className="flex justify-center gap-[24px]">
             {[
               {
                 icon: <IconLayers size={32} />,
@@ -1146,28 +1014,28 @@ export const SLIDES: Slide[] = [
                 initial={false}
                 transition={MORPH}
               >
-                    <Card
+                <Card
+                  style={{
+                    width: "396px",
+                    minHeight: "236px",
+                    padding: "var(--spacing-28)",
+                  }}
+                >
+                  <div className="flex h-full flex-col justify-between gap-[26px]">
+                    <IconBadge size={72} tone="quiet">
+                      {cost.icon}
+                    </IconBadge>
+                    <span
                       style={{
-                        width: "396px",
-                        minHeight: "236px",
-                        padding: "var(--spacing-28)",
+                        fontSize: "var(--text-body-lead)",
+                        lineHeight: "var(--leading-body-lead)",
+                        color: "var(--color-text-secondary)",
                       }}
                     >
-                      <div className="flex h-full flex-col justify-between gap-[26px]">
-                        <IconBadge size={72} tone="quiet">
-                          {cost.icon}
-                        </IconBadge>
-                        <span
-                          style={{
-                            fontSize: "var(--text-body-lead)",
-                            lineHeight: "var(--leading-body-lead)",
-                            color: "var(--color-text-secondary)",
-                          }}
-                        >
-                          {cost.text}
-                        </span>
-                      </div>
-                    </Card>
+                      {cost.text}
+                    </span>
+                  </div>
+                </Card>
               </motion.div>
             ))}
           </div>
@@ -1190,103 +1058,275 @@ export const SLIDES: Slide[] = [
     ),
   },
 
-  /* 12 — Your turn -------------------------------------------------- *
-   * The deck hands over to the app. The Mapper box becomes exercise 02,
-   * so the thing the room has just been looking at is the thing they are
-   * about to write. The surprise is named and not explained — it was
-   * promised on the agenda, and it stays a surprise. */
+  /* 11 — The situation ---------------------------------------------- *
+   * The brief for the exercises, and the slide issue #23 exists to make
+   * necessary. Without it, "define `WelcomeEmail`" is a syntax puzzle;
+   * with it, it is one step of replacing a registration system. The
+   * caveat is not a footnote — the room has to know nothing is sent and
+   * nothing is saved before it starts writing code that looks like it
+   * would. */
   {
-    id: "your-turn",
+    id: "situation",
+    fragments: 4,
+    render: (fragment) => (
+      <Body>
+        <Eyebrow>Part 3 — Your exercises</Eyebrow>
+        <div className="mt-[10px]">
+          <Title>{STORY.headline}</Title>
+        </div>
+        <div className="mt-[14px]">
+          <Lead>You will define the DTOs and write the Mappers that connect each system.</Lead>
+        </div>
+        <Fill>
+          <div className="flex flex-col gap-[20px]">
+            {STORY.steps.map((step, index) => (
+              <motion.div
+                key={step}
+                animate={{
+                  opacity: fragment >= index ? 1 : 0,
+                  x: fragment >= index ? 0 : 40,
+                }}
+                initial={false}
+                transition={MORPH}
+                className="flex items-center gap-[24px]"
+              >
+                <IconBadge size={62}>
+                  {
+                    [
+                      <IconServer key="s" size={28} />,
+                      <IconDatabase key="d" size={28} />,
+                      <IconMail key="m" size={28} />,
+                      <IconBrowser key="b" size={28} />,
+                    ][index]
+                  }
+                </IconBadge>
+                <span
+                  style={{
+                    fontSize: "var(--text-body-lead)",
+                    lineHeight: "var(--leading-body-lead)",
+                    color: "var(--color-text-secondary)",
+                  }}
+                >
+                  {step}
+                </span>
+              </motion.div>
+            ))}
+          </div>
+          <motion.div
+            animate={{ opacity: fragment >= STORY.steps.length - 1 ? 1 : 0 }}
+            initial={false}
+            transition={{ ...MORPH, delay: 0.25 }}
+            className="mt-[40px] flex items-center gap-[14px]"
+          >
+            <span style={{ color: "var(--color-text-accent)" }}>
+              <IconShield size={24} />
+            </span>
+            <span
+              style={{
+                fontSize: "var(--text-body-question)",
+                lineHeight: "var(--leading-body-question)",
+                color: "var(--color-text-accent)",
+                fontWeight: 500,
+              }}
+            >
+              {STORY.caveat}
+            </span>
+          </motion.div>
+        </Fill>
+      </Body>
+    ),
+  },
+
+  /* 12 — Six exercises ---------------------------------------------- *
+   * Drawn as three pairs, one per boundary, because the pairing is the
+   * lesson: a contract is defined, then a Mapper is written against it.
+   * A flat list of six would hide the only ordering rule that matters —
+   * and it is the rule issue #23 was written to enforce. */
+  {
+    id: "exercises",
+    fragments: 1,
+    render: () => (
+      <Body>
+        <Title>Six exercises, three boundaries</Title>
+        <Fill>
+          <div className="flex gap-[24px]">
+            {BOUNDARIES.map((boundary, column) => (
+              <div key={boundary.id} className="flex flex-1 flex-col gap-[16px]">
+                <Rise i={column}>
+                  <div className="flex items-center gap-[12px]">
+                    <span style={{ color: "var(--color-text-accent)" }}>
+                      {BOUNDARY_GLYPH[boundary.id]}
+                    </span>
+                    <LaneLabel text={boundary.label} />
+                  </div>
+                </Rise>
+                {EXERCISES.filter(
+                  (exercise) => exercise.boundary === boundary.id,
+                ).map((exercise, row) => (
+                  <Rise key={exercise.id} i={column + row * 0.5 + 1}>
+                    <Card
+                      layoutId={
+                        exercise.id === "request-mapper"
+                          ? "station-mapper"
+                          : undefined
+                      }
+                      accent={exercise.kind === "dto"}
+                      style={{ padding: "var(--spacing-22)" }}
+                    >
+                      <div className="flex flex-col gap-[14px]">
+                        <div className="flex items-center justify-between">
+                          <span
+                            style={{
+                              display: "inline-flex",
+                              width: "36px",
+                              height: "36px",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              borderRadius: "var(--radius-full)",
+                              background:
+                                exercise.kind === "dto"
+                                  ? "var(--color-bg-accent)"
+                                  : "var(--color-bg-surface-muted)",
+                              color:
+                                exercise.kind === "dto"
+                                  ? "var(--color-text-inverse)"
+                                  : "var(--color-text-subtle)",
+                              fontSize: "var(--text-body-small)",
+                              fontWeight: 500,
+                            }}
+                          >
+                            {exercise.n}
+                          </span>
+                          <span
+                            style={{
+                              color: "var(--color-text-accent)",
+                            }}
+                          >
+                            {exercise.kind === "dto" ? (
+                              <IconContract size={24} />
+                            ) : (
+                              <IconMapper size={24} />
+                            )}
+                          </span>
+                        </div>
+                        <div className="flex flex-col gap-[6px]">
+                          <span
+                            style={{
+                              fontSize: "var(--text-heading-card)",
+                              lineHeight: "var(--leading-heading-card)",
+                              letterSpacing: "var(--tracking-heading-card)",
+                              fontWeight: 700,
+                              color: "var(--color-text-primary)",
+                            }}
+                          >
+                            {exercise.title}
+                          </span>
+                          <code
+                            style={{
+                              fontFamily: "var(--font-mono)",
+                              fontSize: "var(--text-body-panel)",
+                              color: "var(--color-text-subtle)",
+                            }}
+                          >
+                            {exercise.contract}
+                          </code>
+                        </div>
+                      </div>
+                    </Card>
+                  </Rise>
+                ))}
+              </div>
+            ))}
+          </div>
+          <div className="mt-[34px]">
+            <Rise i={5}>
+              <Caption>
+                Every contract is defined before the Mapper that fills it. They
+                unlock in that order.
+              </Caption>
+            </Rise>
+          </div>
+        </Fill>
+      </Body>
+    ),
+  },
+
+  /* 13 — Join ------------------------------------------------------- *
+   * The last thing on the wall, and the only slide the room has to act
+   * on. The URL is spelled out at display size *and* offered as a code:
+   * a QR nobody at the back can scan is decoration, and a URL nobody
+   * wants to type is a barrier. Both, and the slide can stay up while
+   * people get in.
+   *
+   * The Mapper box has been the deck's travelling companion since slide
+   * 7; it does not appear here. This slide is the room's turn, not
+   * ours. */
+  {
+    id: "join",
     fragments: 1,
     render: () => (
       <Body>
         <Title>Your turn</Title>
         <div className="mt-[14px]">
-          <Lead>Four exercises. Pick your language and start.</Lead>
+          <Lead>Open this, pick your language, and start with exercise 01.</Lead>
         </div>
         <Fill>
-          <div className="flex gap-[24px]">
-            {EXERCISES.map((exercise, index) => (
-              <Card
-                key={exercise.id}
-                layoutId={exercise.id === "task2" ? "station-mapper" : undefined}
-                accent={exercise.id === "task2"}
-                style={{
-                  width: "330px",
-                  minHeight: "200px",
-                  padding: "var(--spacing-24)",
-                }}
-              >
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ ...FADE, delay: index * 0.13 }}
-                  className="flex h-full flex-col justify-between gap-[24px]"
+          <div className="flex items-center justify-center gap-[64px]">
+            <Rise i={1}>
+              <Card style={{ padding: "var(--spacing-20)" }}>
+                <JoinQr size={300} />
+              </Card>
+            </Rise>
+            <div className="flex flex-col gap-[30px]">
+              <Rise i={2}>
+                <a
+                  href={JOIN_URL}
+                  style={{
+                    fontFamily: "var(--font-mono)",
+                    fontSize: "40px",
+                    lineHeight: 1.2,
+                    letterSpacing: "-1px",
+                    color: "var(--color-text-accent)",
+                    textDecoration: "none",
+                    fontWeight: 400,
+                  }}
                 >
-                  <div className="flex items-center justify-between">
-                    <span
-                      style={{
-                        display: "inline-flex",
-                        width: "38px",
-                        height: "38px",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        borderRadius: "var(--radius-full)",
-                        background: "var(--color-bg-accent)",
-                        color: "var(--color-text-inverse)",
-                        fontSize: "var(--text-body-small)",
-                        fontWeight: 500,
-                      }}
-                    >
-                      {exercise.n}
-                    </span>
-                    <span style={{ color: "var(--color-text-muted)" }}>
-                      {exercise.id === "task2" ? (
-                        <IconMapper size={26} />
-                      ) : (
-                        <IconContract size={26} />
-                      )}
-                    </span>
-                  </div>
+                  workshop-dto-web
+                  <span style={{ color: "var(--color-text-muted)" }}>
+                    .onrender.com
+                  </span>
+                </a>
+              </Rise>
+              <Rise i={3}>
+                <div className="flex items-center gap-[22px]">
                   <span
                     style={{
-                      fontSize: "var(--text-heading-card)",
-                      lineHeight: "var(--leading-heading-card)",
-                      letterSpacing: "var(--tracking-heading-card)",
-                      fontWeight: 700,
-                      color: "var(--color-text-primary)",
+                      fontSize: "var(--text-body-lead)",
+                      color: "var(--color-text-secondary)",
                     }}
                   >
-                    {exercise.title}
+                    Six exercises. Then three short questions.
                   </span>
-                </motion.div>
-              </Card>
-            ))}
-          </div>
-          <div className="mt-[44px]">
-            <Rise i={5}>
-              <div className="flex items-center gap-[22px]">
-                <span
-                  style={{
-                    fontSize: "var(--text-body-lead)",
-                    color: "var(--color-text-secondary)",
-                  }}
-                >
-                  Then three short questions.
-                </span>
-                <span
-                  className="inline-flex items-center gap-[12px]"
-                  style={{
-                    fontSize: "var(--text-body-lead)",
-                    color: "var(--color-text-accent)",
-                    fontWeight: 500,
-                  }}
-                >
-                  <IconGift size={26} />
-                  And one more thing.
-                </span>
-              </div>
-            </Rise>
+                  <span
+                    className="inline-flex items-center gap-[12px]"
+                    style={{
+                      fontSize: "var(--text-body-lead)",
+                      color: "var(--color-text-accent)",
+                      fontWeight: 500,
+                    }}
+                  >
+                    <IconGift size={26} />
+                    And one more thing.
+                  </span>
+                </div>
+              </Rise>
+              <Rise i={4}>
+                <Caption>
+                  No account, no install. The first load can take a moment —
+                  the demo API wakes up.
+                </Caption>
+              </Rise>
+            </div>
           </div>
         </Fill>
       </Body>

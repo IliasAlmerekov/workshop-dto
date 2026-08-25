@@ -136,7 +136,7 @@ export function IsometricStack({
                   fill={isHighlighted ? "var(--accent)" : "var(--muted)"}
                   fillOpacity={isHighlighted ? 1 : 0.85}
                   style={{
-                    fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+                    fontFamily: "var(--font-inter)",
                   }}
                 >
                   {label}

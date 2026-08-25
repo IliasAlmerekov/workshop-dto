@@ -59,11 +59,19 @@ always ~4 values apart — enough to read as a lift, never enough to read as a c
 | `blue/50`      | `#eef1fd` | Accent wash behind icon badges                           |
 | `navy/900`     | `#02205a` | **Action Navy** — primary button only                    |
 | `navy/800`     | `#00267e` | Type names in code                                       |
-| `lavender/600` | `#2f3cf0` | Illustration accent — the `Mapper` label                 |
-| `lavender/500` | `#6f74f2` | Illustration glow — the `Mapper`'s own light             |
-| `lavender/400` | `#7c83d6` | Illustration accent, receding — the `Response DTO` label |
-| `lavender/300` | `#cfd2ec` | Illustration tint                                        |
-| `lavender/100` | `#e6e8f7` | Illustration tint, lightest                              |
+| `lavender/600` | `#15139c` | Illustration accent — the `Mapper` label                 |
+| `lavender/500` | `#6b6bf2` | Illustration glow — the `Mapper`'s own light             |
+| `lavender/400` | `#6673b3` | Illustration accent, receding — the `Response DTO` label |
+| `lavender/300` | `#cdcdfb` | Illustration tint                                        |
+| `lavender/100` | `#e9e9fb` | Illustration tint, lightest                              |
+| `red/700`      | `#d91a00` | Failure text on a light surface — AA-safe `red/600`      |
+| `red/600`      | `#ff2001` | **Signal Red** — the failing verdict                     |
+| `red/200`      | `#ffc7c0` | Failure hairline                                         |
+| `red/50`       | `#fff2f0` | Failure wash                                             |
+
+The `red` family exists only for the validation status below, and there is no green counterpart:
+passing reads in Accent Blue. The two tints are `red/600` mixed with white, so the family stays one
+hue instead of a borrowed ramp.
 
 The `lavender` family belongs to the hero illustration and nothing else. It is
 not a third accent: no component, screen or state may bind it. Accent Blue stays
@@ -81,6 +89,12 @@ The only place primitives are bound directly, because syntax colour is not a UI 
 | `code/comment`     | `#7d7f8b` | `// TODO:` starter hints                   |
 | `code/punctuation` | `#131319` | Braces, operators                          |
 | `code/linenumber`  | `#66656e` | Gutter numerals                            |
+
+The table above is the light theme. Both code surfaces — the CodeMirror editor and the static code
+blocks — bind the themeable `--syntax-*` aliases in `globals.css`, which carry a dark half tuned for
+`bg/code` `#131316`. Identifiers are the exception: they carry no syntax colour at all and inherit
+`--code-foreground`, so what a participant types stays near-black on light and near-white on dark
+rather than picking up CodeMirror's fixed, white-page blue.
 
 ### Semantic
 
@@ -106,20 +120,31 @@ The only place primitives are bound directly, because syntax colour is not a UI 
 
 ### Validation status
 
-Added for the exercise result panel; not present in the original Figma frames. The workshop's one
-accent colour cannot say "passed" and "failed" at once, so validation gets its own pair. Colour never
-carries the verdict alone — every use is accompanied by an icon and a word (`Passed` / `Failed`).
+Added for the exercise result panel; not present in the original Figma frames.
 
-| Token                   | Primitive   | Applies to                                     | Contrast          |
-| ----------------------- | ----------- | ---------------------------------------------- | ----------------- |
-| `status/success`        | `green/700` | Passing verdict, `Passed` labels, check glyphs | 4.97:1 on surface |
-| `status/success-solid`  | `green/600` | Filled success badge behind an inverse glyph   | graphic only      |
-| `status/success-subtle` | `green/50`  | Passing output wash                            | —                 |
-| `status/success-border` | `green/200` | Passing block hairline                         | —                 |
-| `status/danger`         | `red/600`   | Failing verdict, `Failed` labels               | 4.79:1 on surface |
-| `status/danger-solid`   | `red/600`   | Filled failure badge, white glyph              | 4.83:1 inverse    |
-| `status/danger-subtle`  | `red/50`    | Failing detail wash                            | —                 |
-| `status/danger-border`  | `red/200`   | Failing block hairline                         | —                 |
+Only failure gets a hue of its own. Passing is not a separate colour: a correct solution is the
+outcome the whole interface is pointing at, so it reads in Accent Blue — the same colour that marks
+the active step and the field chips — and no green enters the palette. Failure answers it with
+**Signal Red** `#ff2001`, the one warm value in the system, which is why it needs no support from
+size or weight to be seen. Colour never carries the verdict alone: every use is accompanied by an
+icon and a word (`Passed` / `Failed`).
+
+| Token                   | Primitive  | Applies to                                     | Contrast          |
+| ----------------------- | ---------- | ---------------------------------------------- | ----------------- |
+| `status/success`        | `blue/600` | Passing verdict, `Passed` labels, check glyphs | 4.98:1 on surface |
+| `status/success-solid`  | `blue/700` | Filled success badge behind an inverse glyph   | 7.96:1 inverse    |
+| `status/success-subtle` | `blue/50`  | Passing output wash                            | —                 |
+| `status/success-border` | `blue/100` | Passing block hairline                         | —                 |
+| `status/danger`         | `red/700`  | Failing verdict, `Failed` labels               | 5.12:1 on surface |
+| `status/danger-solid`   | `red/600`  | Filled failure badge, white glyph              | 3.85:1 inverse    |
+| `status/danger-subtle`  | `red/50`   | Failing detail wash                            | —                 |
+| `status/danger-border`  | `red/200`  | Failing block hairline                         | —                 |
+
+`red/600` `#ff2001` is the signal itself and carries every non-text use: the filled badge, the
+glyphs, the hairlines, and `status/danger` on the dark theme, where it reaches 4.83:1 on `bg/code`.
+As small text on a light surface it only reaches 3.85:1, so `status/danger` binds `red/700`
+`#d91a00` there — the same hue darkened until it clears AA, close enough that the two never read as
+two different reds side by side.
 
 ---
 
@@ -231,16 +256,26 @@ invisible by design and never substitute for a border.
 | `Elevation/Popover`  | `0 12 32 -8 rgba(5,13,38,.12)`, `0 2 6 rgba(5,13,38,.05)`      | Dropdowns                  |
 | `Elevation/Layer 3D` | `0 28 48 -12 rgba(5,13,38,.14)`, `0 6 14 -4 rgba(5,13,38,.06)` | The DTO layer illustration |
 
-The hero's live 3D variant uses physically based transmission materials and the locally versioned
+The hero's live 3D variant uses Drei `MeshTransmissionMaterial` and the locally versioned
 `apps/web/public/hdri/studio_small_08_1k.hdr` environment. The source is Poly Haven's
-**Studio Small 08** by Sergej Majboroda (CC0). It must never be fetched from a third-party host at
-runtime.
+**Studio Small 08** (CC0). It must never be fetched from a third-party host at runtime. Its frosted
+microsurface uses the locally versioned 1K normal map
+`apps/web/public/textures/glass-frosted-001-normal.jpg`: 3DTextures.me/Katsukagi,
+**Glass Frosted 001**, CC0. Roughness is a uniform authored value so the hero stays free of striped
+reflection noise. The colour map is intentionally not used; the resin remains neutral and all accent
+colour comes from attenuation and the internal illustration light.
 
-Each of the four slabs is one **extruded rounded rectangle** — corners rounded, top and bottom rims
-sharp — and all four are the same size: the stack is a sequence of equal boundaries, not a hierarchy
-of them. `Mapper` is the unmistakably active one: its rim keeps the same white frosted material while
-a broad `lavender/500` pool glows from the centre and fades through `lavender/100` before reaching the
-perimeter. The light spills softly onto the `Entity` slab below it and washes the canvas behind the
+Each of the four slabs is one **extruded rounded rectangle** — generous corners in plan, a much
+tighter roll on the top and bottom rims — and all four are the same size: the stack is a sequence of
+equal boundaries, not a hierarchy of them. The rim is rolled rather than sharp because that is what
+sweeps the studio's softbox across a few millimetres of glass instead of returning it as one thin
+line, and the roll is held near a quarter of the block's thickness: past that there is no flat wall
+left between the two rolls and the block reads as a bar of soap. `Mapper` is the unmistakably active
+one: its body stays pale, near-neutral glass — the cool cast is carried by attenuation over the
+optical path, never by a tint painted on the surface — while a broad `lavender/500` pool glows from
+the centre and fades through `lavender/100` before reaching the perimeter. A denser tint makes it an
+opaque periwinkle block with the label sitting on top, which is the one thing the material may not
+become. The light spills softly onto the `Entity` slab below it and washes the canvas behind the
 stack. The renderer runs **unmapped**
 (`flat`) and paints `bg/canvas` as its own backdrop, so the tokens above are the values that reach
 the screen and the canvas leaves no seam against the page. There is no post-processing pass; a bloom
@@ -262,10 +297,12 @@ describe the shared pipeline, not the selected track, so they neither disappear 
 two-accent/two-muted order. A separate thin track leader appears only while a language is selected or
 previewed and moves between the four stages.
 
-The language-to-stage mapping is sequential and explicit: Java activates `Request DTO`, Python
-activates `Mapper`, PHP activates `Entity`, and TypeScript activates `Response DTO`. The active stage
-inherits Mapper's blue inner light and blue label while Mapper returns to quiet white glass whenever a
-different stage is active. Hover/focus changes only this local preview. Click commits one 1050ms
+Every language points at the same stage: `Request DTO`, the first thing the participant writes in
+whichever language they pick. A language does not own a pipeline stage, so a one-language-per-slab
+mapping was arbitrary in a place the eye reads as meaningful — and it split the emphasis, annotating
+one slab while the resting violet core still sat on Mapper. The pointed-at stage inherits Mapper's
+blue inner light and blue label while Mapper returns to quiet white glass, so exactly one boundary is
+lit at any moment. Hover/focus changes only this local preview. Click commits one 1050ms
 transition: sibling cards fade, the stack opens along Z, the camera dollies toward Mapper, and
 `Exercise 01` resolves from depth before navigation. Motion is demand-rendered at roughly 24 fps,
 sleeps outside the viewport or in a hidden tab, and navigation is immediate under Reduced Motion.

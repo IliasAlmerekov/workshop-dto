@@ -14,9 +14,9 @@ Dieses Dokument löst die in [SPECIFICATION.md](./SPECIFICATION.md) Abschnitt 18
 
 | Rolle | Familie | Herkunft |
 |---|---|---|
-| Fließtext, UI | Geist Sans | `next/font/google`, selbst gehostet über Next.js (kein externer Netzwerk-Request zur Laufzeit, siehe Abschnitt 8) |
-| Code, Editor-Zeilennummern | Geist Mono | `next/font/google`, ebenso selbst gehostet |
-| Fallback | `system-ui, -apple-system, sans-serif` bzw. `ui-monospace, SFMono-Regular, monospace` | greift, falls Geist nicht lädt |
+| Fließtext, UI | Inter | lokal selbst gehostet (kein externer Netzwerk-Request zur Laufzeit, siehe Abschnitt 8) |
+| Code, Editor-Zeilennummern | JetBrains Mono | lokal selbst gehostet |
+| Fallback | `system-ui, -apple-system, sans-serif` bzw. `ui-monospace, SFMono-Regular, monospace` | greift, falls Inter bzw. JetBrains Mono nicht lädt |
 
 Skala (Tailwind-Utility-Klassen, gemessen an der tatsächlichen Nutzung im Code):
 
@@ -101,21 +101,21 @@ Seit Issue #12 hat die Aufgaben-Seitenleiste eine echte R3F-/Drei-Pipeline (`Dat
 5. Adaptive Qualität: begrenzter `dpr` (`[1, 1.75]`), `powerPreference: "low-power"`, `frameloop="demand"` nach einer kurzen Einschwingphase (siehe Punkt 6).
 6. **Kein Dauer-Rendering im Leerlauf**: Der Canvas rendert nur bei tatsächlicher Änderung. Eine Besonderheit war hier zu lösen — siehe „Postprocessing" unten.
 
-**Postprocessing (gestrichen, mit Begründung):** `@react-three/postprocessing`s `EffectComposer` wurde eingebaut und live getestet — es lieferte in jeder getesteten Konfiguration (mit/ohne Multisampling, mit/ohne Antialiasing) einen vollständig leeren Canvas (`readPixels` bestätigte `[0,0,0,0]` an jedem Sample-Punkt; ohne `EffectComposer` rendert exakt dieselbe Szene korrekt). Da „Licht und Tiefe, sparsam eingesetzt" das eigentliche Ziel ist und keine harte Bindung an genau diese Bibliothek, wird das Ziel stattdessen über natives Three.js erreicht: `ACESFilmicToneMapping` für Licht, exponentieller `<fog>` für Tiefe. Beides ist verifiziert lauffähig. Die `postprocessing`-Pakete wurden aus `package.json` wieder entfernt, um keine ungenutzte, defekt erprobte Abhängigkeit im Baum zu lassen.
+**Postprocessing:** Die Workshop-Seitenleiste bleibt bei ihrer sparsamen nativen Three.js-Beleuchtung. Die große Hero-Szene aus Figma-Knoten `41:3` verwendet dagegen eine separat verifizierte `@react-three/postprocessing`-Kette mit subtilen Bloom-, Depth-of-Field- und Chromatic-Aberration-Werten. Bloom greift nur Spitzenlichter; die Fokusspanne hält Kanten und Beschriftungen lesbar.
 
 ## 8. Asset-Herkunft und Lizenzregeln
 
 | Asset-Typ | Stand | Regel für künftige Assets |
 |---|---|---|
-| Schriften | Geist Sans/Mono über `next/font/google`, zur Build-Zeit selbst gehostet (keine Laufzeit-Anfrage an Google, keine separate Lizenzklärung nötig — Next.js bezieht ausschließlich offen lizenzierte Google-Fonts-Dateien) | Neue Schriften müssen ebenso self-hosted via `next/font` eingebunden werden, nicht per `<link>` auf einen externen CDN |
-| Icons | Alle Icons sind handgeschriebenes Inline-SVG im jeweiligen Component-File (keine Icon-Bibliothek als Abhängigkeit) | Neue Icons folgen demselben Muster: `viewBox="0 0 24 24"`, `stroke="currentColor"`, `aria-hidden="true"` |
-| PBR-Materialien | Die Pipeline-Stationen und das Datenobjekt nutzen `meshStandardMaterial`/`meshPhysicalMaterial` (Metalness/Roughness/Clearcoat) — keine externen Textur-Dateien, nur Parameter | Neue PBR-Texturen (falls künftig gebraucht) müssen lokal im Repository versioniert werden, lizenzdokumentiert in dieser Zeile |
-| HDRI-Umgebungslicht | **Bewusst kein HDRI-Bild.** Die Umgebungsbeleuchtung ist prozedural über drei's `<Environment>` mit `<Lightformer>`-Kindern erzeugt (reine Geometrie/Licht, kein Bild-Asset, kein Download, kein Lizenzthema) | Sollte ein echtes HDRI später gewünscht sein: lokal versionieren (`apps/web/public/...`), Lizenz (z. B. CC0/Poly Haven) in dieser Zeile dokumentieren, kein Laden von Drittanbieter-CDNs zur Laufzeit |
+| Schriften | Inter und JetBrains Mono, lokal selbst gehostet; keine Laufzeit-Anfrage an einen externen Font-CDN | Neue Schriften ebenfalls lokal versionieren und lizenzieren |
+| Icons | UI-Icons bleiben Inline-SVG; die vier Markenlogos der Sprachkarten sind exakte, lokal versionierte Figma-PNG-Exporte | Neue Markenassets nicht nachzeichnen; Herkunft und Lizenz dokumentieren |
+| PBR-Materialien | Workshop-Pipeline: `meshStandardMaterial`/`meshPhysicalMaterial`; Hero: Drei `MeshTransmissionMaterial` als milchiges Resin mit Transmission, IOR, reduziertem Clearcoat, gleichmäßiger Roughness und lokaler 1K-Normal-Karte „Glass Frosted 001" von 3DTextures.me/Katsukagi, CC0 | Neue PBR-Texturen lokal versionieren und hier lizenzieren |
+| HDRI-Umgebungslicht | Hero: lokales `studio_small_08_1k.hdr`, Poly Haven „Studio Small 08", CC0. Die Workshop-Seitenleiste nutzt weiterhin prozedurale Lightformer | Keine Drittanbieter-CDN-Aufrufe zur Laufzeit; neue HDRIs lokal versionieren und Lizenz hier ergänzen |
 
 ## 9. Prüfung dieses Fundaments
 
 - Gelebt und stichprobenartig auf Konsistenz geprüft in: Landing (`/`), Story (`/story`), Demo (`/demo`), Workshop-Aufgabenansicht und Abschluss-Screen (`/workshop`).
 - Responsiv geprüft bei 1280px (Laptop) und 768px (Tablet) — siehe Abschnitt 5.
 - Zustands-Regel (Abschnitt 6) geprüft gegen alle bestehenden Status-tragenden Komponenten; eine Lücke (Fluss-Diagramm-Boxen) gefunden und behoben.
-- Die 3D-Pipeline (Abschnitt 7) wurde nicht nur gebaut, sondern in einem echten Browser gegen echte Pixel verifiziert (`readPixels`) — reine Sichtprüfung hätte den leeren-Canvas-Fehler durch `EffectComposer` nicht zuverlässig von einem echten, aber unauffälligen Rendering unterschieden.
+- Die 3D-Pipeline der Aufgaben-Seitenleiste (Abschnitt 7) wurde nicht nur gebaut, sondern in einem echten Browser gegen echte Pixel verifiziert (`readPixels`) — reine Sichtprüfung hätte ihren historischen leeren-Canvas-Fehler durch `EffectComposer` nicht zuverlässig von einem echten, aber unauffälligen Rendering unterschieden. Die separate Hero-Pipeline verwendet ihre eigene verifizierte Postprocessing-Kette.
 - Ein zweiter echter Bug wurde bei der Integration gefunden und behoben: Die Seitenleiste hob in `ExerciseSidebar.tsx` immer fest „Request DTO" hervor, unabhängig von der aktiven Aufgabe — die neue `stackLayerForTask()`-Zuordnung (`lib/workshop/stackLayer.ts`) betrifft sowohl den 2D- als auch den 3D-Pfad.

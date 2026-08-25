@@ -32,26 +32,24 @@
   --color-blue-50: #eef1fd;
   --color-navy-900: #02205a;
   --color-navy-800: #00267e;
-  --color-lavender-600: #2f3cf0;
-  --color-lavender-500: #6f74f2;
-  --color-lavender-400: #7c83d6;
-  --color-lavender-300: #cfd2ec;
-  --color-lavender-100: #e6e8f7;
+  --color-lavender-600: #15139c;
+  --color-lavender-500: #6b6bf2;
+  --color-lavender-400: #6673b3;
+  --color-lavender-300: #cdcdfb;
+  --color-lavender-100: #e9e9fb;
+
+  /* ---- Primitives — signal red -------------------------------------- */
+  /* Failure is the only state that needs a hue of its own: passing reads as
+     Accent Blue (see the semantic status block below), so no green enters the
+     palette. Colour alone never carries the verdict — an icon and a word
+     always accompany it. The tints are mixes of red/600 with white, so the
+     whole family is one hue rather than a borrowed ramp. */
+  --color-red-700: #d91a00;
+  --color-red-600: #ff2001;
+  --color-red-200: #ffc7c0;
+  --color-red-50: #fff2f0;
 
   /* ---- Primitives — code syntax ------------------------------------ */
-  /* Validation status. Not part of the original Figma palette: the result
-     panel needs a pass/fail pair, and colour alone never carries the verdict —
-     an icon and a word always accompany it. */
-  --color-green-700: #15803d;
-  --color-green-600: #16a34a;
-  --color-green-200: #bbf7d0;
-  --color-green-50: #f0fdf4;
-
-  --color-red-700: #b91c1c;
-  --color-red-600: #dc2626;
-  --color-red-200: #fecaca;
-  --color-red-50: #fef2f2;
-
   --color-code-keyword: #5b21d6;
   --color-code-type: #00267e;
   --color-code-identifier: #131319;
@@ -80,11 +78,13 @@
   --color-border-strong: var(--color-neutral-300);
   --color-border-accent: var(--color-blue-600);
 
-  --color-status-success: var(--color-green-700);
-  --color-status-success-solid: var(--color-green-600);
-  --color-status-success-subtle: var(--color-green-50);
-  --color-status-success-border: var(--color-green-200);
-  --color-status-danger: var(--color-red-600);
+  --color-status-success: var(--color-blue-600);
+  --color-status-success-solid: var(--color-blue-700);
+  --color-status-success-subtle: var(--color-blue-50);
+  --color-status-success-border: var(--color-blue-100);
+  /* red/700 is red/600 darkened just enough to clear WCAG AA as small text
+     (5.1:1 vs 3.9:1 on bg/surface); the fill below is the signal red itself. */
+  --color-status-danger: var(--color-red-700);
   --color-status-danger-solid: var(--color-red-600);
   --color-status-danger-subtle: var(--color-red-50);
   --color-status-danger-border: var(--color-red-200);

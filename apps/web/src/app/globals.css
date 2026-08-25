@@ -1,23 +1,104 @@
 @import "tailwindcss";
+/* The design system itself. `theme.css` at the repo root is the generated view of
+   `tokens.json`; DESIGN.md documents the roles. Importing it — rather than restating a
+   second copy of the palette here — keeps the three files a single source of truth. */
+@import "../../../../theme.css";
 
+@theme {
+  /* `theme.css` names the families; `next/font/google` in layout.tsx supplies the
+     self-hosted faces behind these two variables. */
+  --font-inter:
+    var(--font-inter-sans), ui-sans-serif, system-ui, -apple-system,
+    BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono:
+    var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, Menlo, Consolas,
+    monospace;
+}
+
+/* One horizontal inset for every band of the workshop screen — app bar, stepper,
+   work column and context column all sit on the same left and right axis.
+   44px at the reference viewport is DESIGN.md's app-window gutter; narrower
+   viewports step down so the content keeps breathing room without crowding. */
+@utility workshop-gutter {
+  padding-inline: 1.5rem;
+
+  @media (width >= 40rem) {
+    padding-inline: 2rem;
+  }
+
+  @media (width >= 64rem) {
+    padding-inline: 2.75rem;
+  }
+}
+
+/* Half of the same inset, for a pane whose other edge is an internal divider
+   rather than the window's frame: the result rail keeps the page's margin on
+   its outer edge and only a content gap on the side it shares with the editor,
+   which buys back ~26px of usable width in a narrow column. */
+@utility workshop-gutter-end {
+  padding-inline-start: 1.125rem;
+  padding-inline-end: 1.5rem;
+
+  @media (width >= 40rem) {
+    padding-inline-end: 2rem;
+  }
+
+  @media (width >= 64rem) {
+    padding-inline-end: 2.75rem;
+  }
+}
+
+/* The light theme IS the design system. These runtime tokens used to carry a
+   second, hand-picked palette that drifted from `theme.css` (#ffffff vs
+   bg/surface #fefefe, #2563eb vs bg/accent #1e62fd, #e4e4e7 vs border/default
+   #ececee), so a component reading `var(--surface)` rendered off-spec even
+   though DESIGN.md, tokens.json and theme.css agreed. Each one now resolves to
+   its semantic token, which makes the whole app Figma-accurate in one place;
+   the dark block below still supplies its own values, since the design system
+   is authored light-only.
+   Contrast on bg/app #f9f8fa: text/primary 18.7:1, text/subtle 5.43:1,
+   text/accent 4.70:1, white-on-accent 4.98:1 — all clear WCAG AA. */
 :root {
-  --background: #f4f4f5;
-  --surface: #ffffff;
-  --surface-raised: #ffffff;
-  --foreground: #09090b;
-  /* #71717a on --background is 4.40:1, just under WCAG AA's 4.5:1 for
-     normal text (issue #13). Darkened slightly to clear it with margin. */
-  --muted: #6b6b76;
-  --border: #e4e4e7;
-  --accent: #2563eb;
-  --accent-solid: #2563eb;
-  --accent-soft: #eff4ff;
-  --accent-foreground: #ffffff;
+  --background: var(--color-bg-app);
+  --surface: var(--color-bg-surface);
+  /* Recessed strips — editor gutter and tab bar (DESIGN.md: bg/surface-muted). */
+  --surface-raised: var(--color-bg-surface-muted);
+  --foreground: var(--color-text-primary);
+  --muted: var(--color-text-subtle);
+  --border: var(--color-border-default);
+  --border-strong: var(--color-border-strong);
+  --accent: var(--color-text-accent);
+  --accent-solid: var(--color-bg-accent);
+  --accent-soft: var(--color-bg-accent-subtle);
+  --accent-foreground: var(--color-text-inverse);
+  /* text/accent on accent-soft is only 4.42:1 — blue/700 for that pairing. */
+  --accent-on-soft: var(--color-blue-700);
+  /* bg/action: the navy of the primary CTA under the editor. */
+  --action: var(--color-bg-action);
+  --action-foreground: var(--color-text-inverse);
+  --disabled: var(--color-bg-disabled);
+  --disabled-foreground: var(--color-text-muted);
+  --success: var(--color-status-success);
+  /* status/success on success-soft is only 4.42:1 — the same pairing problem
+     --accent-on-soft solves, and the same fix: one step darker. */
+  --success-on-soft: var(--color-blue-700);
+  --success-solid: var(--color-status-success-solid);
+  --success-soft: var(--color-status-success-subtle);
+  --success-border: var(--color-status-success-border);
+  --danger: var(--color-status-danger);
+  --danger-solid: var(--color-status-danger-solid);
+  --danger-soft: var(--color-status-danger-subtle);
+  --danger-border: var(--color-status-danger-border);
+  --status-foreground: var(--color-text-inverse);
+  /* Modal scrim. Strong enough to isolate the dialog from the app behind it. */
+  --scrim: rgba(2, 32, 90, 0.45);
   --glass-from: rgba(255, 255, 255, 0.95);
   --glass-to: rgba(241, 241, 245, 0.75);
   --glass-edge: rgba(228, 228, 231, 0.9);
   --glow: #c7d2fe;
   --code-bg: #ffffff;
+  --code-foreground: #09090b;
+  --code-caret: #2563eb;
   --shadow-sm: 0 1px 2px rgba(9, 9, 11, 0.05);
   --shadow: 0 1px 3px rgba(9, 9, 11, 0.06), 0 12px 32px rgba(9, 9, 11, 0.06);
   --shadow-lg: 0 24px 64px rgba(9, 9, 11, 0.1);
@@ -36,6 +117,7 @@
   --foreground: #fafafa;
   --muted: #a1a1aa;
   --border: #27272a;
+  --border-strong: #3f3f46;
   --accent: #3b82f6;
   /* Darker than --accent: white button text on #3b82f6 is only 3.68:1
      (fails WCAG AA 4.5:1), but --accent itself is tuned for text-on-background
@@ -43,11 +125,36 @@
   --accent-solid: #2f6fe0;
   --accent-soft: rgba(59, 130, 246, 0.14);
   --accent-foreground: #ffffff;
+  /* Dark mode inverts the navy CTA's logic: a near-black fill would vanish
+     into the surface, so the accent carries the primary action instead. */
+  --accent-on-soft: #93b4fb;
+  --action: #2f6fe0;
+  --action-foreground: #ffffff;
+  --disabled: #27272a;
+  --disabled-foreground: #71717a;
+  /* Passing is Accent Blue here too (DESIGN.md, Validation status), lifted to
+     the dark theme's accent: #3b82f6 is 5.05:1 on --surface #131316, and the
+     filled badge reuses --accent-solid so white glyphs stay legible.
+     Signal Red needs no lifting — #ff2001 is 4.83:1 on the same surface, so
+     the dark theme carries the brand value itself rather than a tint of it. */
+  --success: #3b82f6;
+  --success-on-soft: #93b4fb;
+  --success-solid: #2f6fe0;
+  --success-soft: rgba(59, 130, 246, 0.14);
+  --success-border: rgba(59, 130, 246, 0.32);
+  --danger: #ff2001;
+  --danger-solid: #ff2001;
+  --danger-soft: rgba(255, 32, 1, 0.14);
+  --danger-border: rgba(255, 32, 1, 0.34);
+  --status-foreground: #ffffff;
+  --scrim: rgba(0, 0, 0, 0.6);
   --glass-from: rgba(63, 63, 70, 0.55);
   --glass-to: rgba(39, 39, 42, 0.35);
   --glass-edge: rgba(113, 113, 122, 0.45);
   --glow: #4f46e5;
   --code-bg: #131316;
+  --code-foreground: #fafafa;
+  --code-caret: #ffffff;
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.5), 0 12px 32px rgba(0, 0, 0, 0.45);
   --shadow-lg: 0 24px 64px rgba(0, 0, 0, 0.6);
@@ -76,11 +183,7 @@ body {
   flex-direction: column;
   color: var(--foreground);
   background: var(--background);
-  font-family:
-    var(--font-geist-sans),
-    system-ui,
-    -apple-system,
-    sans-serif;
+  font-family: var(--font-inter);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -94,9 +197,20 @@ a {
 }
 
 :focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--color-border-accent);
   outline-offset: 2px;
   border-radius: 4px;
+}
+
+/* CodeMirror draws its own cursor layer, so the native caret-color alone does
+   not control the visible insertion point. This dark-theme selector is more
+   specific than CodeMirror's injected `border-left: ... black` base rule. */
+:root[data-theme="dark"]
+  .cm-editor.cm-focused
+  > .cm-scroller
+  > .cm-cursorLayer
+  .cm-cursor {
+  border-left-color: var(--code-caret);
 }
 
 /* Editor overlay: the highlight layer and the textarea must align exactly.
@@ -106,11 +220,435 @@ a {
    actual row. Long lines scroll horizontally instead, synced via
    CodeEditor's syncScroll. */
 .code-layer {
-  font-family: var(--font-geist-mono), ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 13px;
   line-height: 22px;
   tab-size: 2;
   white-space: pre;
   margin: 0;
   padding: 14px 16px;
+}
+
+@keyframes hero-track-commit {
+  0%,
+  38% {
+    opacity: 1;
+    transform: translate(0, -50%);
+  }
+  72%,
+  100% {
+    opacity: 0;
+    transform: translate(22px, -50%);
+  }
+}
+
+@keyframes hero-exercise-depth {
+  0%,
+  48% {
+    opacity: 0;
+    filter: blur(8px);
+    transform: translate3d(34px, -50%, 0) scale(0.78);
+  }
+  78%,
+  100% {
+    opacity: 1;
+    filter: blur(0);
+    transform: translate3d(0, -50%, 0) scale(1);
+  }
+}
+
+@keyframes hero-glass-loader-layer {
+  0%,
+  100% {
+    opacity: 0.64;
+    transform: translate3d(-50%, 0, 0);
+  }
+  50% {
+    opacity: 0.94;
+    transform: translate3d(-50%, -5px, 0);
+  }
+}
+
+@keyframes hero-glass-loader-sheen {
+  0%,
+  24% {
+    opacity: 0;
+    transform: translate3d(-70%, 0, 0);
+  }
+  48% {
+    opacity: 0.72;
+  }
+  76%,
+  100% {
+    opacity: 0;
+    transform: translate3d(340%, 0, 0);
+  }
+}
+
+@keyframes hero-glass-loader-pulse {
+  0%,
+  100% {
+    opacity: 0.46;
+    transform: scale(0.86);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.hero-glass-loader-layer {
+  animation: hero-glass-loader-layer 2400ms cubic-bezier(0.45, 0, 0.55, 1)
+    infinite;
+}
+
+.hero-glass-loader-sheen {
+  animation: hero-glass-loader-sheen 2400ms cubic-bezier(0.45, 0, 0.55, 1)
+    infinite;
+}
+
+/* A pulse is continuous motion with no entrance or exit, so it wants a
+   symmetric curve rather than a UI easing. */
+.hero-glass-loader-pulse {
+  animation: hero-glass-loader-pulse 1400ms cubic-bezier(0.45, 0, 0.55, 1)
+    infinite;
+}
+
+.hero-track-preview--committed {
+  animation: hero-track-commit 1050ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.hero-exercise-reveal--active {
+  animation: hero-exercise-depth 1050ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-track-preview--committed,
+  .hero-exercise-reveal--active,
+  .hero-glass-loader-layer,
+  .hero-glass-loader-sheen,
+  .hero-glass-loader-pulse {
+    animation: none;
+  }
+
+  .hero-glass-loader-layer {
+    opacity: 0.82;
+    transform: translateX(-50%);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   The landing page's opening curtain.
+
+   Everything here animates `opacity`, `transform` and `filter` only. The
+   curtain plays over the busiest moment in the page's life — the hero's WebGL
+   context, HDRI and four transmission shaders are all being prepared behind it
+   — so it has to run off the main thread or it will stutter at precisely the
+   moment it exists to cover.
+   --------------------------------------------------------------------------- */
+
+/* A character does not blink into being; it arrives. The blur gives it
+   somewhere to come from, which is what makes eight in a row read as typing
+   rather than as a stagger. Kept short so the cadence stays a rhythm. */
+@keyframes intro-char {
+  from {
+    opacity: 0;
+    filter: blur(10px);
+    transform: translate3d(0, 0.16em, 0);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+/* The caret is a cursor waiting, not a decoration: it arrives with the last
+   character and blinks until the plane lifts, which is what keeps a variable
+   wait legible as "still working" rather than as a page that has stopped.
+   `linear` and plateaued, because a blink is a state, not a movement — easing
+   it would make it breathe instead of tick. */
+@keyframes intro-caret {
+  0% {
+    opacity: 0;
+  }
+  8%,
+  46% {
+    opacity: 1;
+  }
+  54%,
+  92% {
+    opacity: 0.1;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* The plane never needs to receive a pointer event — skipping is handled on
+   window listeners — so it stays transparent to input from the first frame. */
+.intro-curtain {
+  pointer-events: none;
+  user-select: none;
+  opacity: 1;
+  /* Transitions, not keyframes, for the exit. The exit has no fixed start time
+     — it fires when the renderer reports ready, somewhere between the floor and
+     the ceiling — and a transition can begin whenever the class lands and be
+     retargeted mid-flight if a skip overtakes it. `transition-duration` comes
+     inline from the JS constants, so the timeline has one source. */
+  transition-property: opacity;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* The wordmark continues the direction the characters were already travelling
+   — up, and slightly closer — while the white drains around it. Two things
+   leaving along one vector read as one exit; the wordmark holding still would
+   read as two. */
+.intro-curtain__word {
+  filter: blur(0);
+  transform: translate3d(0, 0, 0) scale(1);
+  transition-property: transform, filter;
+  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.intro-curtain__char {
+  display: inline-block;
+  /* `both`: held invisible before its delay elapses, and at rest afterwards.
+     Duration comes inline, from the same constants as the per-character delay. */
+  animation-name: intro-char;
+  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  animation-fill-mode: both;
+}
+
+/* A caret sized from the type itself, so it tracks the clamped wordmark instead
+   of being a fixed pixel bar that drifts out of proportion. */
+.intro-curtain__caret {
+  display: inline-block;
+  width: 0.07em;
+  height: 0.76em;
+  margin-left: 0.1em;
+  align-self: center;
+  background: #0a0a0a;
+  animation-name: intro-caret;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  animation-fill-mode: both;
+}
+
+.intro-curtain--exiting {
+  opacity: 0;
+}
+
+.intro-curtain--exiting .intro-curtain__word {
+  filter: blur(6px);
+  transform: translate3d(0, -0.1em, 0) scale(1.035);
+}
+
+/* A skip abandons the composed exit for a fast, flat fade from wherever the
+   plane happens to be. Slow where the user is deciding, fast where we respond
+   — and the wordmark stops travelling, because this is no longer a reveal. */
+.intro-curtain--skipping {
+  opacity: 0;
+  transition-timing-function: ease-out;
+}
+
+/* `paused`, not `none`: a skip mid-typing must freeze the half-typed word where
+   it is and fade that. Cancelling the animations instead would snap every
+   remaining character to full opacity — the whole word flashing into place on
+   its way out. */
+.intro-curtain--skipping .intro-curtain__char {
+  animation-play-state: paused;
+}
+
+/* White plane, black type, in both themes — deliberately not themed. The
+   design system's semantic tokens in `theme.css` have no dark variants, so the
+   landing page's own canvas is light whatever `data-theme` says; a themed
+   curtain here would invert against a hero that does not. If `theme.css` ever
+   grows a dark palette, this is the second place that has to learn about it. */
+
+/* Returning visitors and reduced motion never see the plane at all — the
+   decision is made before the first paint in `INTRO_INIT_SCRIPT`, so there is
+   no frame in which it could flash. */
+html[data-intro="skip"] .intro-curtain {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .intro-curtain {
+    display: none;
+  }
+}
+
+/* Modal confirmation. `showModal()` centres a dialog through the UA's own
+   `margin: auto` on the top layer, but Preflight zeroes element margins, so the
+   centring is restated here rather than left to chance. The scrim is dark
+   enough to isolate the foreground (40-60% is the guidance) and the panel
+   arrives from its own centre, so the motion reads as "this opened", not as
+   something sliding in from off-screen. */
+.confirm-dialog {
+  margin: auto;
+  max-height: calc(100dvh - 2rem);
+}
+
+.confirm-dialog::backdrop {
+  background: var(--scrim);
+  animation: confirm-scrim-in 150ms ease-out both;
+}
+
+.confirm-dialog[open] {
+  animation: confirm-dialog-in 180ms cubic-bezier(0.2, 0.9, 0.3, 1) both;
+}
+
+@keyframes confirm-scrim-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes confirm-dialog-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .confirm-dialog[open],
+  .confirm-dialog::backdrop {
+    animation: none;
+  }
+}
+
+/* The result column's output values, staggered as they are revealed. The
+   value is the payoff of a passing check, so it arrives rather than appears —
+   but only just: this sits beside a code editor, not in a hero. */
+@keyframes result-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.result-reveal {
+  animation: result-reveal 380ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .result-reveal {
+    animation: none;
+  }
+}
+
+/* The hint popover. `tw-animate-css` is not a dependency here, so the
+   open/close motion is written the same way as every other animation in this
+   file: a keyframe pair, scaled from the side the panel is anchored to so it
+   grows out of its trigger rather than appearing on top of it. */
+@keyframes popover-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(var(--popover-enter-y, 4px));
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes popover-out {
+  from {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.96) translateY(var(--popover-enter-y, 4px));
+  }
+}
+
+.popover-content {
+  transform-origin: var(--radix-popover-content-transform-origin);
+}
+
+.popover-content[data-side="top"] {
+  --popover-enter-y: 4px;
+}
+
+.popover-content[data-side="bottom"] {
+  --popover-enter-y: -4px;
+}
+
+.popover-content[data-state="open"] {
+  animation: popover-in 160ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Exit is shorter than entry so dismissing feels immediate. */
+.popover-content[data-state="closed"] {
+  animation: popover-out 110ms cubic-bezier(0.4, 0, 1, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .popover-content[data-state="open"],
+  .popover-content[data-state="closed"] {
+    animation: none;
+  }
+}
+
+/* The select listbox shares the popover's motion, keyed to its own Radix
+   transform-origin variable so it still grows out of the trigger. */
+.select-content {
+  transform-origin: var(--radix-select-content-transform-origin);
+}
+
+.select-content[data-state="open"] {
+  animation: popover-in 160ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.select-content[data-state="closed"] {
+  animation: popover-out 110ms cubic-bezier(0.4, 0, 1, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .select-content[data-state="open"],
+  .select-content[data-state="closed"] {
+    animation: none;
+  }
+}
+
+/* The staged check run under `Check solution`. The spinner marks the stage
+   in flight; the rail fills as stages complete. Both are the only motion in
+   the result column while it runs, and both stop under reduced motion —
+   where the run settles instantly anyway (see `checkRun.ts`). */
+@keyframes check-run-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.check-run-spinner {
+  animation: check-run-spin 720ms linear infinite;
+}
+
+.check-run-rail {
+  transition: width 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .check-run-spinner {
+    animation: none;
+  }
+
+  .check-run-rail {
+    transition: none;
+  }
 }

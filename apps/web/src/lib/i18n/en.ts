@@ -92,6 +92,8 @@ export type Messages = {
     yourTask: string;
     completeWith: (fileName: string) => string;
     checkSolution: string;
+    /** The Check solution button while its staged run is playing. */
+    checking: string;
     showHint: string;
     insertSolution: string;
     continue: string;
@@ -135,6 +137,18 @@ export type Messages = {
     guidanceTitle: string;
     whatToFix: string;
     needNudge: string;
+    /** The staged stage list shown while a check runs. */
+    run: {
+      title: string;
+      progress: (done: number, total: number) => string;
+      announcement: string;
+      steps: {
+        parse: (fileName: string) => string;
+        structure: string;
+        rules: (count: number) => string;
+        report: string;
+      };
+    };
   };
   health: {
     waking: string;
@@ -313,6 +327,7 @@ export const en: Messages = {
     yourTask: "Your task",
     completeWith: () => "with the following:",
     checkSolution: "Check solution",
+    checking: "Checking…",
     showHint: "Show hint",
     insertSolution: "Insert solution",
     continue: "Continue",
@@ -359,6 +374,20 @@ export const en: Messages = {
     guidanceTitle: "Details & guidance",
     whatToFix: "What to fix",
     needNudge: "Need a nudge? Use Show hint under the editor.",
+    run: {
+      title: "Running checks",
+      progress: (done, total) => `${done} / ${total}`,
+      announcement: "Running checks…",
+      steps: {
+        parse: (fileName) => `Parsing ${fileName}`,
+        structure: "Reading the syntax tree",
+        rules: (count) =>
+          count === 1
+            ? "Applying 1 business rule"
+            : `Applying ${count} business rules`,
+        report: "Collecting the report",
+      },
+    },
   },
   health: {
     waking: "Waking up the demo API… exercises work without it.",

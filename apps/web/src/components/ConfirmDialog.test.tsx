@@ -21,20 +21,29 @@ function setup(overrides: Partial<Parameters<typeof ConfirmDialog>[0]> = {}) {
 }
 
 describe("ConfirmDialog keyboard operation", () => {
-  it("moves focus into the dialog when it opens", async () => {
+  // Opening lands focus on the way out, not on the destructive action: a
+  // stray Enter right after opening must not wipe the participant's progress.
+  it("opens with focus on the safe action", async () => {
     setup();
 
     const dialog = await screen.findByRole("dialog");
-    expect(dialog).toBeInTheDocument();
     expect(dialog.contains(document.activeElement)).toBe(true);
+    expect(screen.getByRole("button", { name: /cancel/i })).toHaveFocus();
   });
 
-  it("reaches both actions by Tab and confirms with Enter", async () => {
+  it("cancels with Enter straight from the opened state", async () => {
     const user = userEvent.setup();
     const { onConfirm, onCancel } = setup();
 
-    await user.tab();
-    expect(screen.getByRole("button", { name: /cancel/i })).toHaveFocus();
+    await user.keyboard("{Enter}");
+
+    expect(onCancel).toHaveBeenCalledTimes(1);
+    expect(onConfirm).not.toHaveBeenCalled();
+  });
+
+  it("reaches the destructive action by Tab and confirms with Enter", async () => {
+    const user = userEvent.setup();
+    const { onConfirm, onCancel } = setup();
 
     await user.tab();
     expect(
@@ -44,17 +53,6 @@ describe("ConfirmDialog keyboard operation", () => {
     await user.keyboard("{Enter}");
     expect(onConfirm).toHaveBeenCalledTimes(1);
     expect(onCancel).not.toHaveBeenCalled();
-  });
-
-  it("cancels with Enter on the cancel action", async () => {
-    const user = userEvent.setup();
-    const { onConfirm, onCancel } = setup();
-
-    await user.tab();
-    await user.keyboard("{Enter}");
-
-    expect(onCancel).toHaveBeenCalledTimes(1);
-    expect(onConfirm).not.toHaveBeenCalled();
   });
 
   it("is not rendered as an open dialog while closed", () => {

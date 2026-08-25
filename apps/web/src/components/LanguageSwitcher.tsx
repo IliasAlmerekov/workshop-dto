@@ -4,10 +4,28 @@ import { useId, useState } from "react";
 import { LANGUAGES, type Language } from "@/lib/workshop/types";
 import { LANGUAGE_LABELS } from "@/lib/workshop/languageLabels";
 import { useWorkshop } from "@/lib/workshop/WorkshopContext";
-import { taskDefinition } from "@/lib/workshop/tasks";
+import { useMessages } from "@/lib/i18n";
 import { LanguageIcon } from "./LanguageIcon";
 import { ConfirmDialog } from "./ConfirmDialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
 
+/**
+ * The track switcher.
+ *
+ * It was a native `<select>`, which meant the four tracks were four lines of
+ * text — while the same four choices on the landing page are logo cards. A
+ * listbox lets the header carry the same marks, so PHP is recognised by its
+ * logo in both places instead of being read twice.
+ *
+ * The draft guard is unchanged: switching with unsaved work in the editor
+ * asks first, and only clears the current task's draft.
+ */
 export function LanguageSwitcher() {
   const {
     state,
@@ -16,8 +34,9 @@ export function LanguageSwitcher() {
     selectLanguage,
     clearActiveDraft,
   } = useWorkshop();
+  const messages = useMessages();
   const [pendingLanguage, setPendingLanguage] = useState<Language | null>(null);
-  const selectId = useId();
+  const labelId = useId();
 
   function handleChange(next: Language) {
     if (next === state.language) {
@@ -43,55 +62,55 @@ export function LanguageSwitcher() {
   }
 
   const activeTaskTitle = activeTaskId
-    ? taskDefinition(activeTaskId).title
+    ? messages.tasks[activeTaskId].title
     : "";
 
   return (
     <div>
-      <label htmlFor={selectId} className="sr-only">
-        Programming language
-      </label>
-      <div className="relative flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2">
-        {state.language && <LanguageIcon language={state.language} size={16} />}
-        <select
-          id={selectId}
-          value={state.language ?? ""}
-          onChange={(event) => handleChange(event.target.value as Language)}
-          className="appearance-none bg-transparent pr-5 text-sm font-medium focus:outline-none"
-        >
-          {!state.language && <option value="">Select language</option>}
+      <span id={labelId} className="sr-only">
+        {messages.header.programmingLanguage}
+      </span>
+
+      {/* The checkmark trails the row: each item leads with its track logo,
+          and a leading indicator would push those marks out of one column. */}
+      <Select
+        indicatorPosition="right"
+        value={state.language ?? undefined}
+        onValueChange={(next) => handleChange(next as Language)}
+      >
+        {/* No icon here: `SelectValue` renders the chosen item's own content,
+            logo included, so drawing one alongside it showed the mark twice. */}
+        <SelectTrigger aria-labelledby={labelId} className="w-[158px]">
+          <SelectValue placeholder={messages.header.selectLanguage} />
+        </SelectTrigger>
+
+        <SelectContent align="end">
           {LANGUAGES.map((language) => (
-            <option key={language} value={language}>
-              {LANGUAGE_LABELS[language]}
-            </option>
+            <SelectItem
+              key={language}
+              value={language}
+              // The item's children are markup, so Radix needs the plain
+              // string for typeahead and for the trigger's accessible name.
+              textValue={LANGUAGE_LABELS[language]}
+            >
+              <span className="flex items-center gap-2.5 whitespace-nowrap">
+                <LanguageIcon language={language} size={16} />
+                {LANGUAGE_LABELS[language]}
+              </span>
+            </SelectItem>
           ))}
-        </select>
-        <svg
-          viewBox="0 0 24 24"
-          width="12"
-          height="12"
-          fill="none"
-          aria-hidden="true"
-          className="pointer-events-none absolute right-3 text-[var(--muted)]"
-        >
-          <path
-            d="m6 9 6 6 6-6"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-      </div>
+        </SelectContent>
+      </Select>
 
       <ConfirmDialog
         open={pendingLanguage !== null}
-        title="Switch language?"
-        description={`Switching to ${
-          pendingLanguage ? LANGUAGE_LABELS[pendingLanguage] : ""
-        } will clear your current draft for "${activeTaskTitle}". Completed tasks stay completed.`}
-        confirmLabel="Switch and clear draft"
-        cancelLabel="Keep current draft"
+        title={messages.header.switchTitle}
+        description={messages.header.switchDescription(
+          pendingLanguage ? LANGUAGE_LABELS[pendingLanguage] : "",
+          activeTaskTitle,
+        )}
+        confirmLabel={messages.header.switchConfirm}
+        cancelLabel={messages.header.switchCancel}
         onConfirm={confirmSwitch}
         onCancel={cancelSwitch}
       />

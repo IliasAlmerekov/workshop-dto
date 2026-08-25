@@ -88,7 +88,43 @@ describe("ExerciseRunner — Task 1 (request-dto)", () => {
     expect(screen.getByRole("button", { name: /continue/i })).toBeDisabled();
   });
 
-  it("Insert solution fills the editor, validates, and unlocks Continue with an explanation", async () => {
+  it("Check solution plays the validator's stages before the verdict, keeping Continue and the button locked meanwhile", async () => {
+    const user = userEvent.setup();
+    renderWithWorkshop(
+      <ExerciseRunner
+        taskId="request-dto"
+        definition={TASK1_DEFINITION}
+        loadAdapter={loadTask1Adapter}
+        language="typescript"
+      />,
+    );
+
+    await screen.findByRole("heading", { name: "Typed Request DTO" });
+    await user.click(screen.getByRole("button", { name: /check solution/i }));
+
+    // The run is a reveal of a verdict already computed — while it plays,
+    // neither the button nor Continue may be pressed again.
+    const checking = screen.getByRole("button", { name: /checking/i });
+    expect(checking).toBeDisabled();
+    expect(checking).toHaveAttribute("aria-busy", "true");
+    expect(screen.getByText("Running checks")).toBeInTheDocument();
+    expect(
+      screen.getByText(/Parsing CreateUserRequest.ts/),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /continue/i })).toBeDisabled();
+
+    // …and once it settles, the stage list is gone and the real per-check
+    // feedback has taken its place.
+    expect(
+      await screen.findByText(/userName is missing from the request/i),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("Running checks")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /check solution/i }),
+    ).toBeEnabled();
+  });
+
+  it("Insert solution settles at once, without the staged run", async () => {
     const user = userEvent.setup();
     renderWithWorkshop(
       <ExerciseRunner
@@ -101,8 +137,31 @@ describe("ExerciseRunner — Task 1 (request-dto)", () => {
 
     await screen.findByRole("heading", { name: "Typed Request DTO" });
     await user.click(screen.getByRole("button", { name: /show hint/i }));
+    await user.click(screen.getByRole("button", { name: /next hint/i }));
+    await user.click(screen.getByRole("button", { name: /next hint/i }));
+    await user.click(screen.getByRole("button", { name: /insert solution/i }));
+
+    expect(screen.queryByText("Running checks")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /continue/i })).toBeEnabled();
+  });
+
+  it("Insert solution fills the editor, validates, and unlocks Continue with an explanation", async () => {
+    const user = userEvent.setup();
+    renderWithWorkshop(
+      <ExerciseRunner
+        taskId="request-dto"
+        definition={TASK1_DEFINITION}
+        loadAdapter={loadTask1Adapter}
+        language="typescript"
+      />,
+    );
+
+    await screen.findByRole("heading", { name: "Typed Request DTO" });
+    // Hints escalate inside the popover now: the trigger opens it on the
+    // first hint, "Next hint" walks to the third, which unlocks the solution.
     await user.click(screen.getByRole("button", { name: /show hint/i }));
-    await user.click(screen.getByRole("button", { name: /show hint/i }));
+    await user.click(screen.getByRole("button", { name: /next hint/i }));
+    await user.click(screen.getByRole("button", { name: /next hint/i }));
     await user.click(screen.getByRole("button", { name: /insert solution/i }));
 
     await waitFor(() =>
@@ -199,9 +258,11 @@ describe("ExerciseRunner — Task 2 (request-mapper)", () => {
     );
 
     await screen.findByRole("heading", { name: "Request Mapper" });
+    // Hints escalate inside the popover now: the trigger opens it on the
+    // first hint, "Next hint" walks to the third, which unlocks the solution.
     await user.click(screen.getByRole("button", { name: /show hint/i }));
-    await user.click(screen.getByRole("button", { name: /show hint/i }));
-    await user.click(screen.getByRole("button", { name: /show hint/i }));
+    await user.click(screen.getByRole("button", { name: /next hint/i }));
+    await user.click(screen.getByRole("button", { name: /next hint/i }));
     await user.click(screen.getByRole("button", { name: /insert solution/i }));
 
     await waitFor(() =>
@@ -251,9 +312,11 @@ describe("ExerciseRunner — Task 3 (external-api)", () => {
     );
 
     await screen.findByRole("heading", { name: "External API DTO and Mapper" });
+    // Hints escalate inside the popover now: the trigger opens it on the
+    // first hint, "Next hint" walks to the third, which unlocks the solution.
     await user.click(screen.getByRole("button", { name: /show hint/i }));
-    await user.click(screen.getByRole("button", { name: /show hint/i }));
-    await user.click(screen.getByRole("button", { name: /show hint/i }));
+    await user.click(screen.getByRole("button", { name: /next hint/i }));
+    await user.click(screen.getByRole("button", { name: /next hint/i }));
     await user.click(screen.getByRole("button", { name: /insert solution/i }));
 
     await waitFor(() =>
@@ -312,9 +375,11 @@ describe("ExerciseRunner — Task 4 (response-dto)", () => {
       screen.queryByText("Live entity vs. DTO comparison"),
     ).not.toBeInTheDocument();
 
+    // Hints escalate inside the popover now: the trigger opens it on the
+    // first hint, "Next hint" walks to the third, which unlocks the solution.
     await user.click(screen.getByRole("button", { name: /show hint/i }));
-    await user.click(screen.getByRole("button", { name: /show hint/i }));
-    await user.click(screen.getByRole("button", { name: /show hint/i }));
+    await user.click(screen.getByRole("button", { name: /next hint/i }));
+    await user.click(screen.getByRole("button", { name: /next hint/i }));
     await user.click(screen.getByRole("button", { name: /insert solution/i }));
 
     await waitFor(() =>

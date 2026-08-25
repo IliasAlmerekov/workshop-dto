@@ -1,6 +1,7 @@
 import type { SyntaxNode } from "@lezer/common";
 import { subtreeContainsToken } from "./lezerUtils";
 import { TASK2_FIELDS } from "./task2";
+import { activeMessages } from "@/lib/i18n/catalogue";
 import type { ValidationCheck } from "./types";
 
 /** The language-specific method/function names that express each transformation. */
@@ -23,6 +24,8 @@ export function buildTransformationChecks(
   doc: string,
   tokens: Task2Tokens,
 ): ValidationCheck[] {
+  const { checks: text } = activeMessages();
+
   return TASK2_FIELDS.flatMap((field): ValidationCheck[] => {
     const expr = fieldExpressions[field.outputName];
     if (!expr) {
@@ -30,7 +33,7 @@ export function buildTransformationChecks(
         {
           id: `field-${field.outputName}`,
           passed: false,
-          message: `${field.outputName} is missing from the mapped result.`,
+          message: text.missingFromResult(field.outputName),
         },
       ];
     }
@@ -41,8 +44,8 @@ export function buildTransformationChecks(
         id: `field-${field.outputName}-source`,
         passed: hasSource,
         message: hasSource
-          ? `${field.outputName} reads from "${field.sourceKey}".`
-          : `${field.outputName} should read from "${field.sourceKey}".`,
+          ? text.readsFrom(field.outputName, field.sourceKey)
+          : text.shouldReadFrom(field.outputName, field.sourceKey),
       },
     ];
 
@@ -51,8 +54,8 @@ export function buildTransformationChecks(
       id: `field-${field.outputName}-trim`,
       passed: hasTrim,
       message: hasTrim
-        ? `${field.outputName} trims whitespace.`
-        : `${field.outputName} still has untrimmed whitespace.`,
+        ? text.trims(field.outputName)
+        : text.shouldTrim(field.outputName),
     });
 
     if (field.needsLowercase) {
@@ -61,8 +64,8 @@ export function buildTransformationChecks(
         id: `field-${field.outputName}-lowercase`,
         passed: hasLowercase,
         message: hasLowercase
-          ? `${field.outputName} is lowercased.`
-          : `${field.outputName} should be lowercased.`,
+          ? text.lowercased(field.outputName)
+          : text.shouldLowercase(field.outputName),
       });
     }
 
@@ -72,8 +75,8 @@ export function buildTransformationChecks(
         id: `field-${field.outputName}-date`,
         passed: hasDate,
         message: hasDate
-          ? `${field.outputName} is converted to a date type.`
-          : `${field.outputName} is still text instead of a date type.`,
+          ? text.isDate(field.outputName)
+          : text.shouldBeDate(field.outputName),
       });
     }
 

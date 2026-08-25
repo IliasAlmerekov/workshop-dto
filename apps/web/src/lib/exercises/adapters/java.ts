@@ -5,6 +5,7 @@ import { child, findAll, textOf } from "../lezerUtils";
 import type { RequiredFieldKind } from "../task1";
 import { TASK1_STARTER_CODE, composeSolution } from "../task1StarterCode";
 import type { TaskLanguageAdapter } from "../types";
+import { activeMessages } from "@/lib/i18n/catalogue";
 
 const SOLUTION_EDITABLE = `    String userName,
     String firstName,
@@ -92,8 +93,8 @@ function validate(doc: string) {
     passed: components !== null,
     message:
       components !== null
-        ? "CreateUserRequest is declared as a record."
-        : "No CreateUserRequest record was found.",
+        ? activeMessages().construct["request-dto"].java.ok
+        : activeMessages().construct["request-dto"].java.missing,
   };
 
   return toResult([

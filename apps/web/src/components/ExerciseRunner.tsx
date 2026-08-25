@@ -3,13 +3,31 @@
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { useWorkshop } from "@/lib/workshop/WorkshopContext";
+import {
+  useHasResultSurface,
+  usePublishExerciseResult,
+} from "@/lib/workshop/ExerciseResultContext";
 import type { TaskDefinition } from "@/lib/exercises/types";
 import type {
   TaskLanguageAdapter,
   ValidationResult,
 } from "@/lib/exercises/types";
 import type { Language, TaskId } from "@/lib/workshop/types";
+import { useMessages } from "@/lib/i18n";
+import { cn } from "@/lib/utils";
+import { useStagedCheckRun } from "@/lib/workshop/checkRun";
+import { CheckRunSteps } from "./CheckRunSteps";
 import { CodeMirrorEditor } from "./CodeMirrorEditor";
+import { HintPopover } from "./HintPopover";
+import { Button } from "./ui/Button";
+import {
+  IconArrowRight,
+  IconCircleCheck,
+  IconCircleX,
+  IconClipboardList,
+  IconPlay,
+  IconSpinner,
+} from "./ui/icons";
 
 const MAX_HINT_STAGE = 4; // 3 progressive cards + "Insert solution" as the 4th step
 
@@ -22,51 +40,21 @@ type ExerciseRunnerProps = {
   successPanel?: ReactNode;
 };
 
-function ClipboardIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      width="20"
-      height="20"
-      fill="none"
-      aria-hidden="true"
-    >
-      <rect
-        x="5"
-        y="4"
-        width="14"
-        height="17"
-        rx="2.5"
-        stroke="currentColor"
-        strokeWidth="1.6"
-      />
-      <path
-        d="M9 4.5A1.5 1.5 0 0 1 10.5 3h3A1.5 1.5 0 0 1 15 4.5V6H9V4.5Z"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M9 11h6M9 15h4"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
+/**
+ * The verdict glyph of the fallback report — the same pair the result column
+ * uses (`status/success` / `status/danger`), drawn from the icon family rather
+ * than typed as a character, so the two surfaces state a verdict identically.
+ */
 function CheckGlyph({ passed }: { passed: boolean }) {
   return (
     <span
       aria-hidden="true"
-      className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
-        passed
-          ? "bg-[var(--accent-soft)] text-[var(--accent)]"
-          : "bg-amber-500/15 text-amber-600"
-      }`}
+      className={cn(
+        "mt-px shrink-0",
+        passed ? "text-[var(--success)]" : "text-[var(--danger)]",
+      )}
     >
-      {passed ? "✓" : "!"}
+      {passed ? <IconCircleCheck size={16} /> : <IconCircleX size={16} />}
     </span>
   );
 }
@@ -88,9 +76,25 @@ export function ExerciseRunner({
   const { state, updateDraft, recordHintUsed, completeTask } = useWorkshop();
   const progress = state.tasks[taskId];
 
+  const messages = useMessages();
+  const copy = messages.tasks[taskId];
+  const hintCopy = messages.hints[taskId][language];
+  const publishResult = usePublishExerciseResult();
+  const hasResultSurface = useHasResultSurface();
   const [adapter, setAdapter] = useState<TaskLanguageAdapter | null>(null);
   const [checkResult, setCheckResult] = useState<ValidationResult | null>(null);
   const [insertGeneration, setInsertGeneration] = useState(0);
+  const [hintsOpen, setHintsOpen] = useState(false);
+  /**
+   * `Check solution` plays the validator's stages before its verdict lands
+   * (see `checkRun.ts`). The verdict is decided the moment the button is
+   * pressed; `run` only withholds it for the length of the stage list.
+   */
+  const {
+    run,
+    start: startCheckRun,
+    cancel: cancelCheckRun,
+  } = useStagedCheckRun(setCheckResult);
 
   useEffect(() => {
     let cancelled = false;
@@ -101,6 +105,7 @@ export function ExerciseRunner({
     setAdapter(null);
     setCheckResult(null);
     setInsertGeneration(0);
+    cancelCheckRun();
     loadAdapter(language)
       .then((loaded) => {
         if (!cancelled) {
@@ -113,13 +118,32 @@ export function ExerciseRunner({
     return () => {
       cancelled = true;
     };
-  }, [language, loadAdapter]);
+  }, [language, loadAdapter, cancelCheckRun]);
+
+  /**
+   * The result column reads the same verdict this card does. Publishing from
+   * an effect (rather than from the handlers) keeps one source of truth:
+   * clearing `checkResult` on the next keystroke re-locks the output too.
+   */
+  useEffect(() => {
+    if (run) {
+      publishResult({ taskId, result: null, run });
+      return;
+    }
+    publishResult(
+      checkResult
+        ? { taskId, result: checkResult, explanation: copy.explanation }
+        : null,
+    );
+  }, [publishResult, taskId, run, checkResult, copy.explanation]);
+
+  useEffect(() => () => publishResult(null), [publishResult]);
 
   if (!adapter) {
     return (
-      <section className="flex flex-col gap-6 px-8 py-8">
-        <p role="status" className="text-sm text-[var(--muted)]">
-          Loading exercise…
+      <section className="workshop-gutter flex min-h-0 flex-1 flex-col py-18">
+        <p role="status" className="text-body-small text-[var(--muted)]">
+          {messages.exercise.loading}
         </p>
       </section>
     );
@@ -132,13 +156,16 @@ export function ExerciseRunner({
 
   function handleEditableChange(text: string) {
     updateDraft(taskId, text);
+    cancelCheckRun();
     setCheckResult(null);
   }
 
   function handleCheck() {
     const document =
       adapter!.starterCode.before + editableValue + adapter!.starterCode.after;
-    setCheckResult(adapter!.validate(document));
+    startCheckRun(adapter!.validate(document), {
+      fileName: adapter!.fileName,
+    });
   }
 
   function handleShowHint() {
@@ -150,53 +177,81 @@ export function ExerciseRunner({
   function handleInsertSolution() {
     updateDraft(taskId, adapter!.solutionEditable);
     setInsertGeneration((value) => value + 1);
-    setCheckResult(adapter!.validate(adapter!.solutionCode));
+    // The escape hatch settles at once: someone who asked for the answer is
+    // owed the explanation, not a progress animation about it.
+    startCheckRun(
+      adapter!.validate(adapter!.solutionCode),
+      { fileName: adapter!.fileName },
+      { instant: true },
+    );
     if (hintStage < MAX_HINT_STAGE) {
       recordHintUsed(taskId);
     }
   }
 
-  const visibleHints = adapter.hints.slice(0, hintStage);
+  // The hint *text* is translated; the code snippet beside it is not — it is
+  // the language's own syntax, which every locale reads identically.
+  const hintTexts = [hintCopy.concept, hintCopy.fields, hintCopy.syntax];
+  const hintCards = adapter.hints.map((hint, index) => ({
+    ...hint,
+    text: hintTexts[index] ?? hint.text,
+  }));
   const canShowMoreCards = hintStage < 3;
 
   return (
-    <section className="flex flex-col gap-6 px-8 py-8">
-      <div>
-        <p className="text-xs font-semibold tracking-[0.12em] text-[var(--accent)] uppercase">
-          Exercise {String(definition.order).padStart(2, "0")}
+    /* The work column is height-bound by the page frame, so it lays out as
+       three bands: a heading and brief that keep their intrinsic height, the
+       editor that absorbs every remaining pixel, and the action row pinned
+       under it. Only on viewports too short for that does the column itself
+       scroll — the page around it never does. */
+    <section className="workshop-gutter flex min-h-0 flex-1 flex-col gap-16 overflow-y-auto py-18 2xl:gap-20 2xl:py-24">
+      {/* Exercise heading (Figma 42:108 – 42:111): the accent eyebrow, the
+          52px page title, the framing question and the intro paragraph. */}
+      <div className="shrink-0">
+        <p className="text-label-caption leading-label-caption tracking-label-eyebrow font-bold text-[var(--accent)] uppercase">
+          {messages.exercise.eyebrow(String(definition.order).padStart(2, "0"))}
         </p>
-        <h1 className="mt-3 text-[2.75rem] leading-[1.05] font-bold tracking-tight">
-          {definition.title}
+        {/* Heading/Page is 52px at the reference viewport; it scales with the
+            column instead of forcing the row to overflow on a laptop. */}
+        <h1 className="leading-heading-page tracking-heading-page mt-6 text-[clamp(1.5rem,2.6vw,52px)] font-bold text-[var(--foreground)]">
+          {copy.title}
         </h1>
-        <p className="mt-2 text-lg text-[var(--muted)]">
-          {definition.question}
+        <p className="tracking-body-question mt-6 text-[clamp(0.9375rem,1.15vw,19px)] leading-[1.45] text-[var(--foreground)]">
+          {copy.question}
         </p>
-        <p className="mt-4 max-w-xl text-sm leading-relaxed text-[var(--muted)]">
-          {definition.description}
+        {/* The framing paragraph is the one genuinely optional line here, so a
+            short viewport drops it rather than squeezing the editor. */}
+        <p className="text-body-small leading-body-small mt-10 hidden max-w-[68ch] text-[var(--muted)] [@media(min-height:820px)]:block">
+          {copy.description}
         </p>
       </div>
 
-      <div className="flex gap-4 rounded-xl border border-[var(--border)] p-5">
+      {/* Task Brief (Figma 40:61): a 72px goal badge beside the instruction
+          sentence and the required field contract as chips. */}
+      <div className="flex shrink-0 gap-14 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-14 2xl:gap-20 2xl:p-18">
+        {/* The 72px goal badge is the library's; it steps down with the column
+            so the brief stays one compact band on a laptop. */}
         <span
           aria-hidden="true"
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[var(--accent-soft)] text-[var(--accent)]"
+          className="flex size-[44px] shrink-0 items-center justify-center rounded-2xl bg-[var(--accent-soft)] text-[var(--accent-on-soft)] 2xl:size-[56px]"
         >
-          <ClipboardIcon />
+          <IconClipboardList size={24} />
         </span>
-        <div>
-          <p className="text-sm font-semibold">Your task</p>
-          <p className="mt-1 text-sm text-[var(--muted)]">
-            Complete{" "}
-            <code className="font-mono text-[var(--accent)]">
+        <div className="flex min-w-0 flex-col gap-6">
+          <p className="text-heading-card leading-heading-card tracking-heading-card font-bold text-[var(--foreground)]">
+            {messages.exercise.yourTask}
+          </p>
+          <p className="text-body-small leading-body-small text-[var(--muted)]">
+            <code className="text-body-compact font-mono text-[var(--accent)]">
               {adapter.fileName}
             </code>{" "}
-            with the following:
+            {messages.exercise.completeWith(adapter.fileName)}
           </p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {definition.fields.map((field) => (
+          <div className="flex flex-wrap gap-10 pt-2">
+            {copy.fields.map((field) => (
               <span
                 key={field}
-                className="rounded-md border border-[var(--border)] bg-[var(--surface)] px-2.5 py-1.5 font-mono text-xs text-[var(--accent)]"
+                className="text-label-field-chip leading-label-field-chip tracking-label-field-chip flex h-28 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface)] px-10 font-semibold text-[var(--accent)]"
               >
                 {field}
               </span>
@@ -206,6 +261,7 @@ export function ExerciseRunner({
       </div>
 
       <CodeMirrorEditor
+        fill
         language={language}
         fileName={adapter.fileName}
         before={adapter.starterCode.before}
@@ -213,114 +269,105 @@ export function ExerciseRunner({
         after={adapter.starterCode.after}
         resetKey={`${language}:${insertGeneration}`}
         onEditableChange={handleEditableChange}
-        label={`Your solution for ${definition.title}`}
+        label={messages.exercise.editorLabel(copy.title)}
+        completionInput={definition.completionInput}
       />
 
-      <div className="flex flex-wrap items-center gap-3">
-        <button
-          type="button"
+      {/* Action row (Figma `Button` variants 42:201 / 42:208 / 42:219). Check
+          solution is the screen's one primary CTA in `bg/action` navy; the
+          rest stay subordinate, and Continue holds the disabled fill until a
+          check passes. */}
+      <div className="flex shrink-0 flex-wrap items-center gap-8">
+        <Button
+          variant="primary"
           onClick={handleCheck}
-          className="flex items-center gap-2 rounded-lg bg-[var(--foreground)] px-5 py-3 text-sm font-semibold text-[var(--background)]"
+          disabled={run !== null}
+          aria-busy={run !== null}
+          icon={
+            run ? (
+              <IconSpinner size={18} className="check-run-spinner" />
+            ) : (
+              <IconPlay size={18} />
+            )
+          }
         >
-          <svg
-            viewBox="0 0 24 24"
-            width="14"
-            height="14"
-            fill="currentColor"
-            aria-hidden="true"
-          >
-            <path d="M8 5.5v13l11-6.5-11-6.5Z" />
-          </svg>
-          Check solution
-        </button>
+          {run ? messages.exercise.checking : messages.exercise.checkSolution}
+        </Button>
 
-        {canShowMoreCards ? (
-          <button
-            type="button"
-            onClick={handleShowHint}
-            className="flex items-center gap-2 rounded-lg border border-[var(--border)] px-5 py-3 text-sm font-semibold"
-          >
-            <svg
-              viewBox="0 0 24 24"
-              width="15"
-              height="15"
-              fill="none"
-              aria-hidden="true"
-            >
-              <path
-                d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.6 10.8c.5.4.8 1 .9 1.7h5.4c.1-.7.4-1.3.9-1.7A6 6 0 0 0 12 3Z"
-                stroke="currentColor"
-                strokeWidth="1.6"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-            Show hint
-          </button>
-        ) : (
-          <button
-            type="button"
+        {/* The hints stay reachable after the solution unlocks — an escape
+            hatch should not take the explanation away with it. */}
+        <HintPopover
+          hints={hintCards}
+          shown={hintStage}
+          onReveal={handleShowHint}
+          open={hintsOpen}
+          onOpenChange={setHintsOpen}
+        />
+
+        {!canShowMoreCards && (
+          <Button
+            variant="secondary"
             onClick={handleInsertSolution}
-            className="flex items-center gap-2 rounded-lg border border-amber-500/50 px-5 py-3 text-sm font-semibold text-amber-600"
+            className="border-amber-500/50 text-amber-600"
           >
-            Insert solution
-          </button>
+            {messages.exercise.insertSolution}
+          </Button>
         )}
 
-        <button
-          type="button"
+        <Button
+          variant="accent"
           disabled={!checkResult?.passed}
           onClick={() => completeTask(taskId)}
-          className="ml-auto flex items-center gap-2 rounded-lg bg-[var(--accent-solid)] px-5 py-3 text-sm font-semibold text-[var(--accent-foreground)] disabled:cursor-not-allowed disabled:bg-[var(--border)] disabled:text-[var(--muted)]"
+          className="ml-auto"
+          iconAfter={<IconArrowRight size={18} />}
         >
-          Continue
-          <span aria-hidden="true">→</span>
-        </button>
+          {messages.exercise.continue}
+        </Button>
       </div>
 
-      {visibleHints.length > 0 && (
-        <div className="flex flex-col gap-2">
-          {visibleHints.map((hint, index) => (
-            <div
-              key={index}
-              className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3 text-xs text-[var(--muted)]"
-            >
-              <p>{hint.text}</p>
-              {hint.kind === "syntax" && (
-                <code className="mt-2 block font-mono text-[var(--accent)]">
-                  {hint.code}
-                </code>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
+      {run && !hasResultSurface && <CheckRunSteps run={run} />}
 
-      {checkResult && (
+      {checkResult && !hasResultSurface && (
         <div
           role="status"
-          className="flex flex-col gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4"
+          className="flex flex-col gap-6 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-12 py-10"
         >
           {checkResult.checks.map((check) => (
-            <div key={check.id} className="flex items-start gap-2 text-xs">
+            <div
+              key={check.id}
+              className="text-body-compact leading-body-compact flex items-start gap-8"
+            >
               <CheckGlyph passed={check.passed} />
               <span
-                className={
+                className={cn(
+                  "min-w-0 flex-1",
                   check.passed
                     ? "text-[var(--muted)]"
-                    : "text-[var(--foreground)]"
-                }
+                    : "text-[var(--foreground)]",
+                )}
               >
                 {check.message}
+              </span>
+              <span
+                className={cn(
+                  "text-label-caption leading-label-caption shrink-0 font-semibold",
+                  check.passed
+                    ? "text-[var(--success)]"
+                    : "text-[var(--danger)]",
+                )}
+              >
+                {check.passed
+                  ? messages.result.checkPassed
+                  : messages.result.checkFailed}
               </span>
             </div>
           ))}
         </div>
       )}
 
-      {checkResult?.passed && (
-        <p className="rounded-lg border border-[var(--accent)]/40 bg-[var(--accent-soft)] p-3 text-xs text-[var(--foreground)]">
-          {definition.explanation}
+      {checkResult?.passed && !hasResultSurface && (
+        <p className="text-body-panel leading-body-panel rounded-xl border border-[var(--success-border)] bg-[var(--success-soft)] px-12 py-10 text-[var(--foreground)]">
+          {copy.explanation}
         </p>
       )}
 

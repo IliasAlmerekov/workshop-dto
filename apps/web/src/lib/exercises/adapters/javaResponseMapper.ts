@@ -11,6 +11,7 @@ import { TASK4_STARTER_CODE } from "../task4StarterCode";
 import { composeSolution } from "../composeSolution";
 import { toResult } from "../checks";
 import type { TaskLanguageAdapter } from "../types";
+import { activeMessages } from "@/lib/i18n/catalogue";
 
 const TOKENS: Task4Tokens = { date: "format" };
 
@@ -71,8 +72,8 @@ function validate(doc: string) {
     id: "construct",
     passed: container !== null,
     message: container
-      ? "map() returns a new UserResponse."
-      : "map() should return new UserResponse(...) with all five arguments, in order.",
+      ? activeMessages().construct["response-dto"].java.ok
+      : activeMessages().construct["response-dto"].java.missing,
   };
 
   const checks = [

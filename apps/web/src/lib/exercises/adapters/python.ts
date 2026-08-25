@@ -10,6 +10,7 @@ import { child, children, findAll, textOf } from "../lezerUtils";
 import type { RequiredFieldKind } from "../task1";
 import { TASK1_STARTER_CODE, composeSolution } from "../task1StarterCode";
 import type { TaskLanguageAdapter } from "../types";
+import { activeMessages } from "@/lib/i18n/catalogue";
 
 const SOLUTION_EDITABLE = `    userName: str
     firstName: str
@@ -97,11 +98,11 @@ function validate(doc: string) {
   const declaredCheck = {
     id: "construct",
     passed: Boolean(classDef) && isFrozen,
-    message: classDef
-      ? isFrozen
-        ? "CreateUserRequest is a frozen dataclass."
-        : "CreateUserRequest should be decorated with @dataclass(frozen=True)."
-      : "No CreateUserRequest class was found.",
+    message: (() => {
+      const copy = activeMessages().construct["request-dto"].python;
+      if (!classDef) return copy.missing;
+      return isFrozen ? copy.ok : (copy.notImmutable ?? copy.missing);
+    })(),
   };
 
   return toResult([

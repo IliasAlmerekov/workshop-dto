@@ -3,6 +3,17 @@ import { Decoration, EditorView, type DecorationSet } from "@codemirror/view";
 
 export type EditableRange = { from: number; to: number };
 
+/**
+ * The extension plus a reader for the region's *current* bounds. The bounds
+ * move as the participant types, so anything that has to know where the
+ * region is right now (Completion, which stays silent outside it) must ask
+ * the state rather than close over the initial range.
+ */
+export type RestrictedRegion = {
+  extension: Extension;
+  rangeOf: (state: EditorState) => EditableRange;
+};
+
 function makeField(initial: EditableRange) {
   return StateField.define<EditableRange>({
     create: () => initial,
@@ -55,10 +66,10 @@ function readOnlyDecorations(
 export function restrictedEditing(
   initial: EditableRange,
   onEditableTextChange?: (text: string) => void,
-): Extension {
+): RestrictedRegion {
   const field = makeField(initial);
 
-  return [
+  const extension: Extension = [
     field,
     EditorView.decorations.of((view) => readOnlyDecorations(view.state, field)),
     EditorState.transactionFilter.of((tr) => {
@@ -83,4 +94,6 @@ export function restrictedEditing(
       }
     }),
   ];
+
+  return { extension, rangeOf: (state) => state.field(field) };
 }

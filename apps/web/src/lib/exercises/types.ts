@@ -16,6 +16,21 @@ export type ValidationResult = {
   checks: ValidationCheck[];
 };
 
+/**
+ * How a task's input is reached from inside the editable region. This is the
+ * only thing Completion is allowed to offer: it never describes the target
+ * DTO, because completing the target's members would hand over what the
+ * staged Hint deliberately withholds until its last card.
+ */
+export type CompletionInput = {
+  /** The variable the starter code binds the input to, e.g. `raw` or `user`. */
+  receiver: string;
+  /** A keyed collection (array/dict/Map) or an object with named members. */
+  shape: "map" | "object";
+  /** The input's keys, in the language-neutral spelling the payload uses. */
+  members: readonly string[];
+};
+
 /** One progressive hint card (spec section 7.3). */
 export type HintCard =
   | { kind: "concept"; text: string }
@@ -74,4 +89,9 @@ export type TaskDefinition = {
   estimatedMinutes: number;
   /** Plain-language explanation shown after Insert solution or on success. */
   explanation: string;
+  /**
+   * Absent when the task reads no input — Task 1 only declares a type, so
+   * there is nothing the editor could legitimately complete there.
+   */
+  completionInput?: CompletionInput;
 };

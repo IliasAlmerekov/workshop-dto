@@ -1,6 +1,7 @@
 "use client";
 
 import { useJsonEndpoint } from "@/lib/useJsonEndpoint";
+import { useMessages } from "@/lib/i18n";
 
 type JsonEndpointPanelProps = {
   title: string;
@@ -20,6 +21,7 @@ export function JsonEndpointPanel({
   flagFields = [],
 }: JsonEndpointPanelProps) {
   const state = useJsonEndpoint(url);
+  const messages = useMessages();
 
   const accentClass =
     tone === "warning" ? "text-amber-600" : "text-[var(--accent)]";
@@ -44,7 +46,7 @@ export function JsonEndpointPanel({
 
       {state.status === "loading" && (
         <p role="status" className="text-sm text-[var(--muted)]">
-          Loading&hellip;
+          {messages.jsonPanel.loading}
         </p>
       )}
 
@@ -57,22 +59,21 @@ export function JsonEndpointPanel({
             aria-hidden="true"
             className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-amber-500"
           />
-          Waking up the demo API&hellip; retry {state.attempt} of{" "}
-          {state.maxAttempts}
+          {messages.jsonPanel.waking(state.attempt, state.maxAttempts)}
         </p>
       )}
 
       {state.status === "error" && (
         <div role="alert" className="flex flex-col gap-2">
           <p className="text-sm text-amber-600">
-            Still unreachable after {state.attempts} attempts: {state.message}
+            {messages.jsonPanel.error(state.attempts, state.message)}
           </p>
           <button
             type="button"
             onClick={state.retry}
             className="self-start rounded-md border border-[var(--border)] px-3 py-1.5 text-xs font-semibold"
           >
-            Retry
+            {messages.jsonPanel.retry}
           </button>
         </div>
       )}
@@ -86,12 +87,14 @@ export function JsonEndpointPanel({
               (field) => field in (state.data as Record<string, unknown>),
             ) && (
               <p className="text-xs font-medium text-amber-600">
-                Leaked:{" "}
-                {flagFields
-                  .filter(
-                    (field) => field in (state.data as Record<string, unknown>),
-                  )
-                  .join(", ")}
+                {messages.jsonPanel.leaked(
+                  flagFields
+                    .filter(
+                      (field) =>
+                        field in (state.data as Record<string, unknown>),
+                    )
+                    .join(", "),
+                )}
               </p>
             )}
           <pre className="overflow-x-auto rounded-lg bg-[var(--background)] p-4 font-mono text-xs">

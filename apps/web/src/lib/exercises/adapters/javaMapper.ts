@@ -7,6 +7,7 @@ import { TASK2_STARTER_CODE } from "../task2StarterCode";
 import { composeSolution } from "../composeSolution";
 import { toResult } from "../checks";
 import type { TaskLanguageAdapter } from "../types";
+import { activeMessages } from "@/lib/i18n/catalogue";
 
 const TOKENS: Task2Tokens = {
   trim: "trim",
@@ -72,8 +73,8 @@ function validate(doc: string) {
     id: "construct",
     passed: found,
     message: found
-      ? "map() returns a new CreateUserRequest."
-      : "map() should return new CreateUserRequest(...) with all five arguments, in order.",
+      ? activeMessages().construct["request-mapper"].java.ok
+      : activeMessages().construct["request-mapper"].java.missing,
   };
 
   return toResult([

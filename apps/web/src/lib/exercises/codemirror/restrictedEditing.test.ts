@@ -11,7 +11,7 @@ function makeState(
 ) {
   return EditorState.create({
     doc,
-    extensions: [restrictedEditing({ from, to }, onChange)],
+    extensions: [restrictedEditing({ from, to }, onChange).extension],
   });
 }
 
@@ -103,7 +103,9 @@ describe("restrictedEditing", () => {
     const seen: string[] = [];
     const state = EditorState.create({
       doc,
-      extensions: [restrictedEditing({ from, to }, (text) => seen.push(text))],
+      extensions: [
+        restrictedEditing({ from, to }, (text) => seen.push(text)).extension,
+      ],
     });
     const view = new EditorView({ state });
 

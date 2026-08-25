@@ -5,8 +5,13 @@ import type { EditorView } from "@codemirror/view";
 import { restrictedEditing } from "@/lib/exercises/codemirror/restrictedEditing";
 import { workshopEditorTheme } from "@/lib/exercises/codemirror/theme";
 import { loadLanguageExtension } from "@/lib/exercises/codemirror/languageExtension";
+import type { CompletionInput } from "@/lib/exercises/types";
 import type { Language } from "@/lib/workshop/types";
+import { useMessages } from "@/lib/i18n";
+import { cn } from "@/lib/utils";
 import { LanguageIcon } from "./LanguageIcon";
+import { IconButton } from "./ui/IconButton";
+import { IconMaximize, IconX } from "./ui/icons";
 
 type CodeMirrorEditorProps = {
   language: Language;
@@ -18,6 +23,14 @@ type CodeMirrorEditorProps = {
   resetKey: string;
   onEditableChange: (text: string) => void;
   label: string;
+  /** The task's input symbols; omitted for tasks that read no input. */
+  completionInput?: CompletionInput;
+  /**
+   * Absorb the remaining height of a height-bound column instead of growing
+   * with the document. The code area then scrolls inside its own frame, which
+   * is what keeps the workshop page itself from ever scrolling.
+   */
+  fill?: boolean;
 };
 
 export function CodeMirrorEditor({
@@ -29,6 +42,8 @@ export function CodeMirrorEditor({
   resetKey,
   onEditableChange,
   label,
+  completionInput,
+  fill = false,
 }: CodeMirrorEditorProps) {
   const hostRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
@@ -40,6 +55,23 @@ export function CodeMirrorEditor({
     onEditableChangeRef.current = onEditableChange;
   });
   const [ready, setReady] = useState(false);
+  const messages = useMessages();
+  const [expanded, setExpanded] = useState(false);
+
+  // Expanding covers the page, so Escape has to bring it back — a control that
+  // takes over the viewport without an exit key traps keyboard users.
+  useEffect(() => {
+    if (!expanded) {
+      return;
+    }
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setExpanded(false);
+      }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [expanded]);
 
   useEffect(() => {
     let cancelled = false;
@@ -52,13 +84,19 @@ export function CodeMirrorEditor({
     async function mount() {
       const [
         { EditorView },
-        { EditorState },
+        { EditorState, Prec },
         { basicSetup },
+        { syntaxHighlighting },
+        { workshopHighlightStyle },
+        { workshopCompletion },
         languageExtension,
       ] = await Promise.all([
         import("@codemirror/view"),
         import("@codemirror/state"),
         import("codemirror"),
+        import("@codemirror/language"),
+        import("@/lib/exercises/codemirror/highlightStyle"),
+        import("@/lib/exercises/codemirror/completion"),
         loadLanguageExtension(language),
       ]);
 
@@ -67,18 +105,26 @@ export function CodeMirrorEditor({
       }
 
       const doc = before + editable + after;
+      const region = restrictedEditing(
+        { from: before.length, to: before.length + editable.length },
+        (text) => onEditableChangeRef.current(text),
+      );
       const state = EditorState.create({
         doc,
         extensions: [
+          // Outranks the `defaultHighlightStyle` `basicSetup` bundles, whose
+          // white-page palette turns typed names blue on the dark theme.
+          Prec.highest(syntaxHighlighting(workshopHighlightStyle)),
           basicSetup,
           languageExtension,
           workshopEditorTheme,
           EditorView.lineWrapping,
           EditorView.contentAttributes.of({ "aria-label": label }),
-          restrictedEditing(
-            { from: before.length, to: before.length + editable.length },
-            (text) => onEditableChangeRef.current(text),
-          ),
+          region.extension,
+          // After basicSetup on purpose: its bare autocompletion() sets no
+          // config fields, so this one's override/activateOnTyping win
+          // without a merge conflict.
+          workshopCompletion(language, region, completionInput),
         ],
       });
 
@@ -101,17 +147,54 @@ export function CodeMirrorEditor({
   }, [language, resetKey]);
 
   return (
-    <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--code-bg)]">
-      <div className="flex items-center gap-2 border-b border-[var(--border)] px-3 py-2">
-        <span className="flex items-center gap-2 rounded-md border border-[var(--border)] bg-[var(--surface)] px-2.5 py-1.5">
-          <LanguageIcon language={language} size={14} />
-          <span className="font-mono text-xs">{fileName}</span>
+    <div
+      className={cn(
+        "flex flex-col overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--code-bg)]",
+        expanded
+          ? "fixed inset-16 z-50 shadow-popover"
+          : fill && "min-h-[168px] flex-1",
+      )}
+    >
+      {/* Tab bar (Figma `Code Editor`, 40:28): a recessed 49px strip, the
+          active file on a raised surface behind a right-hand hairline, and the
+          editor's own controls pushed to the far end. The library's theme
+          toggle is intentionally absent — the theme belongs to the app bar,
+          and a second control for it inside the editor would be a duplicate. */}
+      <div className="flex h-[49px] shrink-0 items-center bg-[var(--surface-raised)] pr-22">
+        <span className="flex h-full items-center gap-12 border-r border-[var(--border)] bg-[var(--surface)] pr-18 pl-[23px]">
+          <LanguageIcon language={language} size={20} />
+          <span className="text-body-small leading-body-small font-mono text-[var(--foreground)]">
+            {fileName}
+          </span>
         </span>
+        <span className="flex-1" />
+        <IconButton
+          aria-label={
+            expanded
+              ? messages.exercise.collapseEditor
+              : messages.exercise.expandEditor
+          }
+          onClick={() => setExpanded((value) => !value)}
+          className="size-[34px]"
+        >
+          {expanded ? <IconX size={19} /> : <IconMaximize size={19} />}
+        </IconButton>
       </div>
-      <div aria-label={label} role="group" ref={hostRef} className="text-sm" />
+      <div
+        aria-label={label}
+        role="group"
+        ref={hostRef}
+        className={cn(
+          expanded || fill ? "min-h-0 flex-1 overflow-auto" : undefined,
+          // CodeMirror sizes itself to its content; in a filled frame the
+          // scroller has to take the frame's height instead.
+          (expanded || fill) &&
+            "[&_.cm-editor]:h-full [&_.cm-scroller]:overflow-auto",
+        )}
+      />
       {!ready && (
-        <p role="status" className="p-4 text-sm text-[var(--muted)]">
-          Loading editor…
+        <p role="status" className="p-16 text-body-small text-[var(--muted)]">
+          {messages.common.loading}
         </p>
       )}
     </div>

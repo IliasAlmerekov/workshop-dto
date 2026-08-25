@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { API_BASE_URL } from "@/lib/config";
+import { useMessages } from "@/lib/i18n";
 
 type HealthState =
   | { status: "loading" }
@@ -15,6 +16,7 @@ type HealthState =
  * start needs (spec section 12.4).
  */
 export function HealthStatus() {
+  const messages = useMessages();
   const [health, setHealth] = useState<HealthState>({ status: "loading" });
 
   useEffect(() => {
@@ -71,7 +73,7 @@ export function HealthStatus() {
         aria-hidden="true"
         className="h-2 w-2 shrink-0 rounded-full bg-amber-500"
       />
-      Waking up the demo API&hellip; exercises work without it.
+      {messages.health.waking}
     </p>
   );
 }

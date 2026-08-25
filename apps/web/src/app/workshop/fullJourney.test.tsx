@@ -83,8 +83,8 @@ describe.each(LANGUAGES)("full workshop journey — %s", (language) => {
       expect(screen.getByRole("button", { name: /continue/i })).toBeDisabled();
 
       await user.click(screen.getByRole("button", { name: /show hint/i }));
-      await user.click(screen.getByRole("button", { name: /show hint/i }));
-      await user.click(screen.getByRole("button", { name: /show hint/i }));
+      await user.click(screen.getByRole("button", { name: /next hint/i }));
+      await user.click(screen.getByRole("button", { name: /next hint/i }));
       await user.click(
         screen.getByRole("button", { name: /insert solution/i }),
       );
@@ -92,8 +92,10 @@ describe.each(LANGUAGES)("full workshop journey — %s", (language) => {
       await waitFor(() =>
         expect(screen.getByRole("button", { name: /continue/i })).toBeEnabled(),
       );
-      // The checks driving Continue are real, not a rubber stamp.
-      expect(screen.getAllByText("✓").length).toBeGreaterThan(0);
+      // The checks driving Continue are real, not a rubber stamp: the result
+      // column reports every rule as passed in words, not by colour alone.
+      expect(screen.getByText("All checks passed")).toBeInTheDocument();
+      expect(screen.getAllByText("Passed").length).toBeGreaterThan(0);
 
       await user.click(screen.getByRole("button", { name: /continue/i }));
     }

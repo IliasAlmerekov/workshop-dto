@@ -1,6 +1,7 @@
 import type { SyntaxNode } from "@lezer/common";
 import { subtreeContainsToken } from "./lezerUtils";
 import { TASK3_FIELDS } from "./task3";
+import { activeMessages } from "@/lib/i18n/catalogue";
 import type { ValidationCheck } from "./types";
 
 export type Task3Tokens = {
@@ -14,6 +15,8 @@ export function buildTransformationChecks(
   doc: string,
   tokens: Task3Tokens,
 ): ValidationCheck[] {
+  const { checks: text } = activeMessages();
+
   return TASK3_FIELDS.flatMap((field): ValidationCheck[] => {
     const expr = fieldExpressions[field.outputName];
     if (!expr) {
@@ -21,7 +24,7 @@ export function buildTransformationChecks(
         {
           id: `field-${field.outputName}`,
           passed: false,
-          message: `${field.outputName} is missing from the mapped result.`,
+          message: text.missingFromResult(field.outputName),
         },
       ];
     }
@@ -32,8 +35,8 @@ export function buildTransformationChecks(
         id: `field-${field.outputName}-source`,
         passed: hasSource,
         message: hasSource
-          ? `${field.outputName} reads from "${field.sourceKey}".`
-          : `${field.outputName} should read from "${field.sourceKey}".`,
+          ? text.readsFrom(field.outputName, field.sourceKey)
+          : text.shouldReadFrom(field.outputName, field.sourceKey),
       },
     ];
 
@@ -43,8 +46,8 @@ export function buildTransformationChecks(
         id: `field-${field.outputName}-integer`,
         passed: hasInt,
         message: hasInt
-          ? `${field.outputName} is converted to an integer.`
-          : `${field.outputName} is still text instead of an integer.`,
+          ? text.isInteger(field.outputName)
+          : text.shouldBeInteger(field.outputName),
       });
     }
 
@@ -58,8 +61,8 @@ export function buildTransformationChecks(
         id: `field-${field.outputName}-comparison`,
         passed: hasComparison,
         message: hasComparison
-          ? `${field.outputName} compares against "VERIFIED".`
-          : `${field.outputName} should compare verification_state against "VERIFIED".`,
+          ? text.comparesVerified(field.outputName)
+          : text.shouldCompareVerified(field.outputName),
       });
     }
 
@@ -69,8 +72,8 @@ export function buildTransformationChecks(
         id: `field-${field.outputName}-date`,
         passed: hasDate,
         message: hasDate
-          ? `${field.outputName} is converted to a timestamp type.`
-          : `${field.outputName} is still text instead of a timestamp.`,
+          ? text.isTimestamp(field.outputName)
+          : text.shouldBeTimestamp(field.outputName),
       });
     }
 

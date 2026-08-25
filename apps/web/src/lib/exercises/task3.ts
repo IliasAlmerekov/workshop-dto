@@ -16,6 +16,11 @@ export const TASK3_DEFINITION: TaskDefinition = {
   estimatedMinutes: 9,
   explanation:
     "Isolating the third-party vocabulary at the integration boundary means a provider change to field names, casing, or representation only touches this one mapper — the rest of the application keeps working against its own stable contract.",
+  completionInput: {
+    receiver: "raw",
+    shape: "map",
+    members: ["subject_id", "verification_state", "checked_at"],
+  },
 };
 
 export const TASK3_RAW_PAYLOAD = {

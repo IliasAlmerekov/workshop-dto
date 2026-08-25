@@ -46,6 +46,21 @@ vi.mock("./CodeMirrorEditor", () => ({
   ),
 }));
 
+/**
+ * The switcher is a listbox now, not a native `<select>`, so choosing a track
+ * means opening it and clicking the option — the same two steps a
+ * participant takes.
+ */
+async function chooseLanguage(
+  user: ReturnType<typeof userEvent.setup>,
+  label: string,
+) {
+  await user.click(
+    screen.getByRole("combobox", { name: /programming language/i }),
+  );
+  await user.click(await screen.findByRole("option", { name: label }));
+}
+
 async function typeOwnDraft(
   user: ReturnType<typeof userEvent.setup>,
   text: string,
@@ -67,10 +82,7 @@ describe("LanguageSwitcher", () => {
     const user = userEvent.setup();
     renderWithWorkshop(<LanguageSwitcher />);
 
-    await user.selectOptions(
-      screen.getByLabelText("Programming language"),
-      "python",
-    );
+    await chooseLanguage(user, "Python");
 
     await waitFor(() => expect(loadState().language).toBe("python"));
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
@@ -89,10 +101,7 @@ describe("LanguageSwitcher", () => {
     const editor = await screen.findByLabelText(/your solution/i);
     expect(editor).toHaveValue(TASK1_STARTER_CODE.typescript.editable);
 
-    await user.selectOptions(
-      screen.getByLabelText("Programming language"),
-      "java",
-    );
+    await chooseLanguage(user, "Java");
 
     await waitFor(() => expect(loadState().language).toBe("java"));
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
@@ -116,10 +125,7 @@ describe("LanguageSwitcher", () => {
 
     await typeOwnDraft(user, "some in-progress code");
 
-    await user.selectOptions(
-      screen.getByLabelText("Programming language"),
-      "java",
-    );
+    await chooseLanguage(user, "Java");
 
     const dialog = await screen.findByRole("dialog");
     expect(within(dialog).getByText(/switch language/i)).toBeInTheDocument();
@@ -150,10 +156,7 @@ describe("LanguageSwitcher", () => {
 
     await typeOwnDraft(user, "work in progress");
 
-    await user.selectOptions(
-      screen.getByLabelText("Programming language"),
-      "java",
-    );
+    await chooseLanguage(user, "Java");
 
     const dialog = await screen.findByRole("dialog");
     await user.click(
@@ -179,8 +182,8 @@ describe("LanguageSwitcher", () => {
 
     await screen.findByLabelText(/your solution/i);
     await user.click(screen.getByRole("button", { name: /show hint/i }));
-    await user.click(screen.getByRole("button", { name: /show hint/i }));
-    await user.click(screen.getByRole("button", { name: /show hint/i }));
+    await user.click(screen.getByRole("button", { name: /next hint/i }));
+    await user.click(screen.getByRole("button", { name: /next hint/i }));
     await user.click(screen.getByRole("button", { name: /insert solution/i }));
     await waitFor(() =>
       expect(screen.getByRole("button", { name: /continue/i })).toBeEnabled(),
@@ -193,10 +196,7 @@ describe("LanguageSwitcher", () => {
     // Now on task 2 (request-mapper) with its own untouched starter code.
     await screen.findByRole("heading", { name: "Request Mapper" });
 
-    await user.selectOptions(
-      screen.getByLabelText("Programming language"),
-      "python",
-    );
+    await chooseLanguage(user, "Python");
 
     await waitFor(() => expect(loadState().language).toBe("python"));
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
@@ -215,8 +215,8 @@ describe("LanguageSwitcher", () => {
 
     await screen.findByLabelText(/your solution/i);
     await user.click(screen.getByRole("button", { name: /show hint/i }));
-    await user.click(screen.getByRole("button", { name: /show hint/i }));
-    await user.click(screen.getByRole("button", { name: /show hint/i }));
+    await user.click(screen.getByRole("button", { name: /next hint/i }));
+    await user.click(screen.getByRole("button", { name: /next hint/i }));
     await user.click(screen.getByRole("button", { name: /insert solution/i }));
     await waitFor(() =>
       expect(screen.getByRole("button", { name: /continue/i })).toBeEnabled(),
@@ -227,10 +227,7 @@ describe("LanguageSwitcher", () => {
 
     // A solved draft still counts as an active draft, so switching prompts
     // for confirmation before it's cleared.
-    await user.selectOptions(
-      screen.getByLabelText("Programming language"),
-      "java",
-    );
+    await chooseLanguage(user, "Java");
     const dialog = await screen.findByRole("dialog");
     await user.click(
       within(dialog).getByRole("button", { name: /switch and clear draft/i }),

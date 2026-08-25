@@ -11,6 +11,7 @@ import { TASK4_STARTER_CODE } from "../task4StarterCode";
 import { composeSolution } from "../composeSolution";
 import { toResult } from "../checks";
 import type { TaskLanguageAdapter } from "../types";
+import { activeMessages } from "@/lib/i18n/catalogue";
 
 const TOKENS: Task4Tokens = { date: "format" };
 
@@ -61,8 +62,8 @@ function validate(doc: string) {
     id: "construct",
     passed: container !== null,
     message: container
-      ? "map() returns a new UserResponse with named arguments."
-      : "map() should return new UserResponse(...) using named arguments.",
+      ? activeMessages().construct["response-dto"].php.ok
+      : activeMessages().construct["response-dto"].php.missing,
   };
 
   const checks = [

@@ -1,12 +1,13 @@
 import { TASK1_REQUIRED_FIELDS, type RequiredFieldKind } from "./task1";
+import { activeMessages } from "@/lib/i18n/catalogue";
 import type { ValidationCheck, ValidationResult } from "./types";
 
 export type FoundField = { name: string; typeText: string; readonly: boolean };
 
-const KIND_LABEL: Record<RequiredFieldKind, string> = {
-  string: "a string",
-  date: "a date type",
-};
+function kindLabel(kind: RequiredFieldKind): string {
+  const { checks } = activeMessages();
+  return kind === "date" ? checks.kindDate : checks.kindString;
+}
 
 /**
  * Builds the five per-field checks shared by every language adapter. Each
@@ -19,26 +20,28 @@ export function buildFieldChecks(
   foundFields: FoundField[],
   isTypeAcceptable: (kind: RequiredFieldKind, typeText: string) => boolean,
 ): ValidationCheck[] {
+  const { checks } = activeMessages();
+
   return TASK1_REQUIRED_FIELDS.map(({ name, kind }) => {
     const found = foundFields.find((f) => f.name === name);
     if (!found) {
       return {
         id: `field-${name}`,
         passed: false,
-        message: `${name} is missing from the request.`,
+        message: checks.fieldMissingRequest(name),
       };
     }
     if (!isTypeAcceptable(kind, found.typeText)) {
       return {
         id: `field-${name}`,
         passed: false,
-        message: `${name} should be ${KIND_LABEL[kind]}, not "${found.typeText}".`,
+        message: checks.fieldWrongType(name, kindLabel(kind), found.typeText),
       };
     }
     return {
       id: `field-${name}`,
       passed: true,
-      message: `${name} is declared correctly.`,
+      message: checks.fieldDeclared(name),
     };
   });
 }
@@ -51,6 +54,7 @@ export function buildFieldChecks(
 export function buildImmutabilityCheck(
   foundFields: FoundField[],
 ): ValidationCheck {
+  const { checks } = activeMessages();
   const relevant = TASK1_REQUIRED_FIELDS.map(({ name }) =>
     foundFields.find((f) => f.name === name),
   ).filter((f): f is FoundField => f !== undefined);
@@ -59,7 +63,7 @@ export function buildImmutabilityCheck(
     return {
       id: "immutable",
       passed: false,
-      message: "No fields were found yet, so immutability can't be checked.",
+      message: checks.immutableUnknown,
     };
   }
 
@@ -68,17 +72,20 @@ export function buildImmutabilityCheck(
     return {
       id: "immutable",
       passed: false,
-      message: `${mutable.map((f) => f.name).join(", ")} must be immutable.`,
+      message: checks.immutableMissing(mutable.map((f) => f.name).join(", ")),
     };
   }
 
   return {
     id: "immutable",
     passed: true,
-    message: "All fields are immutable.",
+    message: checks.immutableAll,
   };
 }
 
-export function toResult(checks: ValidationCheck[]): ValidationResult {
-  return { passed: checks.every((check) => check.passed), checks };
+export function toResult(results: ValidationCheck[]): ValidationResult {
+  return {
+    passed: results.every((check) => check.passed),
+    checks: results,
+  };
 }

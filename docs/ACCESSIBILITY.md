@@ -54,6 +54,13 @@ Etwa 10 Minuten, idealerweise nach jedem Deployment auf Render.
 4. Sichtbaren Fokus-Ring bei jedem Tab-Stopp prüfen (2 px, `--accent`,
    2 px Offset, siehe DESIGN.md Abschnitt "Fokus") – insbesondere auf dem
    Theme-Toggle, dem Sprachwechsler im Header und den Stepper-Schritten.
+5. Completion im Editor (Aufgabe 2–4): Im TODO-Bereich `raw.` bzw.
+   `$raw['` tippen. Erwartung: Das Popup erscheint, ↑↓ wechselt den
+   Eintrag, **Tab und Enter** übernehmen ihn, Escape schließt es.
+6. Danach im Editor **Tab ohne offenes Popup** drücken. Erwartung: Der
+   Fokus verlässt den Editor – der Code-Bereich darf keine Tastaturfalle
+   sein (`completion.ts` bindet Tab über `acceptCompletion`, das ohne
+   Popup `false` liefert).
 
 ### 2.2 Reduced Motion
 
@@ -127,3 +134,8 @@ Laden schwerer 3D-Module").
 - Kein automatisierter Screenreader-Test (VoiceOver/NVDA) – bei größeren
   Änderungen an Live-Regions oder der Aufgabenreihenfolge empfiehlt sich ein
   kurzer manueller Durchlauf mit VoiceOver (macOS, `Cmd+F5`).
+- Das Completion-Popup nutzt die ARIA-Struktur von CodeMirror
+  (`role="listbox"` + `aria-activedescendant`); sie ist nicht eigens
+  getestet. Beim VoiceOver-Durchlauf mitprüfen, ob im TODO-Bereich der
+  ausgewählte Eintrag angesagt wird – Einträge, die beim Tippen laufend
+  wechseln, erzeugen für Screenreader viel Redefluss.

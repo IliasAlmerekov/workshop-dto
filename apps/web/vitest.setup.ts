@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom/vitest";
 import { afterEach, expect } from "vitest";
-import { cleanup } from "@testing-library/react";
+import { cleanup, configure } from "@testing-library/react";
 import { toHaveNoViolations } from "jest-axe";
 
 // jest-axe ships this matcher typed for Jest's own MatcherState, not
@@ -13,9 +13,55 @@ expect.extend(
   >,
 );
 
+// See `testTimeout` in vitest.config.ts: findBy* here waits on a dynamic
+// adapter import, not on a render.
+configure({ asyncUtilTimeout: 5_000 });
+
 afterEach(() => {
   cleanup();
 });
+
+/**
+ * Node 25 exposes a process-level `localStorage` binding that can shadow
+ * jsdom's realm-local Storage. Merely checking for `.clear()` is insufficient:
+ * the Node implementation has the API but is shared by concurrently running
+ * Vitest files, so one journey can observe another journey's completed tasks.
+ * Give every jsdom worker its own deterministic in-memory stores.
+ */
+if (typeof window !== "undefined") {
+  const createStorage = (): Storage => {
+    const entries = new Map<string, string>();
+    return {
+      get length() {
+        return entries.size;
+      },
+      key: (index: number) => [...entries.keys()][index] ?? null,
+      getItem: (key: string) => entries.get(String(key)) ?? null,
+      setItem: (key: string, value: string) => {
+        entries.set(String(key), String(value));
+      },
+      removeItem: (key: string) => {
+        entries.delete(String(key));
+      },
+      clear: () => {
+        entries.clear();
+      },
+    } satisfies Storage;
+  };
+
+  for (const name of ["localStorage", "sessionStorage"] as const) {
+    Object.defineProperty(window, name, {
+      value: createStorage(),
+      configurable: true,
+      writable: false,
+    });
+    Object.defineProperty(globalThis, name, {
+      value: window[name],
+      configurable: true,
+      writable: false,
+    });
+  }
+}
 
 if (typeof window !== "undefined" && !window.matchMedia) {
   window.matchMedia = (query: string) =>
@@ -84,4 +130,55 @@ if (
     },
     configurable: true,
   });
+}
+
+/**
+ * Radix's popover measures its trigger to position itself, and jsdom ships
+ * neither `ResizeObserver` nor `Element.prototype.scrollIntoView`. Both are
+ * pure layout concerns with no bearing on what these tests assert, so a
+ * no-op stands in rather than a layout engine.
+ */
+if (typeof window !== "undefined" && !window.ResizeObserver) {
+  window.ResizeObserver = class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  } as unknown as typeof ResizeObserver;
+  globalThis.ResizeObserver = window.ResizeObserver;
+}
+
+if (typeof Element !== "undefined" && !Element.prototype.scrollIntoView) {
+  Element.prototype.scrollIntoView = () => {};
+}
+
+/**
+ * Radix's select uses the Pointer Capture API to keep tracking the pointer
+ * once a press leaves the trigger. jsdom implements none of it, and the
+ * missing methods throw during the very first click.
+ */
+if (typeof Element !== "undefined" && !Element.prototype.hasPointerCapture) {
+  Element.prototype.hasPointerCapture = () => false;
+  Element.prototype.setPointerCapture = () => {};
+  Element.prototype.releasePointerCapture = () => {};
+}
+
+if (typeof window !== "undefined" && !window.DOMRect) {
+  window.DOMRect = class {
+    constructor(
+      public x = 0,
+      public y = 0,
+      public width = 0,
+      public height = 0,
+    ) {}
+    top = 0;
+    left = 0;
+    right = 0;
+    bottom = 0;
+    toJSON() {
+      return this;
+    }
+    static fromRect(rect?: DOMRectInit) {
+      return new window.DOMRect(rect?.x, rect?.y, rect?.width, rect?.height);
+    }
+  } as unknown as typeof DOMRect;
 }

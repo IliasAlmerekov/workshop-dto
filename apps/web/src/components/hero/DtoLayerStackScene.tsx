@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  useCallback,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -9,28 +10,27 @@ import {
 } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import {
-  ContactShadows,
   Environment,
-  Line,
-  MeshTransmissionMaterial,
   PerspectiveCamera,
   Text,
   useTexture,
 } from "@react-three/drei";
+import { Bloom, EffectComposer, N8AO } from "@react-three/postprocessing";
 import {
   BackSide,
-  DataTexture,
+  Color,
   ExtrudeGeometry,
-  FrontSide,
-  LinearFilter,
   MathUtils,
-  RGBAFormat,
+  MeshPhysicalMaterial,
+  NoColorSpace,
   RepeatWrapping,
   SRGBColorSpace,
   Shape,
   Vector2,
   Vector3,
   type Group,
+  type IUniform,
+  type MeshBasicMaterial,
   type PointLight,
   type Texture,
 } from "three";
@@ -38,14 +38,12 @@ import type { SceneQuality } from "@/lib/three/quality";
 import type { Language } from "@/lib/workshop/types";
 import {
   DTO_LAYERS,
-  LAYER_PITCH,
   RESTING_ACCENT_LAYER_INDEX,
   SLAB,
   layerPosition,
   layerSeparationOffset,
 } from "./dtoLayers";
 import {
-  CONNECTOR_NODE_TONES,
   HERO_BUSY_MS,
   HERO_IDLE_FRAME_STRIDE,
   HERO_INTRO,
@@ -56,324 +54,208 @@ import {
   TRACK_FOCUS_LAYER_INDEX,
   TRACK_PREVIEWS,
 } from "./heroMotion";
+import { SnowField, type HeroPointerRef } from "./SnowField";
+import {
+  FIELD_HAZE,
+  ICE_ACCENT,
+  ICE_GLOW,
+  LABEL_ACCENT,
+  LABEL_COOL,
+  LABEL_FONT,
+  LABEL_INK,
+  LABEL_MUTED,
+  SNOW_BLOCK,
+  SNOW_BLOCK_ACTIVE,
+  SNOW_ENVIRONMENT,
+  SNOW_MAPS,
+  SNOW_OCCLUSION,
+  SNOW_TILING,
+} from "./snowWorld";
 
 /**
- * The hero illustration as liquid glass: four thick cast blocks floating in a
- * neutral high-key photographic studio.
+ * The hero illustration: four boundaries cut from old, pressed snow, floating
+ * over a field of fresh snow that keeps the mark of everything that crosses it.
  *
- * The material is Drei's physically based transmission volume with a
- * restrained frosted microsurface, not an opaque translucent fill. Light
- * enters the block, picks up the illustration's restrained lavender
- * attenuation over the optical path,
- * and leaves through the rolled rim carrying the local HDRI's softbox
- * reflections.
+ * The whole scene is lit by one measured overcast sky and nothing else. There
+ * is no key light, no fill, and no rim — every highlight, every soft
+ * terminator and every cold blue underside is the environment doing what a
+ * real sky does over real snow. Adding lamps to this would be adding lamps to
+ * a landscape: whatever they bought in control they would cost in the one
+ * quality the material depends on, which is that the light arrives from
+ * everywhere at once.
  *
- * Colours are literals here because three.js takes colours, not CSS custom
- * properties; each one names the design token it mirrors so a token change has
- * a findable second home. The renderer runs unmapped (`flat`), so every value
- * here is the token's own hex rather than a scene-linear stand-in.
+ * Colours are hex literals because three.js takes colours, not CSS custom
+ * properties; each names the design token it mirrors.
  */
-/** `bg/canvas`: the scene paints the page's own backdrop so the glass has
- *  something to refract and the canvas leaves no seam against the page. */
-const BACKDROP = "#f6f6f6";
-
-/**
- * Poly Haven's **Studio Small 08** (CC0), versioned locally at 1K. This is the
- * authored environment from DESIGN.md: its asymmetric softboxes create the
- * long rim reflections the reference depends on.
- */
-const ENVIRONMENT = "/hdri/studio_small_08_1k.hdr";
-const GLASS_NORMAL_MAP = "/textures/glass-frosted-001-normal.jpg";
-
-/**
- * The reference keeps three boundaries milky and nearly colourless. Only the
- * active boundary carries a visible lavender core, so the colour creates one
- * clear point of attention instead of turning the stack into four opaque bars.
- *
- * The passive tint is a near-white the volume is allowed to *carry*, not a grey
- * it is painted with. A block whose surface colour does the work reads as
- * plastic at any transmission, because the tint arrives evenly across the face
- * instead of deepening with the optical path. So the surface colours here sit
- * within a few values of white and the attenuation pair below carries every
- * bit of the hue — which is what puts a gradient inside the block, running
- * from a bright thin rim into a cooler core.
- */
-const GLASS_PASSIVE = "#f4f5f9"; // near-white shell; the volume carries the tint
-const GLASS_ACTIVE = "#e4e4fc"; // reference active top face, lifted towards white
-const GLASS_ATTENUATION_PASSIVE = "#ccd2e8"; // reference neutral side, cooled
-const GLASS_ATTENUATION_ACTIVE = "#a6a6f4"; // reference active core
-/**
- * How far light travels before the attenuation colour has fully absorbed it.
- * These are the tint's *rate*, and the pair below `thickness` is what decides
- * whether the slab reads as glass or as a painted block. Short distances give a
- * gorgeous gradient and, one step further, an opaque periwinkle brick with the
- * label sitting on top — the one thing this material may not become. Held long
- * enough that the thin end of every slab is still near-white, and only the long
- * diagonal through it reaches the core colour.
- */
-const GLASS_ATTENUATION_DISTANCE_PASSIVE = 5.4;
-const GLASS_ATTENUATION_DISTANCE_ACTIVE = 2.9;
-const ACCENT_LIGHT = "#6b6bf2"; // lavender/500, emitted only inside the illustration
-
-const LABEL_INK = "#0a0a0a"; // neutral/black
-const LABEL_MUTED = "#26262c"; // reference Entity label, held up against bright frost
-const LABEL_ACCENT = "#15139c"; // reference active-boundary label
-const LABEL_COOL = "#6673b3"; // reference Response DTO label
-
-const CONNECTOR = "#a8b2e8"; // reference primary dashed leader
-const CONNECTOR_MUTED = "#c4c5cf"; // reference muted dashed leader
-const CONNECTOR_NODE = "#4a6bfa"; // reference primary node
-const CONNECTOR_NODE_MUTED = "#c2c3cd"; // reference muted node
-const LABEL_FONT = "/fonts/inter-latin-500-normal.woff";
 
 /**
  * Where the camera sits, as a unit vector. The distance along it is chosen per
- * viewport so the stack is framed the same way in the hero's tall column and
- * in the short block it occupies on a phone.
- */
-const CAMERA_DIRECTION = [0.615, 0.538, 0.615] as const;
-const FOV = 24.5;
-/**
- * Screen-space extent the stack needs, in world units, plus its margin.
+ * viewport so the composition is framed the same way in the hero's tall column
+ * and in the short block it occupies on a phone.
  *
- * The margin is most of the point. The four slabs plus the connector network
- * measure roughly 8.4 × 7.6, and framing them that tightly put the top slab's
- * far corner on the container's own edge — the illustration read as cropped,
- * and the connectors were pushed off frame to the left entirely. The extra
- * units here are the reference's air, which is what lets the stack float.
+ * The elevation is the one value the snow field changed. At the old angle the
+ * camera was nearly level with the stack, which is the right height for
+ * floating glass and the wrong one for a ground plane: the field arrived edge
+ * on, as a bright band, and every press in it was foreshortened to a line.
+ * Lifted here, the field reads as ground and a footprint reads as a footprint.
  */
-const FRAME_HEIGHT = 10.8;
-const FRAME_WIDTH = 9.9;
+const CAMERA_DIRECTION = [0.575, 0.66, 0.575] as const;
+const FOV = 24.5;
 
-type GlassSurfaceMaps = {
+/**
+ * The world extent the *stack's own column* must show, in world units.
+ *
+ * This is no longer the extent of the canvas. The canvas is the whole viewport
+ * now, and the stack occupies one column of the page's layout inside it, so the
+ * framing is expressed against that column and the camera's frustum is widened
+ * to whatever the viewport needs around it. The alternative — moving the stack
+ * in world space until it happens to land under the column — would make the
+ * object's position a function of the browser window, which is exactly the
+ * thing a world is not.
+ */
+const FRAME_HEIGHT = 11.6;
+const FRAME_WIDTH = 10.2;
+
+/** Where the camera aims: below the stack's centre, so the field has the floor. */
+const LOOK_AT_Y = -0.42;
+
+/**
+ * The page rectangle the stack is framed inside, in CSS pixels relative to the
+ * viewport. Published by the layout box the hero reserves, and read by the
+ * camera; `null` before the first measurement, which frames the viewport
+ * itself.
+ */
+export type AnchorRect = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+export type AnchorRectRef = { current: AnchorRect | null };
+
+type SnowSurfaceMaps = {
+  colour: Texture;
   normal: Texture;
+  arm: Texture;
 };
 
 /**
- * 3DTextures.me's **Glass Frosted 001** (CC0), stored locally at 1K.
+ * The same snow the field is made of, tiled to the size of a block.
  *
- * The normal map contains a tiny, irregular acid-etched grain. Roughness is
- * intentionally numerical: the source roughness map's high-frequency contrast
- * produced striped reflections at hero scale, while the requested resin needs
- * one quiet, even frost.
+ * The tiling rate is set against the slab, not against the texture, and it is
+ * the whole reason one scan can be two materials. A block 4.05 units wide
+ * showing one tile of a metre-scale scan would be a four-metre lump; at two
+ * tiles across, the scan's crust arrives at the size the eye expects on
+ * something a person could lift — while the same map under the field, at
+ * twenty-four tiles, is powder. Packed snow and loose snow, from one upload.
  */
-function useGlassSurfaceMaps(): GlassSurfaceMaps {
-  const source = useTexture(GLASS_NORMAL_MAP);
-  const normal = useMemo(() => {
-    const texture = source.clone();
-    texture.wrapS = RepeatWrapping;
-    texture.wrapT = RepeatWrapping;
-    texture.anisotropy = 8;
-    texture.needsUpdate = true;
-    return texture;
-  }, [source]);
+function useSnowBlockMaps(quality: SceneQuality): SnowSurfaceMaps {
+  const source = useTexture(SNOW_MAPS);
 
-  useEffect(() => () => normal.dispose(), [normal]);
+  const maps = useMemo(() => {
+    const colour = source.colour.clone();
+    const normal = source.normal.clone();
+    const arm = source.arm.clone();
 
-  return useMemo(() => ({ normal }), [normal]);
-}
+    colour.colorSpace = SRGBColorSpace;
+    normal.colorSpace = NoColorSpace;
+    arm.colorSpace = NoColorSpace;
 
-/**
- * A transparent photographic light card below the active shell's top surface.
- * Alpha fades continuously to zero, so neither the plane nor an ellipse edge
- * can become visible; only a wide lavender feather and its denser lavender
- * core survive the shell's milky transmission.
- */
-function buildInnerGlowTexture(): Texture {
-  const width = 256;
-  const height = 128;
-  const data = new Uint8Array(width * height * 4);
-  const outer = [233, 233, 251]; // #e9e9fb — reference glow edge
-  const glowCore = [176, 176, 244]; // #b0b0f4 — reference active core
-
-  for (let y = 0; y < height; y += 1) {
-    for (let x = 0; x < width; x += 1) {
-      const dx = ((x + 0.5) / width - 0.54) / 0.5;
-      const dy = ((y + 0.5) / height - 0.46) / 0.5;
-      const radius = Math.sqrt(dx * dx + dy * dy);
-      const feather = Math.pow(1 - MathUtils.smoothstep(radius, 0.02, 1), 1.35);
-      const core = Math.pow(1 - MathUtils.smoothstep(radius, 0.02, 0.58), 1.65);
-      const index = (y * width + x) * 4;
-
-      for (let channel = 0; channel < 3; channel += 1) {
-        data[index + channel] = Math.round(
-          MathUtils.lerp(outer[channel], glowCore[channel], core),
-        );
-      }
-      data[index + 3] = Math.round(feather * 255);
+    for (const texture of [colour, normal, arm]) {
+      texture.wrapS = RepeatWrapping;
+      texture.wrapT = RepeatWrapping;
+      texture.repeat.set(SNOW_TILING.block[0], SNOW_TILING.block[1]);
+      texture.anisotropy = quality.tier === "low" ? 4 : 8;
+      texture.channel = 0;
+      texture.needsUpdate = true;
     }
-  }
 
-  const texture = new DataTexture(data, width, height, RGBAFormat);
-  texture.colorSpace = SRGBColorSpace;
-  texture.minFilter = LinearFilter;
-  texture.magFilter = LinearFilter;
-  texture.needsUpdate = true;
-  return texture;
-}
+    return { colour, normal, arm };
+  }, [source, quality.tier]);
 
-/**
- * The optical field the resin refracts: an authored studio backdrop rather than
- * the live screen-space capture.
- *
- * Screen-space transmission caught the other three slabs and their labels and
- * dragged them through the glass as dark bands, so the buffer was replaced with
- * a flat white 2×2. That fixed the bands and cost the material everything else:
- * refraction can only bend what the buffer holds, and bending a constant is
- * still that constant. Every slab came out the same value edge to edge — the
- * "grey block" reading, with the frost and the volume doing no visible work.
- *
- * So the field keeps its authored, shape-free premise and gains the one thing
- * that survives refraction: a gradient. A wide softbox sits high and slightly
- * left, matching where `StudioLights` puts the real one, and falls through a
- * pale cool floor. What the eye then sees through a slab is that sweep,
- * displaced by the rim's curvature and stretched by the block's thickness —
- * bright where the glass is thin, deepening into the attenuation colour where
- * the path through it is long. Nothing in it is recognizable as scene
- * geometry, so no band can come back.
- *
- * Authored at 128×128 with mipmaps off and linear filtering: it is a smooth
- * function of position, so it neither aliases nor needs resolution.
- */
-function buildResinTransmissionBuffer(): Texture {
-  const size = 128;
-  const data = new Uint8Array(size * size * 4);
-  const softbox = [255, 255, 255]; // the key light's own core
-  const upper = [238, 241, 250]; // cool white above the horizon
-  const floor = [206, 211, 228]; // the studio floor, `neutral/300` cooled
-
-  for (let y = 0; y < size; y += 1) {
-    // Buffer rows run top-down, so invert to get a world-up gradient.
-    const v = 1 - (y + 0.5) / size;
-    for (let x = 0; x < size; x += 1) {
-      const u = (x + 0.5) / size;
-
-      // The vertical sweep: floor into cool white, eased so the transition
-      // lands as a gradient rather than as a visible horizon line.
-      const lift = MathUtils.smoothstep(v, 0.02, 0.94);
-      // The softbox: a broad elliptical falloff high and left of centre, the
-      // same quadrant the rectAreaLight occupies.
-      const du = (u - 0.34) / 0.62;
-      const dv = (v - 0.78) / 0.5;
-      const glow = Math.pow(
-        1 - MathUtils.smoothstep(Math.sqrt(du * du + dv * dv), 0, 1),
-        1.6,
-      );
-
-      const index = (y * size + x) * 4;
-      for (let channel = 0; channel < 3; channel += 1) {
-        const base = MathUtils.lerp(floor[channel], upper[channel], lift);
-        data[index + channel] = Math.round(
-          MathUtils.lerp(base, softbox[channel], glow * 0.85),
-        );
+  useEffect(
+    () => () => {
+      for (const texture of Object.values(maps)) {
+        texture.dispose();
       }
-      data[index + 3] = 255;
-    }
-  }
-
-  const texture = new DataTexture(data, size, size, RGBAFormat);
-  texture.colorSpace = SRGBColorSpace;
-  texture.minFilter = LinearFilter;
-  texture.magFilter = LinearFilter;
-  texture.generateMipmaps = false;
-  texture.needsUpdate = true;
-  return texture;
-}
-
-function InnerGlow() {
-  const texture = useSharedInnerGlow();
-
-  return (
-    <mesh
-      renderOrder={1}
-      position={[0.12, SLAB.height * 0.18, -0.06]}
-      rotation={[-Math.PI / 2, 0, 0]}
-    >
-      <planeGeometry args={[SLAB.width * 0.94, SLAB.depth * 0.86]} />
-      <meshBasicMaterial
-        map={texture}
-        color="#ffffff"
-        transparent
-        opacity={0.28}
-        depthTest={false}
-        depthWrite={false}
-        toneMapped={false}
-      />
-    </mesh>
+    },
+    [maps],
   );
+
+  return maps;
 }
 
 /**
  * One slab as a rounded rectangle extruded into a thick block with a rounded
- * rim. `RoundedBox` fillets all twelve edges with one radius, which cannot
- * hold the reference's proportion: generous corners in plan, a much tighter
- * roll on the top and bottom rims. So the profile carries the corner radius
- * and the extrusion's bevel carries the rim.
+ * rim. `RoundedBox` fillets all twelve edges with one radius, which cannot hold
+ * the proportion this shape needs: generous corners in plan, a much tighter
+ * roll on the top and bottom rims. So the profile carries the corner radius and
+ * the extrusion's bevel carries the rim.
  *
- * The rim is the point. A hard edge reflects the studio in a single thin line;
- * a rolled one sweeps the softbox across it and produces the broad white
- * highlight that makes the block read as cast glass rather than as a decal.
+ * The rim survived the change of material, for a different reason. Under glass
+ * it was what swept the softbox into a highlight; under snow it is what stops
+ * the block reading as a cut cube. Snow does not hold a sharp arris — wind and
+ * its own weight round every edge it has — and a hard corner here is the single
+ * fastest way to make the material read as polystyrene.
  *
- * The profile is inset by the bevel and the extrusion shortened by twice it,
- * so the finished block measures exactly `width × height × depth`.
+ * The profile is inset by the bevel and the extrusion shortened by twice it, so
+ * the finished block measures exactly `width × height × depth`.
  */
 function buildSlabGeometry(): ExtrudeGeometry {
-  {
-    const { width, depth, height, radius, bevel } = SLAB;
-    const halfWidth = width / 2 - bevel;
-    const halfDepth = depth / 2 - bevel;
-    const corner = radius - bevel;
+  const { width, depth, height, radius, bevel } = SLAB;
+  const halfWidth = width / 2 - bevel;
+  const halfDepth = depth / 2 - bevel;
+  const corner = radius - bevel;
 
-    const profile = new Shape();
-    profile.moveTo(-halfWidth + corner, -halfDepth);
-    profile.lineTo(halfWidth - corner, -halfDepth);
-    profile.absarc(
-      halfWidth - corner,
-      -halfDepth + corner,
-      corner,
-      -Math.PI / 2,
-      0,
-    );
-    profile.lineTo(halfWidth, halfDepth - corner);
-    profile.absarc(
-      halfWidth - corner,
-      halfDepth - corner,
-      corner,
-      0,
-      Math.PI / 2,
-    );
-    profile.lineTo(-halfWidth + corner, halfDepth);
-    profile.absarc(
-      -halfWidth + corner,
-      halfDepth - corner,
-      corner,
-      Math.PI / 2,
-      Math.PI,
-    );
-    profile.lineTo(-halfWidth, -halfDepth + corner);
-    profile.absarc(
-      -halfWidth + corner,
-      -halfDepth + corner,
-      corner,
-      Math.PI,
-      Math.PI * 1.5,
-    );
+  const profile = new Shape();
+  profile.moveTo(-halfWidth + corner, -halfDepth);
+  profile.lineTo(halfWidth - corner, -halfDepth);
+  profile.absarc(
+    halfWidth - corner,
+    -halfDepth + corner,
+    corner,
+    -Math.PI / 2,
+    0,
+  );
+  profile.lineTo(halfWidth, halfDepth - corner);
+  profile.absarc(
+    halfWidth - corner,
+    halfDepth - corner,
+    corner,
+    0,
+    Math.PI / 2,
+  );
+  profile.lineTo(-halfWidth + corner, halfDepth);
+  profile.absarc(
+    -halfWidth + corner,
+    halfDepth - corner,
+    corner,
+    Math.PI / 2,
+    Math.PI,
+  );
+  profile.lineTo(-halfWidth, -halfDepth + corner);
+  profile.absarc(
+    -halfWidth + corner,
+    -halfDepth + corner,
+    corner,
+    Math.PI,
+    Math.PI * 1.5,
+  );
 
-    const core = height - bevel * 2;
-    const geometry = new ExtrudeGeometry(profile, {
-      depth: core,
-      bevelEnabled: true,
-      bevelThickness: bevel,
-      bevelSize: bevel,
-      bevelOffset: 0,
-      bevelSegments: 5,
-      curveSegments: 24,
-    });
-    geometry.translate(0, 0, -core / 2);
-    geometry.rotateX(-Math.PI / 2);
-    geometry.computeVertexNormals();
-    return geometry;
-  }
+  const core = height - bevel * 2;
+  const geometry = new ExtrudeGeometry(profile, {
+    depth: core,
+    bevelEnabled: true,
+    bevelThickness: bevel,
+    bevelSize: bevel,
+    bevelOffset: 0,
+    bevelSegments: 5,
+    curveSegments: 24,
+  });
+  geometry.translate(0, 0, -core / 2);
+  geometry.rotateX(-Math.PI / 2);
+  geometry.computeVertexNormals();
+  return geometry;
 }
 
 /**
@@ -381,23 +263,13 @@ function buildSlabGeometry(): ExtrudeGeometry {
  * and shared. Building it per layer cost four rounded-rect extrusions (with
  * normals) on the main thread during exactly the frames the opening move needs.
  *
- * They live for as long as the scene does and are released on its unmount, so
- * no layer can dispose a resource its siblings are still drawing with.
+ * It lives for as long as the scene does and is released on its unmount, so no
+ * layer can dispose a resource its siblings are still drawing with.
  */
 let sharedSlabGeometry: ExtrudeGeometry | null = null;
-let sharedInnerGlow: Texture | null = null;
-let sharedResinTransmissionBuffer: Texture | null = null;
 
 function useSharedSlabGeometry(): ExtrudeGeometry {
   return (sharedSlabGeometry ??= buildSlabGeometry());
-}
-
-function useSharedInnerGlow(): Texture {
-  return (sharedInnerGlow ??= buildInnerGlowTexture());
-}
-
-function useSharedResinTransmissionBuffer(): Texture {
-  return (sharedResinTransmissionBuffer ??= buildResinTransmissionBuffer());
 }
 
 function useReleaseSharedAssetsOnUnmount() {
@@ -405,10 +277,6 @@ function useReleaseSharedAssetsOnUnmount() {
     () => () => {
       sharedSlabGeometry?.dispose();
       sharedSlabGeometry = null;
-      sharedInnerGlow?.dispose();
-      sharedInnerGlow = null;
-      sharedResinTransmissionBuffer?.dispose();
-      sharedResinTransmissionBuffer = null;
     },
     [],
   );
@@ -416,8 +284,7 @@ function useReleaseSharedAssetsOnUnmount() {
 
 type LayerProps = {
   index: number;
-  quality: SceneQuality;
-  surface: GlassSurfaceMaps;
+  surface: SnowSurfaceMaps;
   reducedMotion: boolean;
   /** True once the canvas is on screen, which is when the entrance may start. */
   revealed: boolean;
@@ -428,9 +295,8 @@ type LayerProps = {
   hovered: boolean;
 };
 
-function GlassLayer({
+function SnowLayer({
   index,
-  quality,
   surface,
   reducedMotion,
   revealed,
@@ -441,22 +307,11 @@ function GlassLayer({
 }: LayerProps) {
   const layer = DTO_LAYERS[index];
   const active = (focusIndex ?? RESTING_ACCENT_LAYER_INDEX) === index;
-  // The stack rests on the Request DTO: one violet label and one optical core,
-  // with the remaining boundaries returning to neutral glass.
-  // Explicit workshop focus still moves that same single accent as before.
+  // The stack rests on the Request DTO: one lit boundary, with the remaining
+  // three returning to plain snow. Explicit workshop focus moves that same
+  // single accent as before.
   const lit = active;
-  const glassColour = lit ? GLASS_ACTIVE : GLASS_PASSIVE;
-  const attenuationColour = lit
-    ? GLASS_ATTENUATION_ACTIVE
-    : GLASS_ATTENUATION_PASSIVE;
-  const attenuationDistance = lit
-    ? GLASS_ATTENUATION_DISTANCE_ACTIVE
-    : GLASS_ATTENUATION_DISTANCE_PASSIVE;
-  // Both values are high enough that the block is genuinely see-through and
-  // the authored studio field reads through it; the active slab stays slightly
-  // denser so its lavender core survives its own transparency.
-  const transmission = lit ? 0.84 : 0.94;
-  const rimColour = lit ? "#c8c8fa" : "#ffffff";
+
   const labelColour = active
     ? LABEL_ACCENT
     : layer.tone === "ink"
@@ -464,8 +319,8 @@ function GlassLayer({
       : layer.tone === "cool"
         ? LABEL_COOL
         : LABEL_MUTED;
+
   const geometry = useSharedSlabGeometry();
-  const transmissionBuffer = useSharedResinTransmissionBuffer();
   const rest = useMemo(() => layerPosition(index), [index]);
   const height = SLAB.height;
   const animated = useRef<Group>(null);
@@ -478,18 +333,97 @@ function GlassLayer({
     () => [rest[0] - 0.14, rest[1] * 0.22 + 0.08, rest[2] + 0.12],
     [rest],
   );
-  // `resolution` is the edge length of the target the refracted image is
-  // resampled through, and it is what decides whether a rim highlight arrives
-  // as a curve or as a staircase. At 512 across a slab that spans most of a
-  // desktop hero the sweep was being reconstructed from fewer texels than the
-  // screen has pixels there, which is the blockiness the material was read
-  // for. `samples` is the blur tap count over that target; raising resolution
-  // without it just makes a sharper stipple, so the two move together.
-  const transmissionSamples =
-    quality.tier === "high" ? 24 : quality.tier === "medium" ? 20 : 12;
-  const transmissionResolution =
-    quality.tier === "high" ? 1024 : quality.tier === "medium" ? 768 : 384;
-  const glassNormalScale = useMemo(() => new Vector2(0.0022, 0.0022), []);
+  const spill = useRef<PointLight>(null);
+  const rim = useRef<MeshBasicMaterial>(null);
+  const glowUniforms = useRef<Record<string, IUniform> | null>(null);
+  const glowMix = useRef(0);
+
+  /**
+   * The slab's material, built here rather than declared, because the light
+   * inside it is not something `meshPhysicalMaterial` has a prop for.
+   *
+   * All four are identical and all four carry the buried-core shader; only the
+   * uniform that says how bright the core is differs, and it is animated rather
+   * than switched. That is what lets the glow *travel* when a track preview
+   * moves the accent — the light drains out of one boundary while it fills the
+   * next — instead of cutting between two materials, which would also have cost
+   * a shader recompile in the middle of the move.
+   */
+  const material = useMemo(() => {
+    const created = new MeshPhysicalMaterial({
+      map: surface.colour,
+      normalMap: surface.normal,
+      aoMap: surface.arm,
+      roughnessMap: surface.arm,
+      metalnessMap: surface.arm,
+      color: SNOW_BLOCK,
+      // As matte as the field. Powder has no specular to speak of, and every
+      // attempt to give the lit slab one — lower roughness, a clearcoat —
+      // rendered it as moulded plastic, because a smooth highlight over a lumpy
+      // normal is exactly what plastic is.
+      roughness: 0.94,
+      metalness: 0,
+      // The scan's relief is authored to be read at arm's length, so a slab
+      // this close cannot take it at full strength — every crystal becomes a
+      // boulder. Taken too far the other way it vanishes and the block is soap.
+      normalScale: new Vector2(0.8, 0.8),
+      aoMapIntensity: 0.4,
+      // Above the field's own. A raised block sees more sky than the ground
+      // does, and holding it below the field is what made four white volumes
+      // read as grey ones sitting on snow.
+      envMapIntensity: 1.7,
+      // Snow's velvet: light that enters a crystal, bounces a few times and
+      // leaves near where it came in. It is why a snow bank has a bright fringe
+      // wherever it turns away from the sky.
+      sheen: 1,
+      sheenColor: new Color("#ffffff"),
+      sheenRoughness: 0.95,
+    });
+
+    created.onBeforeCompile = (shader) => {
+      shader.uniforms.uGlowColour = {
+        value: new Color(ICE_GLOW).convertSRGBToLinear(),
+      };
+      shader.uniforms.uGlowTint = {
+        value: new Color(SNOW_BLOCK_ACTIVE).convertSRGBToLinear(),
+      };
+      // The frozen thing itself, in the slab's own coordinates: a long, flat
+      // lens lying inside the block rather than a point at its centre. A point
+      // source produces a circular bloom that reads as a lamp under a sheet;
+      // something with a length reads as an object that was caught in there.
+      shader.uniforms.uGlowRadius = { value: new Vector3(2.1, 0.3, 1.05) };
+      shader.uniforms.uGlowStrength = { value: 0 };
+
+      shader.vertexShader = shader.vertexShader
+        .replace("void main() {", "varying vec3 vSlabLocal;\nvoid main() {")
+        .replace(
+          "#include <begin_vertex>",
+          "#include <begin_vertex>\nvSlabLocal = transformed;",
+        );
+
+      shader.fragmentShader = shader.fragmentShader
+        .replace("void main() {", `${SLAB_GLOW_HEAD}\nvoid main() {`)
+        .replace(
+          "#include <clipping_planes_fragment>",
+          `#include <clipping_planes_fragment>\n${SLAB_GLOW_BLEED}`,
+        )
+        .replace(
+          "#include <map_fragment>",
+          `#include <map_fragment>\n${SLAB_GLOW_TINT}`,
+        )
+        .replace(
+          "#include <emissivemap_fragment>",
+          `#include <emissivemap_fragment>\n${SLAB_GLOW_EMISSIVE}`,
+        );
+
+      glowUniforms.current = shader.uniforms;
+    };
+    created.customProgramCacheKey = () => "snow-slab-v1";
+
+    return created;
+  }, [surface]);
+
+  useEffect(() => () => material.dispose(), [material]);
 
   useEffect(() => {
     if (!selectedTrack) {
@@ -498,19 +432,50 @@ function GlassLayer({
   }, [selectedTrack]);
 
   useFrame(({ clock }, delta) => {
+    const now = clock.getElapsedTime();
+
+    // The core, first, because it has to keep working when nothing else does.
+    // Under reduced motion the boundary is still the one the workshop is about,
+    // so the light is still in it — it simply arrives already there and holds
+    // steady instead of drifting in and breathing.
+    const target = lit ? 1 : 0;
+    glowMix.current = reducedMotion
+      ? target
+      : MathUtils.damp(glowMix.current, target, 3.4, delta);
+    if (glowMix.current > 0.0005 || target > 0) {
+      // A slow, shallow breath. Ice under pressure is not a steady lamp, and a
+      // glow that never moves stops reading as something alive in there and
+      // starts reading as a printed gradient. Six per cent, over eleven
+      // seconds: below the threshold anyone would call an animation, above the
+      // one that makes the difference between a light and a swatch.
+      const breath = reducedMotion
+        ? 1
+        : 1 + Math.sin(now * 0.57) * 0.06 + Math.sin(now * 1.31) * 0.025;
+      const strength = glowMix.current * breath;
+      const uniforms = glowUniforms.current;
+      if (uniforms) {
+        uniforms.uGlowStrength.value = strength;
+      }
+      if (spill.current) {
+        spill.current.intensity = strength * 0.5;
+      }
+      if (rim.current) {
+        rim.current.opacity = 0.03 + strength * 0.19;
+      }
+      if (!reducedMotion) {
+        invalidate();
+      }
+    }
+
     const group = animated.current;
     if (!group || reducedMotion) {
       return;
     }
 
-    const now = clock.getElapsedTime();
-
     // The entrance is clocked from the reveal, not from the scene's first
-    // frame. Shader compilation, the HDRI and the transmission buffers all sit
-    // between those two moments, so timing the move from mount used to spend
-    // its most legible part behind a canvas that was still at opacity 0 — and
-    // left only the crawling tail of a 1.9s quart to be seen. Held here, the
-    // stack is still fully compressed when the material starts to dissolve in.
+    // frame. Shader compilation and the HDRI both sit between those two
+    // moments, so timing the move from mount used to spend its most legible
+    // part behind a canvas that was still at opacity 0.
     if (!revealed) {
       return;
     }
@@ -593,63 +558,38 @@ function GlassLayer({
 
   return (
     <group ref={animated} position={reducedMotion ? rest : compressed}>
-      <mesh geometry={geometry}>
-        <MeshTransmissionMaterial
-          // A neutral authored buffer prevents the three other slabs and their
-          // labels from reappearing as dark screen-space refraction bands.
-          buffer={transmissionBuffer}
-          transmission={transmission}
-          // Thickness is the optical path the attenuation colour is integrated
-          // over, not the geometry. Held well above the slab's own 0.44 so the
-          // tint has room to deepen across the block instead of arriving flat.
-          thickness={0.98}
-          ior={1.46}
-          // The frost is a microsurface, not a fog. At 0.24 the refracted
-          // studio was scattered into an even grey before it could resolve
-          // into a gradient; here the sweep survives and the normal map's
-          // acid-etched grain is what softens it.
-          roughness={0.06}
-          normalMap={surface.normal}
-          normalScale={glassNormalScale}
-          // A trace of dispersion at the rim. Glass splits what it bends, and
-          // its absence is one of the few tells the eye reads without naming.
-          // Kept far below where the labels beneath could fringe.
-          chromaticAberration={0.028}
-          anisotropy={0}
-          anisotropicBlur={0}
-          distortion={0}
-          temporalDistortion={0}
-          samples={transmissionSamples}
-          resolution={transmissionResolution}
-          side={FrontSide}
-          metalness={0}
-          // The polished coat over the frost: this is the layer the softboxes
-          // land on, and it is what separates cast glass from frosted acrylic.
-          clearcoat={1}
-          clearcoatRoughness={0.08}
-          // The HDRI's own reflections, now that the surface is smooth enough
-          // to hold them as shapes rather than as a wash.
-          envMapIntensity={0.72}
-          color={glassColour}
-          attenuationColor={attenuationColour}
-          attenuationDistance={attenuationDistance}
-        />
-      </mesh>
+      <mesh geometry={geometry} material={material} />
 
-      {/* The active rim carries the reference's lavender edge; the remaining
-          rims stay almost white against the canvas. */}
-      <mesh geometry={geometry} scale={1.004}>
+      {/* What the frozen core does to the air around the block.
+
+          Snow is not transparent, so a light inside one does not shine out of
+          it — it lights the snow it is buried in, and that snow lights whatever
+          is next to it. This is that second bounce, and it is the reason the
+          effect reads as depth rather than as a decal: the boundary above and
+          the field below both pick up a little of the blue, so the eye places
+          the source inside the volume instead of on its surface. Short range,
+          low intensity — it may never look like a lamp. */}
+      <pointLight
+        ref={spill}
+        color={ICE_GLOW}
+        intensity={0}
+        distance={3.4}
+        decay={2}
+        position={[0, 0, 0]}
+      />
+
+      {/* The edge the core escapes through. Where the block is thin, more of
+          the buried light gets out — which is a rim, but a rim with a cause. */}
+      <mesh geometry={geometry} scale={1.006}>
         <meshBasicMaterial
+          ref={rim}
           side={BackSide}
-          color={rimColour}
+          color={lit ? ICE_ACCENT : "#e7eef8"}
           transparent
           opacity={lit ? 0.2 : 0.03}
           depthWrite={false}
-          toneMapped={false}
         />
       </mesh>
-
-      {lit ? <InnerGlow /> : null}
 
       <Text
         font={LABEL_FONT}
@@ -660,7 +600,7 @@ function GlassLayer({
         anchorY="middle"
         depthOffset={-2}
         renderOrder={10 + index}
-        position={[layer.labelShift, height / 2 + 0.012, 0]}
+        position={[layer.labelShift, height / 2 + 0.014, 0]}
         rotation={[-Math.PI / 2, 0, 0]}
         material-depthTest={false}
         material-depthWrite={false}
@@ -673,135 +613,69 @@ function GlassLayer({
 }
 
 /**
- * The dashed leader lines and nodes from the reference. They are scene
- * geometry rather than an SVG overlay so they stay locked to the layers they
- * point at under any viewport aspect ratio, and so the glass refracts them.
+ * Something frozen inside the block, seen through the snow around it.
+ *
+ * This is subsurface scattering, done the way a game does it rather than the
+ * way a renderer does it. A real solver would march light through the volume
+ * and cost more per frame than everything else in this scene put together, to
+ * answer a question the eye resolves from two cues: light is brighter nearer
+ * the thing emitting it, and it escapes most easily where the material between
+ * you and it is thinnest.
+ *
+ * So `slabBleed` is the first cue — an anisotropic falloff from the core's own
+ * position in the slab's local space, which is why the glow has a *shape* and
+ * not a radius. The Fresnel term is the second: at a grazing angle you are
+ * looking through the least snow, which is where a buried light actually
+ * surfaces. Together they put the source inside the volume. Neither touches the
+ * surface's specular, so the block stays snow rather than becoming a lamp.
  */
-function ConnectorNodePattern({
-  positions,
-}: {
-  positions: ReadonlyArray<readonly [number, number, number]>;
-}) {
-  return positions.map((position, index) => {
-    const tone = CONNECTOR_NODE_TONES[index];
-    return (
-      <mesh key={`connector-node-${index}`} position={position}>
-        <sphereGeometry args={[0.048, 20, 20]} />
-        <meshBasicMaterial
-          color={tone === "accent" ? CONNECTOR_NODE : CONNECTOR_NODE_MUTED}
-          transparent
-          opacity={tone === "accent" ? 0.9 : 0.5}
-          depthWrite={false}
-          toneMapped={false}
-        />
-      </mesh>
-    );
-  });
-}
+const SLAB_GLOW_HEAD = /* glsl */ `
+uniform vec3 uGlowColour;
+uniform vec3 uGlowTint;
+uniform vec3 uGlowRadius;
+uniform float uGlowStrength;
+varying vec3 vSlabLocal;
+float slabBleed;
+`;
 
-function Connectors() {
-  const outerX = -SLAB.width / 2 - 2.06;
-  const innerX = -SLAB.width / 2 - 1.81;
-  const endX = -SLAB.width / 2 + 0.06;
-  const topY = layerPosition(0)[1] - 0.16;
-  const bottomY = layerPosition(3)[1] - 0.18;
-  const lineProps = {
-    lineWidth: 1,
-    dashed: true,
-    dashSize: 0.07,
-    gapSize: 0.09,
-    transparent: true,
-  } as const;
-  const nodePositions = DTO_LAYERS.map((_, index) => {
-    const [, y, z] = layerPosition(index);
-    const trunkX = index === 1 || index === 2 ? innerX : outerX;
-    return [trunkX, y + LAYER_PITCH * 0.11, z] as const;
-  });
+/**
+ * Gaussian rather than linear, over squared distance.
+ *
+ * Light leaving a scattering medium falls off faster than the inverse square
+ * that governs it in air, because every millimetre of snow is also absorbing
+ * some of it. The exponential is what gives the glow a soft centre with no
+ * visible boundary — a linear falloff draws a ring at its own edge, and a ring
+ * is the tell that turns this back into a decal.
+ */
+const SLAB_GLOW_BLEED = /* glsl */ `
+vec3 slabToCore = vSlabLocal / uGlowRadius;
+slabBleed = exp( -dot( slabToCore, slabToCore ) * 1.15 ) * uGlowStrength;
+`;
 
-  return (
-    <group>
-      <group>
-        <Line
-          points={[
-            [outerX, topY, -0.08],
-            [outerX, bottomY, 0.34],
-          ]}
-          color={CONNECTOR}
-          {...lineProps}
-        />
-        <Line
-          points={[
-            [innerX, layerPosition(1)[1] + 0.54, 0.02],
-            [innerX, layerPosition(3)[1] + 0.18, 0.3],
-          ]}
-          color={CONNECTOR_MUTED}
-          {...lineProps}
-        />
-        {DTO_LAYERS.map((layer, index) => {
-          const [, y, z] = layerPosition(index);
-          const trunkX = index === 1 || index === 2 ? innerX : outerX;
-          const nodeY = y + LAYER_PITCH * 0.11;
-          const muted = index >= 2;
+/**
+ * The snow immediately around the core takes its colour.
+ *
+ * Applied to the albedo rather than added on top, so it darkens as well as
+ * tints: this is snow light is passing *through*, not snow with a blue lamp
+ * shining on it. It also keeps the effect legible where the glow is strongest,
+ * because pure additive emission there would clip to white and the block would
+ * lose its own surface at exactly the point of interest.
+ */
+const SLAB_GLOW_TINT = /* glsl */ `
+diffuseColor.rgb = mix(
+  diffuseColor.rgb,
+  diffuseColor.rgb * uGlowTint,
+  clamp( slabBleed * 1.3, 0.0, 1.0 )
+);
+`;
 
-          return (
-            <group key={layer.id}>
-              <Line
-                points={[
-                  [trunkX, nodeY, z],
-                  [trunkX + 0.56, nodeY, z],
-                  [endX, y, z],
-                ]}
-                color={muted ? CONNECTOR_MUTED : CONNECTOR}
-                {...lineProps}
-              />
-              <mesh position={[endX, y, z]}>
-                <sphereGeometry args={[0.042, 20, 20]} />
-                <meshBasicMaterial
-                  color={muted ? CONNECTOR_NODE_MUTED : CONNECTOR_NODE}
-                  transparent
-                  opacity={muted ? 0.48 : 0.82}
-                  depthWrite={false}
-                  toneMapped={false}
-                />
-              </mesh>
-            </group>
-          );
-        })}
-        {[topY, bottomY].map((y, index) => (
-          <mesh
-            key={`outer-end-${y}`}
-            position={[outerX, y, index * 0.42 - 0.08]}
-          >
-            <sphereGeometry args={[0.044, 20, 20]} />
-            <meshBasicMaterial
-              color={index === 0 ? CONNECTOR_NODE : CONNECTOR_NODE_MUTED}
-              transparent
-              opacity={index === 0 ? 0.9 : 0.46}
-              depthWrite={false}
-              toneMapped={false}
-            />
-          </mesh>
-        ))}
-        {[
-          [innerX, layerPosition(1)[1] + 0.54, 0.02],
-          [innerX, layerPosition(3)[1] + 0.18, 0.3],
-        ].map(([x, y, z], index) => (
-          <mesh key={`inner-end-${index}`} position={[x, y, z]}>
-            <sphereGeometry args={[0.04, 20, 20]} />
-            <meshBasicMaterial
-              color={index === 0 ? CONNECTOR_NODE : CONNECTOR_NODE_MUTED}
-              transparent
-              opacity={index === 0 ? 0.78 : 0.42}
-              depthWrite={false}
-              toneMapped={false}
-            />
-          </mesh>
-        ))}
-      </group>
-      <ConnectorNodePattern positions={nodePositions} />
-    </group>
-  );
-}
+const SLAB_GLOW_EMISSIVE = /* glsl */ `
+float slabEscape = pow(
+  1.0 - abs( dot( normalize( vViewPosition ), normal ) ),
+  1.5
+);
+totalEmissiveRadiance += uGlowColour * slabBleed * ( 0.42 + 1.25 * slabEscape );
+`;
 
 /**
  * Drives the demand loop from `requestAnimationFrame` rather than a timer.
@@ -810,29 +684,44 @@ function Connectors() {
  * that has no relationship to the display's refresh: every render landed at a
  * different phase within its vsync interval, so frames were alternately shown
  * twice and dropped. That is what read as the stack not appearing smoothly —
- * not the easing, and not the frame cost. The animations here are all
- * delta-corrected, so the jitter never showed up as wrong positions, only as
- * an uneven cadence, which is the harder kind of stutter to place.
+ * not the easing, and not the frame cost.
  *
  * On rAF every render is vsync-aligned and `delta` is even. Full rate is spent
- * where it is legible — the opening move and a track commit — and the ambient
- * float, whose whole amplitude is 0.014 world units, renders every third frame.
- * That is still a vsync-locked cadence, just a slower one, so it reads as calm
- * rather than choppy while costing a third of the fill-rate-bound refraction
- * work. `frameloop="demand"` is what makes this gating possible at all: the
- * loop also sleeps with the tab and whenever the canvas leaves the viewport.
+ * where it is legible — the opening move, a track commit, and a pointer on the
+ * snow — and the ambient float, whose whole amplitude is 0.014 world units,
+ * renders every third frame. `frameloop="demand"` is what makes this gating
+ * possible at all: the loop also sleeps with the tab and whenever the canvas
+ * leaves the viewport.
  */
 function SceneMotionDriver({
   enabled,
   busyKey,
+  pointer,
+  anchorRect,
 }: {
   enabled: boolean;
   /** Any change re-opens the full-rate window. */
   busyKey: string;
+  /**
+   * The column the stack is framed inside. A scroll moves it without producing
+   * a React render or a pointer event, and at the idle stride the stack would
+   * lag a third of a frame behind its own layout box the whole way down the
+   * page. Watched here because this is the only loop that runs regardless.
+   */
+  anchorRect: AnchorRectRef;
+  /**
+   * A pointer on the field is direct manipulation of a surface, so it takes
+   * the full rate for as long as it is there. Painting a footprint at every
+   * third frame leaves the brush visibly behind the cursor — the one place in
+   * this scene where a dropped frame is a wrong position rather than a slower
+   * cadence.
+   */
+  pointer: HeroPointerRef;
 }) {
   const invalidate = useThree((state) => state.invalidate);
   const canvas = useThree((state) => state.gl.domElement);
   const busyUntil = useRef(0);
+  const seenRect = useRef("");
 
   useEffect(() => {
     busyUntil.current = performance.now() + HERO_BUSY_MS;
@@ -860,8 +749,17 @@ function SceneMotionDriver({
         return;
       }
 
+      const box = anchorRect.current;
+      const stamp = box
+        ? `${box.x}:${box.y}:${box.width}:${box.height}`
+        : "none";
+      const moved = stamp !== seenRect.current;
+      seenRect.current = stamp;
+
       tick += 1;
       if (
+        moved ||
+        pointer.current.inside ||
         performance.now() < busyUntil.current ||
         tick % HERO_IDLE_FRAME_STRIDE === 0
       ) {
@@ -874,7 +772,7 @@ function SceneMotionDriver({
       cancelAnimationFrame(frame);
       observer?.disconnect();
     };
-  }, [canvas, enabled, invalidate]);
+  }, [anchorRect, canvas, enabled, invalidate, pointer]);
 
   return null;
 }
@@ -887,6 +785,10 @@ export type DtoLayerStackSceneProps = {
   expanded: boolean;
   /** The pointer is over the illustration: open the stack further. */
   hovered: boolean;
+  /** Live pointer position, read per frame rather than per render. */
+  pointer: HeroPointerRef;
+  /** The page column the stack is framed inside, in viewport pixels. */
+  anchorRect: AnchorRectRef;
   /**
    * Index into `DTO_LAYERS` to light, overriding the track-derived focus.
    * The hero leaves it null and lets the chosen language move the accent;
@@ -905,17 +807,17 @@ export type DtoLayerStackSceneProps = {
 const CALM_FRAMES = 2;
 const MIN_WARMUP_FRAMES = 3;
 /** Never hold the reveal longer than this many frames, however slow the device. */
-const MAX_WARMUP_FRAMES = 12;
+const MAX_WARMUP_FRAMES = 14;
 /** Roughly two vsync intervals at 60Hz: no compile or upload spike left. */
 const CALM_FRAME_S = 0.034;
 
 /**
  * Reveal the DOM only once the renderer is actually keeping up. A React effect
- * merely proves that the scene mounted, and a fixed three-frame count proves
- * only that three frames happened — the four transmission materials compile
- * their shaders on first draw, so one of those frames can take 200ms on its
- * own. Revealing into that spike put the hitch exactly where it was most
- * visible: the first moment the user sees the illustration.
+ * merely proves that the scene mounted, and a fixed frame count proves only
+ * that some frames happened — the field's injected shader and the HDRI's
+ * convolution both land on first draw, and either can take 200ms on its own.
+ * Revealing into that spike put the hitch exactly where it was most visible:
+ * the first moment the visitor sees the illustration.
  *
  * So the gate is frame *time*, not frame count: a minimum warm-up, then two
  * consecutive frames inside a normal budget, capped so a genuinely slow device
@@ -956,11 +858,13 @@ function CameraRig({
   selectedTrack,
   focusLayerIndex,
   reducedMotion,
+  anchorRect,
 }: {
   previewTrack: Language | null;
   selectedTrack: Language | null;
   focusLayerIndex: number | null;
   reducedMotion: boolean;
+  anchorRect: AnchorRectRef;
 }) {
   const camera = useRef<ComponentRef<typeof PerspectiveCamera>>(null);
   const size = useThree((state) => state.size);
@@ -970,6 +874,7 @@ function CameraRig({
   const pitch = useRef(0);
   const dolly = useRef(0);
   const focusPan = useRef(0);
+  const framedAt = useRef("");
   const transitionStartedAt = useRef<number | null>(null);
   const direction = useMemo(
     () => new Vector3(...CAMERA_DIRECTION).normalize(),
@@ -987,17 +892,61 @@ function CameraRig({
     }
   }, [selectedTrack]);
 
-  useLayoutEffect(() => {
+  /**
+   * Frame the stack inside the page's column while the canvas covers the page.
+   *
+   * Two independent things are being solved. The distance decides how big the
+   * stack is, and it is measured against the *column*, so the object keeps the
+   * size the composition was drawn at whatever else is on screen. The field of
+   * view then widens from the column to the whole viewport, which is what puts
+   * snow in every corner of the page rather than a panel of it behind one
+   * block.
+   *
+   * `setViewOffset` supplies the last piece. It slides the frustum off its
+   * optical axis by exactly the distance between the viewport's centre and the
+   * column's, so the stack sits where the layout says it sits — including
+   * halfway down a scrolling phone page — without ever moving in world space.
+   * Everything downstream (the pointer's ray onto the snow, the parallax, the
+   * dolly on commit) reads the same matrix and needs to know nothing about it.
+   */
+  const frame = useCallback(() => {
     const view = camera.current;
     if (!view) {
       return;
     }
 
-    const aspect = size.width / Math.max(1, size.height);
+    const viewportWidth = Math.max(1, size.width);
+    const viewportHeight = Math.max(1, size.height);
+    const box = anchorRect.current;
+    const boxWidth = Math.max(1, box?.width ?? viewportWidth);
+    const boxHeight = Math.max(1, box?.height ?? viewportHeight);
+    const boxCentreX = (box?.x ?? 0) + boxWidth / 2;
+    const boxCentreY = (box?.y ?? 0) + boxHeight / 2;
+
     const reach = 2 * Math.tan(MathUtils.degToRad(FOV) / 2);
     distance.current = Math.max(
       FRAME_HEIGHT / reach,
-      FRAME_WIDTH / (reach * aspect),
+      FRAME_WIDTH / (reach * (boxWidth / boxHeight)),
+    );
+
+    // The world height the canvas must show for the column to show
+    // `FRAME_HEIGHT`, converted back into the vertical angle that produces it.
+    const canvasWorldHeight = FRAME_HEIGHT * (viewportHeight / boxHeight);
+    view.fov = MathUtils.clamp(
+      MathUtils.radToDeg(
+        2 * Math.atan(canvasWorldHeight / (2 * distance.current)),
+      ),
+      FOV,
+      104,
+    );
+    view.aspect = viewportWidth / viewportHeight;
+    view.setViewOffset(
+      viewportWidth,
+      viewportHeight,
+      viewportWidth / 2 - boxCentreX,
+      viewportHeight / 2 - boxCentreY,
+      viewportWidth,
+      viewportHeight,
     );
 
     view.position.set(
@@ -1005,14 +954,35 @@ function CameraRig({
       CAMERA_DIRECTION[1] * distance.current,
       CAMERA_DIRECTION[2] * distance.current,
     );
-    view.lookAt(0, -0.18, 0);
+    view.lookAt(0, LOOK_AT_Y, 0);
     view.updateProjectionMatrix();
+  }, [anchorRect, size]);
+
+  useLayoutEffect(() => {
+    frame();
     invalidate();
-  }, [size, invalidate]);
+  }, [frame, invalidate]);
 
   useFrame(({ clock, pointer }, delta) => {
     const view = camera.current;
-    if (!view || reducedMotion) {
+    if (!view) {
+      return;
+    }
+
+    // The column moves under the camera whenever the page scrolls or reflows,
+    // and neither of those is a React render. Comparing the published rectangle
+    // against the one the frustum was last built from is cheaper than a
+    // subscription and cannot miss a change.
+    const box = anchorRect.current;
+    const stamp = box
+      ? `${Math.round(box.x)}:${Math.round(box.y)}:${Math.round(box.width)}:${Math.round(box.height)}`
+      : "none";
+    if (stamp !== framedAt.current) {
+      framedAt.current = stamp;
+      frame();
+    }
+
+    if (reducedMotion) {
       return;
     }
 
@@ -1048,8 +1018,8 @@ function CameraRig({
     );
     dolly.current = MathUtils.damp(dolly.current, transitionEase, 5.5, delta);
     // A named focus leans the camera towards that slab instead of cutting to
-    // it: a fraction of the layer's height, so the other three boundaries
-    // stay in frame and the move reads as attention, not navigation.
+    // it: a fraction of the layer's height, so the other three boundaries stay
+    // in frame and the move reads as attention, not navigation.
     focusPan.current = MathUtils.damp(
       focusPan.current,
       focusLayerIndex === null ? 0 : layerPosition(focusLayerIndex)[1] * 0.34,
@@ -1065,88 +1035,65 @@ function CameraRig({
     view.position.copy(offset);
     view.lookAt(
       0,
-      MathUtils.lerp(-0.18, layerPosition(1)[1], dolly.current * 0.9) +
+      MathUtils.lerp(LOOK_AT_Y, layerPosition(1)[1], dolly.current * 0.9) +
         focusPan.current,
       MathUtils.lerp(0, -0.18, dolly.current),
     );
   });
 
-  return <PerspectiveCamera ref={camera} makeDefault fov={FOV} />;
+  // No `fov` prop: the angle is computed from the column's size against the
+  // viewport's, and a declared one would be reapplied on every render.
+  return <PerspectiveCamera ref={camera} makeDefault />;
 }
 
 /**
- * The studio HDRI does the material shaping; these lights place the asymmetric
- * highlights it cannot aim. A broad RectAreaLight gives the resin one low-
- * contrast softbox gradient, while a weak cool fill keeps the far edge from
- * collapsing into the page.
+ * Two passes, and the first is not a grade at all.
  *
- * None of them casts a shadow map. Clear glass under a directional light casts
- * a flat opaque rectangle — the one thing that would immediately read as fake
- * here — so the only shadow in the scene is the soft contact pool the blocks
- * float over, which is rendered from depth and needs no shadow map at all. A
- * The tiny internal point light only lets the active slab breathe onto its
- * neighbour; the radial card, not a blue reflection, carries the accent.
+ * Snow is the subject where bloom is not a stylistic choice: at these
+ * luminances a real lens does veil, and the crystal facets that catch the sky
+ * are physically small and physically bright. The threshold is set above every
+ * value the diffuse surface can reach, so nothing blooms except those facets
+ * and the lit boundary's rim — which is the difference between a scene that
+ * looks photographed and one that looks rendered.
+ *
+ * Ambient occlusion is the pass this scene cannot do without. Lighting the
+ * world from an environment and nothing else is what makes the snow read as
+ * snow, and it is also what leaves every crevice as bright as every face: an
+ * image-based light has no way to know that the gap between two stacked slabs
+ * sees almost none of the sky. That missing darkness is the whole reason the
+ * four boundaries were washing into the field behind them. Occlusion supplies
+ * it from depth, tinted towards the sky's blue rather than towards grey —
+ * because on snow the shadow *is* the sky, seen from a place that can only see
+ * a little of it.
+ *
+ * Everything else a composer usually carries is refused here. A vignette would
+ * darken a canvas whose corners are transparent and meant to become the page;
+ * depth of field would blur an illustration a visitor is reading labels off;
+ * colour grading would move design tokens.
  */
-function StudioLights({
-  engaged,
-  transitioning,
-  reducedMotion,
-  activeLayerIndex,
-}: {
-  engaged: boolean;
-  transitioning: boolean;
-  reducedMotion: boolean;
-  activeLayerIndex: number;
-}) {
-  const accentLight = useRef<PointLight>(null);
-
-  useFrame(({ clock }, delta) => {
-    const light = accentLight.current;
-    if (!light || reducedMotion) {
-      return;
-    }
-
-    const pulse = Math.sin(clock.getElapsedTime() * 0.78) * 0.005;
-    const target =
-      0.14 + pulse + (engaged ? 0.015 : 0) + (transitioning ? 0.01 : 0);
-    light.intensity = MathUtils.damp(light.intensity, target, 4, delta);
-    light.position.y = MathUtils.damp(
-      light.position.y,
-      layerPosition(activeLayerIndex)[1] - SLAB.height * 0.62,
-      4,
-      delta,
-    );
-  });
+function SnowGrade({ quality }: { quality: SceneQuality }) {
+  if (quality.tier === "low") {
+    return null;
+  }
 
   return (
-    <>
-      <ambientLight intensity={0.28} />
-      <rectAreaLight
-        position={[4.5, 6.5, 5.5]}
-        rotation={[-0.6, 0.4, 0]}
-        width={12}
-        height={10}
-        intensity={4.8}
-        color="#ffffff"
+    <EffectComposer multisampling={quality.tier === "high" ? 4 : 0}>
+      <N8AO
+        color={SNOW_OCCLUSION}
+        aoRadius={0.95}
+        distanceFalloff={0.8}
+        intensity={0.9}
+        quality={quality.tier === "high" ? "medium" : "low"}
+        halfRes={quality.tier !== "high"}
       />
-      <directionalLight
-        color="#e7e7f5"
-        position={[-5, 2, 4]}
-        intensity={0.14}
+      <Bloom
+        mipmapBlur
+        intensity={0.42}
+        luminanceThreshold={0.86}
+        luminanceSmoothing={0.22}
+        radius={0.62}
       />
-      <pointLight
-        ref={accentLight}
-        color={ACCENT_LIGHT}
-        intensity={0.14}
-        distance={2.8}
-        decay={2}
-        position={[
-          0,
-          layerPosition(activeLayerIndex)[1] - SLAB.height * 0.62,
-          0,
-        ]}
-      />
-    </>
+    </EffectComposer>
   );
 }
 
@@ -1157,6 +1104,8 @@ export default function DtoLayerStackScene({
   selectedTrack,
   expanded,
   hovered,
+  pointer,
+  anchorRect,
   focusLayerIndex,
   revealed,
   onReady,
@@ -1164,48 +1113,59 @@ export default function DtoLayerStackScene({
   const activeTrack = selectedTrack ?? previewTrack;
   const trackFocus = activeTrack ? TRACK_FOCUS_LAYER_INDEX : null;
   const focusIndex = focusLayerIndex ?? trackFocus;
-  const glassSurface = useGlassSurfaceMaps();
+  const snowSurface = useSnowBlockMaps(quality);
   useReleaseSharedAssetsOnUnmount();
 
   return (
     <>
-      <color attach="background" args={[BACKDROP]} />
-
       <CameraRig
         previewTrack={previewTrack}
         selectedTrack={selectedTrack}
         focusLayerIndex={focusLayerIndex}
         reducedMotion={reducedMotion}
+        anchorRect={anchorRect}
       />
       <ReadyAfterWarmup onReady={onReady} />
       <SceneMotionDriver
         enabled={!reducedMotion}
+        pointer={pointer}
+        anchorRect={anchorRect}
         // Every input that starts a move re-opens the full-rate window: the
         // reveal (the opening), a hover preview, a commit, and the expand.
         busyKey={`${revealed}:${previewTrack}:${selectedTrack}:${expanded}:${hovered}:${focusLayerIndex}`}
       />
 
-      <Environment
-        files={ENVIRONMENT}
-        resolution={quality.environmentResolution}
-        environmentIntensity={0.44}
-        environmentRotation={[0, 2.22, 0]}
+      {/* The whole lighting rig. An overcast winter sky measured over a real
+          snow field, which is one enormous softbox above and one enormous
+          bounce below — the condition every hand-placed light in the previous
+          scene was approximating, and the one that no arrangement of lamps
+          reproduces, because most of its light comes back up off the ground. */}
+      {/* The world's far end. Everything past the stack walks into the page's
+          own backdrop colour, so the field has a horizon and the page has no
+          seam — one value doing the work of a matte painting. */}
+      <fog
+        attach="fog"
+        args={[FIELD_HAZE.colour, FIELD_HAZE.near, FIELD_HAZE.far]}
       />
-      <StudioLights
-        engaged={previewTrack !== null || focusLayerIndex !== null}
-        transitioning={selectedTrack !== null}
+
+      <Environment
+        files={SNOW_ENVIRONMENT}
+        resolution={quality.environmentResolution}
+        environmentIntensity={1}
+      />
+
+      <SnowField
+        quality={quality}
         reducedMotion={reducedMotion}
-        activeLayerIndex={focusIndex ?? RESTING_ACCENT_LAYER_INDEX}
+        pointer={pointer}
       />
 
       <group position={[0, -0.1, 0]}>
-        <Connectors />
         {DTO_LAYERS.map((layer, index) => (
-          <GlassLayer
+          <SnowLayer
             key={layer.id}
             index={index}
-            quality={quality}
-            surface={glassSurface}
+            surface={snowSurface}
             reducedMotion={reducedMotion}
             revealed={revealed}
             focusIndex={focusIndex}
@@ -1216,20 +1176,7 @@ export default function DtoLayerStackScene({
         ))}
       </group>
 
-      <ContactShadows
-        position={[-0.15, -3.72, 0.35]}
-        scale={5.6}
-        opacity={0.18}
-        blur={4.6}
-        far={3}
-        color="#8a8d9c"
-        // Enough rendered frames to track the whole entrance now that it plays
-        // at vsync rate after the reveal, then the shadow freezes: the ambient
-        // float moves the slabs by a fraction of the blur radius, so nothing
-        // is gained by re-rendering the depth pass for it forever.
-        frames={reducedMotion ? 1 : 120}
-        resolution={quality.tier === "high" ? 512 : 256}
-      />
+      <SnowGrade quality={quality} />
     </>
   );
 }

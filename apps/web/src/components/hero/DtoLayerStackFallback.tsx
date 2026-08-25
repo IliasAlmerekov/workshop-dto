@@ -247,80 +247,83 @@ export function DtoLayerStackFallback({
                 className={selectedTrack ? "hero-stack-fan" : undefined}
                 style={{ "--fan": fan } as React.CSSProperties}
               >
-              <path
-                d={side}
-                fill={
-                  active
-                    ? "url(#active-side-sweep)"
-                    : "url(#passive-side-sweep)"
-                }
-                stroke={active ? "#c8c8fa" : "#e0e1e9"}
-                strokeWidth="1.5"
-              />
-              <path
-                d={face}
-                fill={
-                  active
-                    ? "url(#active-face-sweep)"
-                    : "url(#passive-face-sweep)"
-                }
-                stroke={active ? "#c8c8fa" : "#ffffff"}
-                strokeWidth="2"
-              />
-              <path
-                data-connector-network="line"
-                d={`M96 ${nodeY}H${190 - index * 20}`}
-                fill="none"
-                stroke="#c4c5cf"
-                strokeDasharray="7 10"
-              />
-              <circle
-                data-connector-node="static"
-                data-tone={CONNECTOR_NODE_TONES[index]}
-                cx="96"
-                cy={nodeY}
-                r="6"
-                fill={
-                  CONNECTOR_NODE_TONES[index] === "accent"
-                    ? "#4a6bfa"
-                    : "#c2c3cd"
-                }
-                opacity={CONNECTOR_NODE_TONES[index] === "accent" ? 0.9 : 0.5}
-              />
-              <text
-                data-layer-label="role"
-                className={declaration ? "hero-stack-role--replaced" : undefined}
-                fill={labelFill}
-                fontFamily="Inter, sans-serif"
-                fontSize={layer.labelSize * UNIT}
-                fontWeight="500"
-                textAnchor="middle"
-                dominantBaseline="middle"
-                transform={labelMatrix}
-              >
-                {layer.label}
-              </text>
-
-              {/* The chosen track's own name for this boundary. Only the two
-                  DTOs get one; the mapper and the entity are not renamed by a
-                  language choice. */}
-              {declaration ? (
+                <path
+                  d={side}
+                  fill={
+                    active
+                      ? "url(#active-side-sweep)"
+                      : "url(#passive-side-sweep)"
+                  }
+                  stroke={active ? "#c8c8fa" : "#e0e1e9"}
+                  strokeWidth="1.5"
+                />
+                <path
+                  d={face}
+                  fill={
+                    active
+                      ? "url(#active-face-sweep)"
+                      : "url(#passive-face-sweep)"
+                  }
+                  stroke={active ? "#c8c8fa" : "#ffffff"}
+                  strokeWidth="2"
+                />
+                <path
+                  data-connector-network="line"
+                  d={`M96 ${nodeY}H${190 - index * 20}`}
+                  fill="none"
+                  stroke="#c4c5cf"
+                  strokeDasharray="7 10"
+                />
+                <circle
+                  data-connector-node="static"
+                  data-tone={CONNECTOR_NODE_TONES[index]}
+                  cx="96"
+                  cy={nodeY}
+                  r="6"
+                  fill={
+                    CONNECTOR_NODE_TONES[index] === "accent"
+                      ? "#4a6bfa"
+                      : "#c2c3cd"
+                  }
+                  opacity={CONNECTOR_NODE_TONES[index] === "accent" ? 0.9 : 0.5}
+                />
                 <text
-                  data-layer-label="declaration"
-                  className="hero-stack-declaration"
+                  data-layer-label="role"
+                  className={
+                    declaration ? "hero-stack-role--replaced" : undefined
+                  }
                   fill={labelFill}
                   fontFamily="Inter, sans-serif"
-                  fontSize={
-                    fittedLabelSize(declaration, layer.labelSize * 0.88) * UNIT
-                  }
+                  fontSize={layer.labelSize * UNIT}
                   fontWeight="500"
                   textAnchor="middle"
                   dominantBaseline="middle"
                   transform={labelMatrix}
                 >
-                  {declaration}
+                  {layer.label}
                 </text>
-              ) : null}
+
+                {/* The chosen track's own name for this boundary. Only the two
+                  DTOs get one; the mapper and the entity are not renamed by a
+                  language choice. */}
+                {declaration ? (
+                  <text
+                    data-layer-label="declaration"
+                    className="hero-stack-declaration"
+                    fill={labelFill}
+                    fontFamily="Inter, sans-serif"
+                    fontSize={
+                      fittedLabelSize(declaration, layer.labelSize * 0.88) *
+                      UNIT
+                    }
+                    fontWeight="500"
+                    textAnchor="middle"
+                    dominantBaseline="middle"
+                    transform={labelMatrix}
+                  >
+                    {declaration}
+                  </text>
+                ) : null}
               </g>
             </g>
           );

@@ -21,7 +21,10 @@ import { DTO_LAYERS, type DtoLayer } from "./dtoLayers";
  * in the scene's one loaded face rather than pulling a second SDF atlas in for
  * two strings. `fittedLabelSize` keeps every one of them inside its slab.
  */
-const DECLARATIONS: Record<Language, Partial<Record<DtoLayer["id"], string>>> = {
+const DECLARATIONS: Record<
+  Language,
+  Partial<Record<DtoLayer["id"], string>>
+> = {
   java: {
     "request-dto": "record UserRequest",
     "response-dto": "record UserResponse",

@@ -96,7 +96,10 @@ export function LensSurge({
     );
     const aspectUniform = instance.uniforms.get("uAspect");
     if (aspectUniform) {
-      aspectUniform.value = Math.max(0.1, size.width / Math.max(1, size.height));
+      aspectUniform.value = Math.max(
+        0.1,
+        size.width / Math.max(1, size.height),
+      );
     }
 
     progressUniform.value = progress;
@@ -112,10 +115,6 @@ export function LensSurge({
   });
 
   return (
-    <LensSurgePass
-      ref={effect}
-      args={args}
-      blendFunction={BlendFunction.SRC}
-    />
+    <LensSurgePass ref={effect} args={args} blendFunction={BlendFunction.SRC} />
   );
 }

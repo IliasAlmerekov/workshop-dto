@@ -668,7 +668,8 @@ function SnowLayer({
     // Around two degrees at the outermost boundary. Enough that the fan is a
     // rotation and not a translation; short of the angle at which a slab starts
     // showing the eye its underside.
-    group.rotation.y = MathUtils.lerp(-0.045, 0, eased) + spread * surge * 0.024;
+    group.rotation.y =
+      MathUtils.lerp(-0.045, 0, eased) + spread * surge * 0.024;
     group.rotation.z = spread * surge * 0.017;
 
     if (
@@ -688,12 +689,7 @@ function SnowLayer({
           stack lays on the field are the point of the sun, and the boundaries
           landing on each other is what turns the gaps between them into seams
           instead of into space. */}
-      <mesh
-        geometry={geometry}
-        material={material}
-        castShadow
-        receiveShadow
-      />
+      <mesh geometry={geometry} material={material} castShadow receiveShadow />
 
       {/* What the frozen core does to the air around the block.
 
@@ -1408,7 +1404,6 @@ function SnowGrade({
     </EffectComposer>
   );
 }
-
 
 /**
  * The one hard light, and the only thing in the scene that casts.

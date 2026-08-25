@@ -11,7 +11,10 @@ describe("track declarations", () => {
   it("gives every track a declaration for both of them", () => {
     for (const language of LANGUAGES) {
       for (const id of DECLARED_LAYER_IDS) {
-        expect(trackDeclaration(language, id), `${language}/${id}`).toBeTruthy();
+        expect(
+          trackDeclaration(language, id),
+          `${language}/${id}`,
+        ).toBeTruthy();
       }
     }
   });
@@ -31,9 +34,7 @@ describe("track declarations", () => {
 
   it("never shows two tracks the same answer", () => {
     for (const id of DECLARED_LAYER_IDS) {
-      const shown = LANGUAGES.map((language) =>
-        trackDeclaration(language, id),
-      );
+      const shown = LANGUAGES.map((language) => trackDeclaration(language, id));
       expect(new Set(shown).size).toBe(LANGUAGES.length);
     }
   });

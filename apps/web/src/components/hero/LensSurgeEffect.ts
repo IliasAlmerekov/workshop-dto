@@ -103,9 +103,7 @@ export class LensSurgeEffect extends Effect {
       // The surge replaces the frame rather than tinting it: the taps already
       // include the untouched image as their first, heaviest sample.
       blendFunction: BlendFunction.SRC,
-      defines: new Map([
-        ["SURGE_TAPS", String(Math.max(3, Math.round(taps)))],
-      ]),
+      defines: new Map([["SURGE_TAPS", String(Math.max(3, Math.round(taps)))]]),
       uniforms: new Map<string, Uniform>([
         /** 0 at rest, 1 at the peak of the lunge. */
         ["uProgress", new Uniform(0)],

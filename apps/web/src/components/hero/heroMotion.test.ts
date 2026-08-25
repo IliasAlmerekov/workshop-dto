@@ -90,8 +90,8 @@ describe("the commit surge", () => {
   });
 
   it("finishes the inscription swap inside the surge it rides in", () => {
-    expect(HERO_LABEL_SWAP.leadS + HERO_LABEL_SWAP.durationS).toBeLessThanOrEqual(
-      HERO_SURGE_TOTAL_S,
-    );
+    expect(
+      HERO_LABEL_SWAP.leadS + HERO_LABEL_SWAP.durationS,
+    ).toBeLessThanOrEqual(HERO_SURGE_TOTAL_S);
   });
 });

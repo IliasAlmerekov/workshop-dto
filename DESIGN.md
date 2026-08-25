@@ -323,6 +323,10 @@ Vertical stack: a `82 × 66` logo slot, `21px` gap, then a `Body/Language` label
 Padding `28` top, `22` bottom. Widths hug the widest of logo or label, so the four cards are
 deliberately uneven. Brand logos come from `icons/*.png` — never redraw them.
 
+The UI glyphs have the same rule and their own drop: `icons/ui/*.svg` holds the Figma exports
+the inline icon family is traced from. They are source, not runtime assets — nothing ships them
+to the browser, and a new glyph is added by exporting it there first.
+
 ### Button — _variants: Primary · Secondary · Disabled_
 
 `54px` tall, `radius/lg`, horizontal auto-layout with `26px` side padding and a `12px` gap around an

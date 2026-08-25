@@ -9,6 +9,7 @@ import {
   createDefaultState,
 } from "@/lib/workshop/storage";
 import { LANGUAGES } from "@/lib/workshop/types";
+import { setActiveLocale } from "@/lib/i18n/locale";
 
 /**
  * Issue #8 ("Integrate and verify all four language tracks"): proves the
@@ -56,6 +57,7 @@ const TASK_HEADINGS = [
 
 beforeEach(() => {
   window.localStorage.clear();
+  setActiveLocale("en");
   // Task 4's success panel calls the real demo API (spec 6.4) — stubbed
   // here the same way page.test.tsx already does, since this test only
   // cares about the exercise journey, not the live API integration (which
@@ -100,7 +102,7 @@ describe.each(LANGUAGES)("full workshop journey — %s", (language) => {
       );
       // The checks driving Continue are real, not a rubber stamp: the result
       // column reports every rule as passed in words, not by colour alone.
-      expect(screen.getByText("All checks passed")).toBeInTheDocument();
+      expect(await screen.findByText("All checks passed")).toBeInTheDocument();
       expect(screen.getAllByText("Passed").length).toBeGreaterThan(0);
 
       await user.click(screen.getByRole("button", { name: /continue/i }));

@@ -13,7 +13,8 @@ import type {
   ValidationResult,
 } from "@/lib/exercises/types";
 import type { Language, TaskId } from "@/lib/workshop/types";
-import { useMessages } from "@/lib/i18n";
+import { useLocale, useMessages } from "@/lib/i18n";
+import { setActiveLocale } from "@/lib/i18n/locale";
 import { cn } from "@/lib/utils";
 import { useStagedCheckRun } from "@/lib/workshop/checkRun";
 import { CheckRunSteps } from "./CheckRunSteps";
@@ -77,6 +78,7 @@ export function ExerciseRunner({
   const progress = state.tasks[taskId];
 
   const messages = useMessages();
+  const { locale } = useLocale();
   const copy = messages.tasks[taskId] ?? definition;
   const hintCopy = messages.hints[taskId]?.[language];
   const publishResult = usePublishExerciseResult();
@@ -163,6 +165,7 @@ export function ExerciseRunner({
   function handleCheck() {
     const document =
       adapter!.starterCode.before + editableValue + adapter!.starterCode.after;
+    setActiveLocale(locale);
     startCheckRun(adapter!.validate(document), {
       fileName: adapter!.fileName,
     });
@@ -179,6 +182,7 @@ export function ExerciseRunner({
     setInsertGeneration((value) => value + 1);
     // The escape hatch settles at once: someone who asked for the answer is
     // owed the explanation, not a progress animation about it.
+    setActiveLocale(locale);
     startCheckRun(
       adapter!.validate(adapter!.solutionCode),
       { fileName: adapter!.fileName },

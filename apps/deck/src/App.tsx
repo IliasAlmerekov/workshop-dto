@@ -131,7 +131,7 @@ export default function App() {
                 animate="center"
                 exit="exit"
                 transition={FADE_THROUGH}
-                style={{ willChange: "transform, opacity, filter" }}
+                style={{ willChange: "opacity, filter" }}
               >
                 {slide.render(step.fragment)}
               </motion.div>
@@ -204,19 +204,17 @@ export default function App() {
   );
 }
 
-/* A steady transition keeps every slide on the same visual axis. Blur and a
-   tiny scale change soften the handover without exposing the canvas at an edge. */
+/* A simple crossfade keeps the slide plane stable. It gives the audience a
+   clean handover without suggesting that the content is flying toward or away. */
 const SLIDE_FADE = {
   enter: {
     opacity: 0,
-    transform: "scale(0.992)",
-    filter: "blur(4px)",
+    filter: "blur(2px)",
   },
-  center: { opacity: 1, transform: "none", filter: "blur(0px)" },
+  center: { opacity: 1, filter: "blur(0px)" },
   exit: {
     opacity: 0,
-    transform: "scale(0.996)",
-    filter: "blur(2px)",
+    filter: "blur(1px)",
   },
 } as const;
 

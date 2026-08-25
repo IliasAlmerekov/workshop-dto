@@ -1445,11 +1445,10 @@ function Sun({ quality }: { quality: SceneQuality }) {
     // so the correction does not grow without bound as the angle closes.
     current.shadow.bias = -0.0004;
     current.shadow.normalBias = 0.045;
-    // The penumbra. `shadows="soft"` filters with a fixed kernel in texel
-    // space, so the only way to widen the edge is to widen the texel — and the
-    // two tiers have different ones, hence a radius scaled to the map rather
-    // than a number that looks right on a workstation and turns into a stencil
-    // on a laptop.
+    // The penumbra. `shadows="percentage"` spreads its five taps by this
+    // radius measured in texels, so the same number means a different world
+    // width on each tier — hence a radius scaled to the map rather than one
+    // that looks right on a workstation and turns into a stencil on a laptop.
     current.shadow.radius = quality.shadowMapSize / 512;
     current.shadow.needsUpdate = true;
   }, [casts, quality.shadowMapSize]);

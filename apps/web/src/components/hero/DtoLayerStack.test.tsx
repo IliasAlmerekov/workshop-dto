@@ -280,6 +280,38 @@ describe("DtoLayerStack", () => {
     expect(screen.queryByTestId("hero-hover-area")).not.toBeInTheDocument();
   });
 
+  it("re-presses the two DTO inscriptions into the committed track's syntax", async () => {
+    state.supportsWebGL = false;
+    const { container, rerender } = render(
+      <DtoLayerStack className="hero" previewTrack="php" />,
+    );
+    await screen.findByRole("img", { name: /the four layers/i });
+
+    const inscription = (layerId: string, kind: "role" | "declaration") =>
+      container.querySelector(
+        `[data-layer-id="${layerId}"] [data-layer-label="${kind}"]`,
+      );
+
+    // A hover preview is a question, not an answer: nothing is renamed yet.
+    expect(inscription("request-dto", "declaration")).toBeNull();
+    expect(inscription("request-dto", "role")).toHaveTextContent("Request DTO");
+
+    rerender(
+      <DtoLayerStack className="hero" previewTrack="php" selectedTrack="php" />,
+    );
+
+    expect(inscription("request-dto", "declaration")).toHaveTextContent(
+      "final class UserRequest",
+    );
+    expect(inscription("response-dto", "declaration")).toHaveTextContent(
+      "final class UserResponse",
+    );
+    // The boundaries a language does not decide keep their role names.
+    expect(inscription("mapper", "declaration")).toBeNull();
+    expect(inscription("entity", "declaration")).toBeNull();
+    expect(inscription("mapper", "role")).toHaveTextContent("Mapper");
+  });
+
   it("recovers to the static vector stack after WebGL context loss", async () => {
     render(<DtoLayerStack className="hero" />);
 

@@ -10,17 +10,28 @@
  * scenery. It is the mechanism, and the visitor's own pointer is what
  * demonstrates it.
  *
- * Colour follows from that, not from decoration. Snow in overcast light is a
- * near-white that carries the sky's blue in every place light does not reach
- * directly, which means the system's one attention colour — Accent Blue
- * `#1e62fd` — is already this world's native shadow hue. The hero's retired
- * lavender family is not replaced by a second accent; it is dissolved into the
- * blue the rest of the interface was already using. Nothing here introduces a
- * colour the participant does not meet again on the task screen.
+ * Colour follows from that, not from decoration, and the answer here is almost
+ * none. This world is monochrome: a neutral field, neutral snow blocks, one low
+ * sun, and nothing in frame carrying a hue it did not earn from the light. The
+ * version before it argued that a snow shadow is blue and painted the whole
+ * scene with the interface's Accent Blue on that basis — true under an overcast
+ * sky, and a cheerful cast the moment the frame had a sun in it, because then
+ * almost every blue surface in it was one the sun could reach.
+ *
+ * One exception, and it is the composition's subject: the core frozen inside
+ * the lit boundary. Blue is the only chroma left in the scene, so it belongs to
+ * exactly one thing, and that thing is the boundary the workshop is about.
+ *
+ * Value does the work colour used to. The field is raked by a grazing sun and
+ * stays bright; the blocks are the same white snow but present their flat faces
+ * to a sun thirteen degrees up, so they fall away to a mid grey with lit
+ * chamfers — the separation is exposure, not pigment.
  *
  * three.js takes colours, not CSS custom properties, so every value is a hex
  * literal naming the design token it mirrors.
  */
+
+import { SLAB } from "./dtoLayers";
 
 /**
  * ambientCG's **Snow010A** (CC0), versioned locally at 1K, packed here.
@@ -66,73 +77,204 @@ export const SNOW_TILING = {
  * Poly Haven's **Snow Field** (CC0) at 1K: a real overcast winter sky over real
  * snow.
  *
- * It is the only light in the scene, and that is deliberate. Overcast light
- * over snow is the rarest lighting condition in computer graphics and the
- * easiest to get wrong by hand, because almost all of it is bounce: the sky is
- * one enormous softbox and the ground throws most of it back up again. Any
- * arrangement of directional and point lights approximating that ends up with
- * one hard key and a flat fill — the plastic look. A measured environment gives
- * the blocks their soft wrap-around terminator and their cold blue underside
- * for free, and it is what the rims reflect.
+ * It carries most of the scene's energy, and that is deliberate. Diffuse light
+ * over snow is the easiest condition in computer graphics to get wrong by hand,
+ * because almost all of it is bounce: the sky is one enormous softbox and the
+ * ground throws most of it back up again. No arrangement of lamps reproduces
+ * that, and every attempt ends in one hard key over a flat fill. A measured
+ * environment gives the blocks their wrap-around terminator and their lift from
+ * below for free.
+ *
+ * What it cannot do is decide a direction, which is why it is no longer alone:
+ * see `SNOW_SUN`. The sky is now the fill and the sun is the key, in that
+ * order of energy and the opposite order of authorship.
  */
 export const SNOW_ENVIRONMENT = "/hdri/snow_field_1k.hdr";
 
 /**
+ * The sun, sitting almost on the horizon.
+ *
+ * The environment above is still the scene's light *budget* — nearly all of the
+ * energy in an arctic frame is sky and bounce — but a sky alone cannot model a
+ * shape. It arrives from everywhere, so every face of every block receives
+ * roughly the same amount and nothing casts anything: that is why the stack had
+ * no shadow to stand in and no side that was darker than another. One hard
+ * source fixes both, and where it is placed is the whole character of the
+ * frame.
+ *
+ * It is placed low. `elevation` is the sun's height against `reach`, its
+ * distance out — 4.8 against 20.6 is thirteen degrees above the horizon, which
+ * is polar afternoon. Two things follow from that angle and neither is
+ * available at any other. Light arriving this flat *grazes*: it crosses a
+ * surface almost parallel to it, so it catches the top of every crystal and
+ * skips the trough behind it, and the field's relief becomes legible instead
+ * of averaging out into a sheet. And a shadow cast at thirteen degrees is more
+ * than four times the height of the thing casting it, so the four boundaries
+ * lay four hard bars across the snow at four different lengths — the top one
+ * running far enough out that its end dissolves into the whiteout — rather
+ * than four puddles underneath themselves.
+ *
+ * Any lower and the geometry stops paying: the top boundary floats seven units
+ * over the field, and past about ten degrees its shadow leaves the disc
+ * entirely and the stack is back to standing on nothing.
+ *
+ * `intensity` is what it is because the sky is not being turned down all the way
+ * to compensate. Two lights of comparable strength would give the flat, keyless
+ * look back; the sun has to be clearly the one that decides where a highlight
+ * falls, and the sky's job is reduced to filling the side it cannot reach.
+ */
+export const SNOW_SUN = {
+  /** Neutral, barely warm. Low sun over snow is not golden hour — the
+   *  atmosphere it crosses is dry and there is nothing in it to redden. */
+  colour: "#fff8ef",
+  intensity: 2.6,
+  elevation: 4.8,
+  reach: 20.6,
+  /** Bearing in the XZ plane, radians. Front-left, so the shadow is thrown
+   *  right and away from the camera — across the open field the layout keeps
+   *  clear, rather than back under the display type on the left. */
+  bearing: 2.42,
+  /**
+   * The sky's remaining share.
+   *
+   * Held well below the 1.0 it had when it was the only light. An environment
+   * at full strength next to a sun this strong is not a fill, it is a second
+   * key, and the terminator it produces on every block wraps so far around that
+   * the silhouette softens back into the field.
+   */
+  environmentIntensity: 0.62,
+  /**
+   * Half-extent of the shadow camera's orthographic frustum, in world units.
+   *
+   * Sized to the shadow, not to the scene. A 34-unit field would need a
+   * frustum wide enough to spend most of its texels on snow nothing is
+   * standing on; this covers the stack and the full run of what it throws, and
+   * the field past that is lit by sky alone anyway.
+   */
+  shadowExtent: 26,
+} as const;
+
+/**
  * The field's diffuse tint, applied over the photographic albedo.
  *
- * A white with a trace of warmth in it, which is a correction applied twice
- * over. The first correction was upward: the scan this replaced averaged middle
- * grey, and no exposure recovers wet asphalt into snow. The second is this one,
- * sideways. Three separate things in this scene are blue on purpose — the
- * scan's own albedo, the overcast sky lighting it, and the occlusion tinted
- * towards that sky — and three blues multiplied are not a cold white, they are
- * ice. The warmth here cancels exactly two of them, so the field lands neutral
- * where the light hits it square and keeps its blue only where the light does
- * not reach. Which is what snow does.
+ * Neutral, and deliberately a shade under white. The previous value was a warm
+ * white built to cancel two of the three blues this scene used to multiply
+ * together, which is the kind of correction that works right up until someone
+ * looks at the result next to a real photograph of snow: cancelling a cast with
+ * its opposite leaves a *tinted* white, not an untinted one, and the eye reads
+ * the residue. So the cast is removed at every source instead, and this tint
+ * has no hue left to correct. Under a grazing sun a snow field is not white
+ * anyway — it is one narrow value away from white where the light lands and
+ * several away everywhere else, and starting a hair below white is what leaves
+ * the highlights somewhere to go.
  */
-export const SNOW_SURFACE = "#fffcf5";
+export const SNOW_SURFACE = "#f2f2f2";
 
 /**
  * What a press looks like from inside.
  *
- * Compacted snow is denser, so less light escapes it and more of what does has
- * bounced around under the surface, which pulls it towards the sky's blue. This
- * is the colour a footprint's floor is, and it deepens with the press.
+ * Compacted snow is denser, so less light escapes it, and a footprint's floor
+ * can see almost no sky at all. Neutral rather than blue: with the sun this low
+ * the light reaching the bottom of a press has bounced off snow, and snow's
+ * bounce carries the albedo it bounced off, not the sky's hue.
  */
-export const SNOW_PRESSED = "#d6e0ed";
-
-/** The blocks' own tint. White: the scan already carries all the colour snow has. */
-export const SNOW_BLOCK = "#ffffff";
-export const SNOW_BLOCK_ACTIVE = "#e9f0ff";
+export const SNOW_PRESSED = "#b5b7b9";
 
 /**
- * `blue/600`. The attention colour, and simultaneously the colour of a shadow
- * on snow — which is why the accent block does not need a second material to
- * announce itself. It is the same snow, reading a little more like ice.
+ * The blocks' own tint. White: the scan already carries all the colour snow has.
+ *
+ * Kept white deliberately, now that the scene has a sun in it. The obvious way
+ * to stop four white volumes dissolving into white ground is to darken them,
+ * and it works, and it is a lie — the boundaries and the field are the same
+ * material at two densities, and painting one of them grey says they are two
+ * substances. The separation comes from light instead, and it comes for free at
+ * this sun angle: a horizontal top face under a thirteen-degree sun receives
+ * about a fifth of what a sun-facing bevel does, so the blocks read as a stack
+ * of dim planes with bright rolled edges while the open field, raked by the
+ * same light, stays bright. Same albedo, opposite exposure — which is what
+ * actually happens to a snow brick sitting on snow late in the day.
+ */
+export const SNOW_BLOCK = "#ffffff";
+/**
+ * What the snow immediately around the core turns.
+ *
+ * The tint multiplies the albedo rather than adding to it, so this is the value
+ * the block *loses* to having something buried in it — and it has to stay light.
+ * Taken down towards navy the block went murky, because the emissive term was
+ * then adding light to snow that had just been darkened, and the two cancelled
+ * into a flat mid-blue with no centre. Light and clearly cyan: the tint says
+ * *this snow is carrying light*, and the emissive says where the light is. The
+ * job of looking bright belongs to the second one.
+ */
+export const SNOW_BLOCK_ACTIVE = "#c4e6ff";
+
+/**
+ * `blue/600`. The attention colour, and the one hue this world keeps.
+ *
+ * Everything else in frame gave its colour up: the field is neutral, the
+ * occlusion is neutral, the sun is barely warm, and a desaturation pass at the
+ * end of the composer takes the last of the photographic cast off the sky and
+ * the albedo. This survives that pass on purpose, and it is the only thing that
+ * does. In a frame with no other chroma in it, a single blue does not need to
+ * be loud to be the first thing seen — and it is the same blue the participant
+ * meets again on the task screen as the active step.
  */
 export const ICE_ACCENT = "#1e62fd";
+
 /**
- * `blue/500`. The thing frozen inside the lit boundary.
+ * The colour of a broken edge.
  *
- * This is the only light in the scene that is not the sky, and it is allowed
- * because it is not lighting anything — it is *being* something. The colour is
- * one step up DESIGN.md's ramp from the accent itself, because a source always
- * reads lighter than the surface it is tinting, and the snow around it lands on
- * `blue/100` on the way out.
+ * Where a pressed-snow block has been cut, the crystals at the cut are
+ * fractured rather than weathered, and a fractured crystal returns light almost
+ * achromatically — which is why the chamfer on a real snow brick is the one
+ * part of it that stays white when the rest goes to shadow. On a white block
+ * this is doing something subtler than it would on a dark one: it is not
+ * drawing a bright line on a dark object, it is holding the chamfer up while
+ * the flat faces fall away under a sun they are nearly parallel to. A trace
+ * cooler than the faces, so the two never merge.
  */
-export const ICE_GLOW = "#5b8dfe"; // blue/500
+export const ICE_EDGE = "#f4f7fa";
+/**
+ * The thing frozen inside the lit boundary — and the only light in the scene
+ * that is a colour rather than a value.
+ *
+ * Cyan, and fully saturated. The scene around it is monochrome by construction,
+ * so this does not have to be loud to be the subject; it has to be the one place
+ * chroma exists at all, which is a far stronger position than the old scene
+ * could give it, where the whole frame was blue and a blue core was more of the
+ * same.
+ *
+ * Two earlier attempts are worth recording because both failed in the same
+ * direction. A pale near-white core was a lamp switched on under a sheet — no
+ * hue, so nothing to place it in the material. A deep navy one had the hue and
+ * no light: authored dark and then dimmed by the desaturation pass, it arrived
+ * as a bruise on the block rather than as something burning inside it. What the
+ * effect actually needs is both at once, and the way to get both is to put the
+ * saturation in the *colour* and the brightness in the *falloff* — a hot,
+ * small centre that scatters outward across the whole block, which is what
+ * `SLAB_GLOW_BLEED` now builds out of two gaussians instead of one.
+ *
+ * Cyan rather than the interface's own blue for a material reason. Snow and ice
+ * transmit the short end of the spectrum furthest — it is why the inside of a
+ * crevasse is cyan and not navy — so a light that has travelled through
+ * centimetres of pressed snow to reach the surface arrives shifted this way.
+ * The blue family it belongs to is still recognisably the interface's; it has
+ * simply been through the material.
+ */
+export const ICE_GLOW = "#00a6ff";
 
 /**
  * The colour of not seeing the sky.
  *
  * Ambient occlusion is usually black because most scenes are lit by something
- * with a colour of its own. Here the only light is a sky, so a place that is
- * occluded is not a place with less light in it — it is a place that can see
- * less sky, and what it loses is sky-coloured. Tinted rather than neutral, the
- * gaps between the slabs come out the blue that snow shadows actually are
- * instead of the grey that gives a render away.
+ * with a colour of its own. Here a place that is occluded is a place that can
+ * see less of the sky and none of the sun — so it is dark, and it is dark
+ * without a hue. The blue this used to carry was the sky's, and it was correct
+ * for an overcast world with no sun in it; with a low sun doing the modelling,
+ * the same tint turned every gap between two slabs into a lit blue channel and
+ * undid the contact it exists to create.
  */
-export const SNOW_OCCLUSION = "#8ea6cb";
+export const SNOW_OCCLUSION = "#4a4d51";
 
 export const LABEL_INK = "#0a0a0a"; // neutral/black
 export const LABEL_MUTED = "#26262c"; // held up against bright snow
@@ -235,4 +377,40 @@ export const TRAMPLE = {
    * twelve, so the field is always both marked and mostly fresh.
    */
   healPerSecond: 0.55,
+} as const;
+
+/**
+ * The stack's own permanent press, in the disc's UV space.
+ *
+ * A rounded box distance field rather than a painted mark: it never changes, so
+ * stamping it into the trample canvas would mean re-stamping it every frame to
+ * survive the same decay that erases footprints — a megabyte of texture
+ * uploading forever to hold a shape that is five numbers.
+ *
+ * It lives here rather than inside the field's material because it is now read
+ * twice. The vertex shader turns it into geometry, and the CPU evaluates the
+ * same function to find where the pointer meets the surface — and two copies of
+ * a height function are two surfaces, so the pointer would press somewhere the
+ * snow is not.
+ *
+ * `half` is widened past the slab it stands for: a press is never the exact
+ * outline of the thing that made it, the material fails outward, and an anchor
+ * matching the slab edge for edge would read as a projection of it rather than
+ * as a mark left by it.
+ */
+export const FIELD_ANCHOR = {
+  half: [
+    (SLAB.width * 0.62) / TRAMPLE.extent,
+    (SLAB.depth * 0.72) / TRAMPLE.extent,
+  ] as const,
+  centre: [0.5, 0.5] as const,
+  round: 0.006,
+  /**
+   * Narrow, and deep rather than dark. A press reads as a press because its rim
+   * catches light and its floor does not; widen the falloff and the two blur
+   * into one grey gradient, which is a drop shadow — the figure this whole world
+   * exists to replace.
+   */
+  soft: 0.0058,
+  depth: 0.82,
 } as const;

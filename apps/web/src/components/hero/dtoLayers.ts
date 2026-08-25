@@ -76,6 +76,31 @@ export const LAYER_PITCH = 1.85;
 export const LAYER_DRIFT_X = 0;
 
 /**
+ * How far forward on its own face each inscription sits, in world units.
+ *
+ * Not centred, and the reason is occlusion rather than composition. The camera
+ * looks down on the stack from roughly forty degrees, so the ray from any point
+ * on a slab's face to the lens rises 1.41 units before it clears the underside
+ * of the slab above and travels 1.23 units towards the viewer doing it. Every
+ * point further back than about 0.12 behind centre is therefore hidden by the
+ * next boundary up — which is where a centred label's trailing half was, and
+ * why `Response DTO` used to arrive with its first glyphs eaten.
+ *
+ * The previous scene hid the problem by drawing the labels with depth testing
+ * off, which traded a clipped string for a worse one: all four inscriptions
+ * were then composited in front of all four slabs, so the bottom boundary's
+ * name printed itself across the top boundary's face.
+ *
+ * This is the actual fix, and it is camera-independent in the direction that
+ * matters: the near strip of a face is visible from any viewpoint above the
+ * stack, whatever the elevation, because the occluder is always directly above
+ * and always the same size. 0.36 clears the boundary with room for the label's
+ * own half-height and for the transient Z the hover repulsion adds, and still
+ * leaves half a unit of face between the last descender and the rolled edge.
+ */
+export const LABEL_DEPTH = 0.36;
+
+/**
  * One slab: a thick cast-glass block, not a pane.
  *
  * `radius` rounds the four corners in plan; `bevel` rounds the top and bottom
@@ -118,4 +143,34 @@ export function layerSeparationOffset(
 ): [number, number] {
   const spread = index - (DTO_LAYERS.length - 1) / 2;
   return [-spread * yAmount, spread * zAmount];
+}
+
+/**
+ * How much of a slab's top face an inscription may use, in world units.
+ *
+ * Not the full width: a label that reaches the rounded corners sits on the part
+ * of the block where the bevel is already turning away from the sky, so its last
+ * glyphs read against a gradient rather than against the flat face.
+ */
+export const LABEL_FIT_WIDTH = SLAB.width * 0.84;
+
+/**
+ * Mean advance of the scene's label face at size 1, measured across the strings
+ * actually drawn on the slabs. Inter Medium's own average over mixed case, near
+ * enough that a 20-character string lands within a glyph of its true width.
+ */
+const LABEL_MEAN_ADVANCE = 0.55;
+
+/**
+ * The largest size at which `text` still fits its slab, capped at `preferred`.
+ *
+ * The role labels were authored to fit and do not need this. The track
+ * declarations do: `final class UserRequest` is twice the length of `Request
+ * DTO`, and a string over budget does not wrap on a slab — it runs off the rim.
+ * Sizing down rather than truncating keeps the inscription complete, which is
+ * the only version of it that teaches anything.
+ */
+export function fittedLabelSize(text: string, preferred: number): number {
+  const width = Math.max(1, text.length) * LABEL_MEAN_ADVANCE;
+  return Math.min(preferred, LABEL_FIT_WIDTH / width);
 }

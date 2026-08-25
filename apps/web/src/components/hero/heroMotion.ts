@@ -4,6 +4,91 @@ import { DTO_LAYERS } from "./dtoLayers";
 export const HERO_TRANSITION_MS = 1050;
 
 /**
+ * The commit surge: how long the lens artefact of the camera's lunge lasts.
+ *
+ * One envelope drives everything the commit does — the streaks and the
+ * dispersion in `LensSurgeEffect`, the slabs' fan, and the light impulse that
+ * runs down the stack. Peaked rather than monotonic: it arrives faster than
+ * anyone can follow, then releases over four times as long. That asymmetry is
+ * the whole reading. A symmetric swell reads as an effect being applied to the
+ * scene; something that snaps and then settles reads as the scene having been
+ * *hit*, which is what choosing a track is.
+ *
+ * ~510ms end to end, inside `HERO_TRANSITION_MS`, so the surge has resolved and
+ * the stack is visibly settling back into its isometric rest before the route
+ * changes. The artefact must never be the last thing on screen — that would
+ * hand the visitor a broken frame as their final impression of the hero.
+ */
+export const HERO_SURGE = {
+  attackS: 0.085,
+  releaseS: 0.425,
+  /**
+   * Per-slab delay of the light impulse, top boundary first.
+   *
+   * Four slabs at this offset spread the wave over 165ms — long enough to read
+   * as something travelling *through* the stack rather than four blocks lighting
+   * at once, short enough that it never reads as four separate events.
+   */
+  staggerS: 0.055,
+} as const;
+
+export const HERO_SURGE_TOTAL_S = HERO_SURGE.attackS + HERO_SURGE.releaseS;
+
+/**
+ * The surge envelope, as a pure function of seconds since the commit.
+ *
+ * Smoothstep up so the attack has no corner on it, then a power release that
+ * lands on exactly 0 at `HERO_SURGE_TOTAL_S` — an exponential decay would leave
+ * a fraction of a pixel of smear on screen forever and keep the demand loop
+ * awake for it.
+ */
+export function heroSurge(elapsedS: number): number {
+  if (!Number.isFinite(elapsedS) || elapsedS <= 0) {
+    return 0;
+  }
+  if (elapsedS < HERO_SURGE.attackS) {
+    const t = elapsedS / HERO_SURGE.attackS;
+    return t * t * (3 - 2 * t);
+  }
+  const t = (elapsedS - HERO_SURGE.attackS) / HERO_SURGE.releaseS;
+  if (t >= 1) {
+    return 0;
+  }
+  return Math.pow(1 - t, 2.6);
+}
+
+/**
+ * Streak length and channel separation at the frame edge, as a fraction of the
+ * frame, at the peak of the surge.
+ *
+ * Read against a near-white scene, which is the constraint. Snow has almost no
+ * local contrast for a smear to work with, so the blur has to be long enough to
+ * displace whole forms — the labels, the slabs' rims — before it is legible at
+ * all. The dispersion is an eighth of it: any more and the fringe stops being an
+ * artefact of the glass and starts being a colour in the palette, which this
+ * system does not have a slot for.
+ */
+export const HERO_SURGE_OPTICS = {
+  blur: 0.115,
+  dispersion: 0.014,
+} as const;
+
+/**
+ * The inscription re-press: how long a boundary's label takes to become the
+ * chosen language's own declaration.
+ *
+ * Monotonic, unlike the surge, because this one is a state change and not a
+ * flinch — the label does not come back. It rides inside the surge's release so
+ * the swap happens while the frame is smeared, which is what makes two different
+ * strings at the same coordinates read as one being replaced rather than as a
+ * hard cut.
+ */
+export const HERO_LABEL_SWAP = {
+  leadS: 0.04,
+  durationS: 0.34,
+} as const;
+
+/**
  * How long the live canvas takes to dissolve in over the glass loading study,
  * and how long that study takes to dissolve out under it. The exit is shorter
  * than the entrance so the two overlap for most of the handover instead of

@@ -15,7 +15,12 @@ import {
   Text,
   useTexture,
 } from "@react-three/drei";
-import { Bloom, EffectComposer, N8AO } from "@react-three/postprocessing";
+import {
+  EffectComposer,
+  HueSaturation,
+  N8AO,
+} from "@react-three/postprocessing";
+import { BlendFunction } from "postprocessing";
 import {
   BackSide,
   Color,
@@ -28,6 +33,7 @@ import {
   Shape,
   Vector2,
   Vector3,
+  type DirectionalLight,
   type Group,
   type IUniform,
   type MeshBasicMaterial,
@@ -38,8 +44,10 @@ import type { SceneQuality } from "@/lib/three/quality";
 import type { Language } from "@/lib/workshop/types";
 import {
   DTO_LAYERS,
+  LABEL_DEPTH,
   RESTING_ACCENT_LAYER_INDEX,
   SLAB,
+  fittedLabelSize,
   layerPosition,
   layerSeparationOffset,
 } from "./dtoLayers";
@@ -48,16 +56,24 @@ import {
   HERO_IDLE_FRAME_STRIDE,
   HERO_INTRO,
   HERO_INTRO_TOTAL_S,
+  HERO_LABEL_SWAP,
   HERO_SEPARATION,
   HERO_SEPARATION_DAMP,
+  HERO_SURGE,
   HERO_TRANSITION_MS,
   TRACK_FOCUS_LAYER_INDEX,
   TRACK_PREVIEWS,
+  heroSurge,
 } from "./heroMotion";
+import { useCommitElapsed } from "./commitClock";
+import { trackDeclaration } from "./trackDeclarations";
+import { LensSurge } from "./LensSurge";
+import { BLOOM_LEVELS, DownscaledBloom } from "./DownscaledBloom";
 import { SnowField, type HeroPointerRef } from "./SnowField";
 import {
   FIELD_HAZE,
   ICE_ACCENT,
+  ICE_EDGE,
   ICE_GLOW,
   LABEL_ACCENT,
   LABEL_COOL,
@@ -69,6 +85,7 @@ import {
   SNOW_ENVIRONMENT,
   SNOW_MAPS,
   SNOW_OCCLUSION,
+  SNOW_SUN,
   SNOW_TILING,
 } from "./snowWorld";
 
@@ -76,13 +93,20 @@ import {
  * The hero illustration: four boundaries cut from old, pressed snow, floating
  * over a field of fresh snow that keeps the mark of everything that crosses it.
  *
- * The whole scene is lit by one measured overcast sky and nothing else. There
- * is no key light, no fill, and no rim — every highlight, every soft
- * terminator and every cold blue underside is the environment doing what a
- * real sky does over real snow. Adding lamps to this would be adding lamps to
- * a landscape: whatever they bought in control they would cost in the one
- * quality the material depends on, which is that the light arrives from
- * everywhere at once.
+ * The scene is lit by exactly two things: a measured sky, and one sun thirteen
+ * degrees above the horizon. The sky supplies almost all of the energy, which
+ * is what keeps the snow reading as snow — the material depends on light
+ * arriving from everywhere at once, and no arrangement of lamps reproduces
+ * that. The sun supplies none of the realism and all of the drawing. It decides
+ * which face of a block is lit and which is not, it rakes across the field so
+ * the relief stops averaging into a sheet, and it throws the four long bars
+ * that put the stack on the ground instead of over it.
+ *
+ * Everything else the frame needed used to be asked of colour and is now asked
+ * of value. The blocks are dark and the field is bright; light is allowed on
+ * the bevels, in the seams between boundaries and inside the lit one, and
+ * nowhere else. The result is close to monochrome on purpose — see
+ * `snowWorld.ts` for why the accent gave its hue up.
  *
  * Colours are hex literals because three.js takes colours, not CSS custom
  * properties; each names the design token it mirrors.
@@ -323,9 +347,25 @@ function SnowLayer({
   const geometry = useSharedSlabGeometry();
   const rest = useMemo(() => layerPosition(index), [index]);
   const height = SLAB.height;
+
+  /**
+   * What this boundary is called once a track has been committed, or null if it
+   * is one of the two the language does not decide.
+   *
+   * Read from `selectedTrack` and not from the hover preview on purpose. A
+   * preview asks a question and a commit answers it, and re-laying out an SDF
+   * string on every card the pointer crosses would spend the scrub's frame
+   * budget on text the visitor has not chosen.
+   */
+  const declaration = trackDeclaration(selectedTrack, layer.id);
+  const labelY = height / 2 + 0.014;
+  /** How far the inscriptions travel through the face as one replaces the other. */
+  const labelTravel = 0.085;
   const animated = useRef<Group>(null);
   const startedAt = useRef<number | null>(null);
-  const transitionStartedAt = useRef<number | null>(null);
+  const elapsedSinceCommit = useCommitElapsed(selectedTrack);
+  const roleLabel = useRef<ComponentRef<typeof Text>>(null);
+  const trackLabel = useRef<ComponentRef<typeof Text>>(null);
   const previewMix = useRef(0);
   const hoverMix = useRef(0);
   const invalidate = useThree((state) => state.invalidate);
@@ -368,16 +408,23 @@ function SnowLayer({
       // boulder. Taken too far the other way it vanishes and the block is soap.
       normalScale: new Vector2(0.8, 0.8),
       aoMapIntensity: 0.4,
-      // Above the field's own. A raised block sees more sky than the ground
-      // does, and holding it below the field is what made four white volumes
-      // read as grey ones sitting on snow.
-      envMapIntensity: 1.7,
+      // Above the field's own, as it was: a raised block does see more sky than
+      // the ground does. What changed is that the sky is now the fill rather
+      // than the whole rig, so the same multiplier over a smaller number lands
+      // the blocks below the field instead of level with it — which is the
+      // separation the stack used to be missing, arrived at by exposure rather
+      // than by darkening the material.
+      envMapIntensity: 1.42,
       // Snow's velvet: light that enters a crystal, bounces a few times and
       // leaves near where it came in. It is why a snow bank has a bright fringe
-      // wherever it turns away from the sky.
+      // wherever it turns away from the light. Under a raking sun it is what
+      // separates the top of the block from the roll at its edge, so it is
+      // tightened a little from the near-uniform value it ran at under an
+      // overcast sky — the fringe has to land on the chamfer, not across the
+      // whole face.
       sheen: 1,
       sheenColor: new Color("#ffffff"),
-      sheenRoughness: 0.95,
+      sheenRoughness: 0.86,
     });
 
     created.onBeforeCompile = (shader) => {
@@ -393,6 +440,21 @@ function SnowLayer({
       // something with a length reads as an object that was caught in there.
       shader.uniforms.uGlowRadius = { value: new Vector3(2.1, 0.3, 1.05) };
       shader.uniforms.uGlowStrength = { value: 0 };
+      // The permanent edge light, which is not the core and does not animate.
+      // Everything above describes one boundary's buried core; this describes
+      // all four blocks all of the time, and it exists because the brief for
+      // this world allows light in three places — on the bevels, in the seams,
+      // and inside — and the bevels are the only one of the three that is a
+      // property of the surface rather than of an event.
+      shader.uniforms.uEdgeColour = {
+        value: new Color(ICE_EDGE).convertSRGBToLinear(),
+      };
+      // Small, because the block underneath it is white. On a dark volume this
+      // term would be the drawing; here the sun already does the drawing and
+      // this only has to keep the chamfer from merging into the face it rolls
+      // off. Anything above a fraction and the blocks acquire a halo, which is
+      // the render tell this whole pass exists to avoid.
+      shader.uniforms.uEdgeStrength = { value: 0.2 };
 
       shader.vertexShader = shader.vertexShader
         .replace("void main() {", "varying vec3 vSlabLocal;\nvoid main() {")
@@ -418,21 +480,28 @@ function SnowLayer({
 
       glowUniforms.current = shader.uniforms;
     };
-    created.customProgramCacheKey = () => "snow-slab-v1";
+    created.customProgramCacheKey = () => "snow-slab-v2";
 
     return created;
   }, [surface]);
 
   useEffect(() => () => material.dispose(), [material]);
 
-  useEffect(() => {
-    if (!selectedTrack) {
-      transitionStartedAt.current = null;
-    }
-  }, [selectedTrack]);
-
   useFrame(({ clock }, delta) => {
     const now = clock.getElapsedTime();
+
+    /**
+     * The impulse this boundary gets from the commit.
+     *
+     * Staggered by index, so what runs through the stack is a wave and not four
+     * simultaneous flashes: the light reaches `Request DTO` first and `Response
+     * DTO` last, in the order data actually crosses them.
+     */
+    const commitElapsed = elapsedSinceCommit(now);
+    const surge =
+      commitElapsed === null || reducedMotion
+        ? 0
+        : heroSurge(commitElapsed - index * HERO_SURGE.staggerS);
 
     // The core, first, because it has to keep working when nothing else does.
     // Under reduced motion the boundary is still the one the workshop is about,
@@ -442,7 +511,7 @@ function SnowLayer({
     glowMix.current = reducedMotion
       ? target
       : MathUtils.damp(glowMix.current, target, 3.4, delta);
-    if (glowMix.current > 0.0005 || target > 0) {
+    if (glowMix.current > 0.0005 || target > 0 || surge > 0) {
       // A slow, shallow breath. Ice under pressure is not a steady lamp, and a
       // glow that never moves stops reading as something alive in there and
       // starts reading as a printed gradient. Six per cent, over eleven
@@ -451,18 +520,63 @@ function SnowLayer({
       const breath = reducedMotion
         ? 1
         : 1 + Math.sin(now * 0.57) * 0.06 + Math.sin(now * 1.31) * 0.025;
-      const strength = glowMix.current * breath;
+      /**
+       * The commit's light impulse, on top of whatever this boundary was
+       * already carrying.
+       *
+       * The unlit slabs get the larger share, which is the only way the wave is
+       * visible at all: the accent slab is already near the top of its range, so
+       * an equal add would light three blocks and leave the fourth looking
+       * inert. For half a second all four boundaries have something in them, and
+       * then the light drains back into the one the workshop is about — which is
+       * the composition answering the choice rather than being replaced by it.
+       */
+      const strength = glowMix.current * breath + surge * (lit ? 0.42 : 0.78);
       const uniforms = glowUniforms.current;
       if (uniforms) {
         uniforms.uGlowStrength.value = strength;
       }
       if (spill.current) {
-        spill.current.intensity = strength * 0.5;
+        // Raised with the core. What this light is for is the second bounce —
+        // the snow around the buried source lighting the boundary above and the
+        // field below — and a core several times brighter has to spill
+        // proportionally or the block reads as lit inside a sealed box.
+        spill.current.intensity = strength * 0.85;
       }
       if (rim.current) {
-        rim.current.opacity = 0.03 + strength * 0.19;
+        rim.current.opacity = 0.06 + strength * 0.26;
       }
       if (!reducedMotion) {
+        invalidate();
+      }
+    }
+
+    /**
+     * The inscription being re-pressed: the role name lifts off the face and
+     * shrinks away while the track's own declaration rises out of the block.
+     *
+     * Monotonic, so it does not come back, and driven by scale rather than by
+     * opacity — the two strings occupy the same coordinates on the same face,
+     * so a crossfade would show both of them legibly on top of each other for
+     * the whole length of the move. Scaled to nothing,
+     * the one being replaced is simply not there.
+     */
+    if (declaration && roleLabel.current && trackLabel.current) {
+      const swap =
+        commitElapsed === null
+          ? 0
+          : MathUtils.clamp(
+              (commitElapsed - HERO_LABEL_SWAP.leadS) /
+                HERO_LABEL_SWAP.durationS,
+              0,
+              1,
+            );
+      const eased = reducedMotion ? 1 : swap * swap * (3 - 2 * swap);
+      roleLabel.current.scale.setScalar(Math.max(0.0001, 1 - eased));
+      roleLabel.current.position.y = labelY + eased * labelTravel;
+      trackLabel.current.scale.setScalar(Math.max(0.0001, eased));
+      trackLabel.current.position.y = labelY - (1 - eased) * labelTravel;
+      if (eased > 0 && eased < 1) {
         invalidate();
       }
     }
@@ -508,17 +622,10 @@ function SnowLayer({
       delta,
     );
 
-    if (selectedTrack && transitionStartedAt.current === null) {
-      transitionStartedAt.current = now;
-    }
     const transitionProgress =
-      transitionStartedAt.current !== null
-        ? MathUtils.clamp(
-            ((now - transitionStartedAt.current) * 1000) / HERO_TRANSITION_MS,
-            0,
-            1,
-          )
-        : 0;
+      commitElapsed === null
+        ? 0
+        : MathUtils.clamp((commitElapsed * 1000) / HERO_TRANSITION_MS, 0, 1);
     const transitionEase = 1 - Math.pow(1 - transitionProgress, 3);
     const spread = index - (DTO_LAYERS.length - 1) / 2;
     // The two separations add, so hovering an already-previewed stack opens it
@@ -533,22 +640,41 @@ function SnowLayer({
     const idleY = Math.sin(now * 0.6 + index * 1.37) * 0.014 * idleRamp;
     const idleZ = Math.sin(now * 0.48 + index * 1.73) * 0.012 * idleRamp;
 
+    /**
+     * The commit's mechanical answer, in two parts that do different jobs.
+     *
+     * The surge is the flinch. Symmetric about the stack's centre, so the outer
+     * boundaries throw furthest and the four fan apart like a hand of cards
+     * rather than sliding as a block — then it releases, and they come back to
+     * the isometric rest they started from. The monotonic remainder is the
+     * lasting part: a fraction of the same opening that stays while the camera
+     * pushes in, so the stack the route change leaves behind is not the identical
+     * frame it started on.
+     */
+    const fanY = spread * (transitionEase * 0.06 + surge * 0.2);
+    const fanZ = spread * (transitionEase * 0.14 + surge * 0.26);
+
     group.position.set(
       MathUtils.lerp(compressed[0], rest[0], eased),
       MathUtils.lerp(compressed[1], rest[1], eased) +
         idleY +
-        previewOffset[0] +
-        -spread * transitionEase * 0.1,
+        previewOffset[0] -
+        fanY,
       MathUtils.lerp(compressed[2], rest[2], eased) +
         idleZ +
         previewOffset[1] +
-        spread * transitionEase * 0.22,
+        fanZ,
     );
-    group.rotation.y = MathUtils.lerp(-0.045, 0, eased);
+    // Around two degrees at the outermost boundary. Enough that the fan is a
+    // rotation and not a translation; short of the angle at which a slab starts
+    // showing the eye its underside.
+    group.rotation.y = MathUtils.lerp(-0.045, 0, eased) + spread * surge * 0.024;
+    group.rotation.z = spread * surge * 0.017;
 
     if (
       progress < 1 ||
       transitionProgress < 1 ||
+      surge > 0 ||
       previewMix.current > 0.001 ||
       hoverMix.current > 0.001
     ) {
@@ -558,7 +684,16 @@ function SnowLayer({
 
   return (
     <group ref={animated} position={reducedMotion ? rest : compressed}>
-      <mesh geometry={geometry} material={material} />
+      {/* The only caster in the scene, and a receiver too: the four bars the
+          stack lays on the field are the point of the sun, and the boundaries
+          landing on each other is what turns the gaps between them into seams
+          instead of into space. */}
+      <mesh
+        geometry={geometry}
+        material={material}
+        castShadow
+        receiveShadow
+      />
 
       {/* What the frozen core does to the air around the block.
 
@@ -579,19 +714,41 @@ function SnowLayer({
       />
 
       {/* The edge the core escapes through. Where the block is thin, more of
-          the buried light gets out — which is a rim, but a rim with a cause. */}
+          the buried light gets out — which is a rim, but a rim with a cause.
+          It carries more weight now than it did on a white block, because a
+          hairline this pale against a dark volume is legible where the same
+          hairline against snow was not. */}
       <mesh geometry={geometry} scale={1.006}>
         <meshBasicMaterial
           ref={rim}
           side={BackSide}
-          color={lit ? ICE_ACCENT : "#e7eef8"}
+          color={lit ? ICE_ACCENT : ICE_EDGE}
           transparent
-          opacity={lit ? 0.2 : 0.03}
+          opacity={lit ? 0.26 : 0.06}
           depthWrite={false}
         />
       </mesh>
 
+      {/* The inscription, pressed into the face rather than floating over the
+          stack.
+
+          `depthTest` is on, and that is the whole fix for a defect this scene
+          shipped with: with it off, every label was drawn after all four slabs
+          regardless of where it was in space, so `Response DTO` — the boundary
+          furthest from the camera — printed itself straight across the front of
+          `Request DTO`. Four strings from four different depths were landing on
+          one plane in front of everything.
+
+          What depth testing was buying was insurance against the opposite
+          failure, a glyph z-fighting with the snow it sits on. `depthOffset`
+          buys that properly: troika applies it as a polygon offset in the depth
+          buffer, so the text is pushed towards the camera by a fraction of a
+          unit *in its own depth comparison only*, which lifts it clear of its
+          own slab's face while still letting the slab above occlude it. The
+          renderOrder below then keeps the two strings on one slab in a fixed
+          order relative to each other. */}
       <Text
+        ref={roleLabel}
         font={LABEL_FONT}
         fontSize={layer.labelSize}
         letterSpacing={-0.014}
@@ -600,14 +757,44 @@ function SnowLayer({
         anchorY="middle"
         depthOffset={-2}
         renderOrder={10 + index}
-        position={[layer.labelShift, height / 2 + 0.014, 0]}
+        position={[layer.labelShift, labelY, LABEL_DEPTH]}
         rotation={[-Math.PI / 2, 0, 0]}
-        material-depthTest={false}
+        scale={declaration && reducedMotion ? 0.0001 : 1}
         material-depthWrite={false}
         material-toneMapped={false}
       >
         {layer.label}
       </Text>
+
+      {/* The same boundary in the chosen track's own words. Mounted only once a
+          track is committed, so the four slabs carry role names until there is
+          an answer to carry instead — and sized against the slab rather than
+          against the string, because `final class UserRequest` is twice the
+          length of the name it replaces. */}
+      {declaration ? (
+        <Text
+          ref={trackLabel}
+          font={LABEL_FONT}
+          fontSize={fittedLabelSize(declaration, layer.labelSize * 0.88)}
+          letterSpacing={-0.014}
+          color={labelColour}
+          anchorX="center"
+          anchorY="middle"
+          depthOffset={-2}
+          renderOrder={20 + index}
+          position={[
+            layer.labelShift,
+            reducedMotion ? labelY : labelY - 0.085,
+            LABEL_DEPTH,
+          ]}
+          rotation={[-Math.PI / 2, 0, 0]}
+          scale={reducedMotion ? 1 : 0.0001}
+          material-depthWrite={false}
+          material-toneMapped={false}
+        >
+          {declaration}
+        </Text>
+      ) : null}
     </group>
   );
 }
@@ -634,39 +821,93 @@ uniform vec3 uGlowColour;
 uniform vec3 uGlowTint;
 uniform vec3 uGlowRadius;
 uniform float uGlowStrength;
+uniform vec3 uEdgeColour;
+uniform float uEdgeStrength;
 varying vec3 vSlabLocal;
 float slabBleed;
+float slabCore;
 `;
 
 /**
- * Gaussian rather than linear, over squared distance.
+ * Two gaussians over the same squared distance, which is what subsurface
+ * scattering actually looks like and what one gaussian could not do.
  *
  * Light leaving a scattering medium falls off faster than the inverse square
  * that governs it in air, because every millimetre of snow is also absorbing
- * some of it. The exponential is what gives the glow a soft centre with no
- * visible boundary — a linear falloff draws a ring at its own edge, and a ring
- * is the tell that turns this back into a decal.
+ * some of it — hence exponentials rather than a linear ramp, which would draw a
+ * ring at its own edge and turn the whole effect back into a decal.
+ *
+ * But one exponential has one width, and the thing being modelled has two. Very
+ * close to a buried source almost nothing has scattered yet and the light is
+ * still nearly as bright as it left: that is `slabCore`, tight and hot, and it
+ * is precisely the part that was missing when this glow read as dull. Further
+ * out, every photon still arriving has bounced many times, so what remains is
+ * faint, far wider than the source, and spread through the whole volume: that is
+ * `slabBleed`, and its exponent is deliberately shallow so it reaches the ends
+ * of a block two units long instead of dying inside the lens.
+ *
+ * Eight times the concentration in one as in the other. Summed at the emissive
+ * stage with very different weights, they give a centre bright enough to cross
+ * the bloom threshold and a falloff that never shows an edge — bright at the
+ * source, dissipating through the block, which is the entire description of
+ * something frozen inside snow.
  */
 const SLAB_GLOW_BLEED = /* glsl */ `
 vec3 slabToCore = vSlabLocal / uGlowRadius;
-slabBleed = exp( -dot( slabToCore, slabToCore ) * 1.15 ) * uGlowStrength;
+float slabR2 = dot( slabToCore, slabToCore );
+slabCore = exp( -slabR2 * 6.0 ) * uGlowStrength;
+slabBleed = exp( -slabR2 * 0.78 ) * uGlowStrength;
 `;
 
 /**
  * The snow immediately around the core takes its colour.
  *
  * Applied to the albedo rather than added on top, so it darkens as well as
- * tints: this is snow light is passing *through*, not snow with a blue lamp
- * shining on it. It also keeps the effect legible where the glow is strongest,
- * because pure additive emission there would clip to white and the block would
- * lose its own surface at exactly the point of interest.
+ * tints: this is snow light is passing *through*, not snow with a lamp shining
+ * on it. It also keeps the effect legible where the glow is strongest, because
+ * pure additive emission there would clip to white and the block would lose its
+ * own surface at exactly the point of interest.
+ *
+ * Driven by the wide term only. The hot centre must not darken anything — it is
+ * the one place in the block where light is being added faster than the snow can
+ * absorb it, and multiplying its own albedo down there is what turned an earlier
+ * pass into a bruise instead of a source.
  */
 const SLAB_GLOW_TINT = /* glsl */ `
 diffuseColor.rgb = mix(
   diffuseColor.rgb,
   diffuseColor.rgb * uGlowTint,
-  clamp( slabBleed * 1.3, 0.0, 1.0 )
+  clamp( slabBleed * 1.15, 0.0, 1.0 )
 );
+`;
+
+/**
+ * The bevel catching the light, and nothing else catching it.
+ *
+ * A hard Fresnel — eighth power, so it is essentially zero across a face and
+ * only wakes up in the last few degrees before the surface turns away from the
+ * eye. On a block whose top and bottom rims are rolled, "the last few degrees"
+ * is geometrically the rolled part, which is why this reads as a machined
+ * chamfer rather than as an outline: the term is not tracing the silhouette, it
+ * is finding the places where the geometry actually curves.
+ *
+ * The normal it reads is the mapped one, so the scan's crystal facets take part
+ * too. That is the whole difference between an edge light and a rim light —
+ * every lump on the block's face that happens to turn away from the viewer
+ * lights its own leading edge, and the surface stays a material rather than
+ * becoming a shape with a glow around it.
+ *
+ * Emissive rather than specular on purpose. This is not a reflection of
+ * anything; there is no fourth light in the scene. It is the block declaring
+ * where its own geometry breaks, which is a drawing decision, and drawing
+ * decisions do not survive being handed to the BRDF.
+ */
+const SLAB_EDGE_EMISSIVE = /* glsl */ `
+float slabFacet = pow(
+  1.0 - clamp( abs( dot( normalize( vViewPosition ), normal ) ), 0.0, 1.0 ),
+  8.0
+);
+totalEmissiveRadiance += uEdgeColour * slabFacet * uEdgeStrength;
 `;
 
 const SLAB_GLOW_EMISSIVE = /* glsl */ `
@@ -674,7 +915,15 @@ float slabEscape = pow(
   1.0 - abs( dot( normalize( vViewPosition ), normal ) ),
   1.5
 );
-totalEmissiveRadiance += uGlowColour * slabBleed * ( 0.42 + 1.25 * slabEscape );
+// The wide halo first: low, and lifted at grazing angles because that is where
+// the eye is looking through the least snow. Then the core on top of it, at
+// several times the weight and with no view dependence at all — a source this
+// close to the surface is bright from every direction, and making it Fresnel
+// too was what left the centre looking as tired as its own edges.
+totalEmissiveRadiance +=
+  uGlowColour * slabBleed * ( 0.30 + 1.05 * slabEscape ) +
+  uGlowColour * slabCore * 3.4;
+${SLAB_EDGE_EMISSIVE}
 `;
 
 /**
@@ -875,7 +1124,7 @@ function CameraRig({
   const dolly = useRef(0);
   const focusPan = useRef(0);
   const framedAt = useRef("");
-  const transitionStartedAt = useRef<number | null>(null);
+  const elapsedSinceCommit = useCommitElapsed(selectedTrack);
   const direction = useMemo(
     () => new Vector3(...CAMERA_DIRECTION).normalize(),
     [],
@@ -885,12 +1134,6 @@ function CameraRig({
     () => new Vector3(CAMERA_DIRECTION[2], 0, -CAMERA_DIRECTION[0]).normalize(),
     [],
   );
-
-  useEffect(() => {
-    if (!selectedTrack) {
-      transitionStartedAt.current = null;
-    }
-  }, [selectedTrack]);
 
   /**
    * Frame the stack inside the page's column while the canvas covers the page.
@@ -987,17 +1230,11 @@ function CameraRig({
     }
 
     const now = clock.getElapsedTime();
-    if (selectedTrack && transitionStartedAt.current === null) {
-      transitionStartedAt.current = now;
-    }
+    const commitElapsed = elapsedSinceCommit(now);
     const transitionProgress =
-      transitionStartedAt.current !== null
-        ? MathUtils.clamp(
-            ((now - transitionStartedAt.current) * 1000) / HERO_TRANSITION_MS,
-            0,
-            1,
-          )
-        : 0;
+      commitElapsed === null
+        ? 0
+        : MathUtils.clamp((commitElapsed * 1000) / HERO_TRANSITION_MS, 0, 1);
     const transitionEase = 1 - Math.pow(1 - transitionProgress, 3);
     const track = selectedTrack ?? previewTrack;
     const trackYaw = track ? TRACK_PREVIEWS[track].cameraYaw : 0;
@@ -1062,38 +1299,178 @@ function CameraRig({
  * image-based light has no way to know that the gap between two stacked slabs
  * sees almost none of the sky. That missing darkness is the whole reason the
  * four boundaries were washing into the field behind them. Occlusion supplies
- * it from depth, tinted towards the sky's blue rather than towards grey —
- * because on snow the shadow *is* the sky, seen from a place that can only see
- * a little of it.
+ * it from depth. Neutral rather than sky-tinted: with a sun in the scene, a
+ * crevice is a place that can see neither the sky nor the sun, and what it
+ * loses is not one light's colour but most of the light.
  *
- * Everything else a composer usually carries is refused here. A vignette would
- * darken a canvas whose corners are transparent and meant to become the page;
- * depth of field would blur an illustration a visitor is reading labels off;
- * colour grading would move design tokens.
+ * The third pass is the transition itself, and unlike the other two it is not
+ * a grade — it is the only thing in this chain that is ever animated. It is also
+ * the one pass that is here at every quality tier, which is why the composer no
+ * longer opts out on the cheapest devices: those are the touch devices, where a
+ * tap on a track card is the *only* way this transition is ever triggered, and a
+ * scene that dropped the whole chain there would drop the commit's optics with
+ * it. The two grades stay tier-gated inside; nothing is ever added or removed
+ * once mounted, so no commit can land on a frame that is rebuilding passes.
+ *
+ * The fourth is the colour decision, and it is the one pass here that used to
+ * be refused on the grounds that grading moves design tokens. It moves none:
+ * every token this scene binds is now a neutral, and what the pass removes is
+ * a cast belonging to two photographic inputs that have no tokens in them at
+ * all — a measured sky and a measured albedo, both of which are blue in the
+ * file and cannot be edited there.
+ *
+ * What is still refused is the rest of the composer's usual kit. A vignette
+ * would darken a canvas whose corners are transparent and meant to become the
+ * page; depth of field would blur an illustration a visitor is reading labels
+ * off.
  */
-function SnowGrade({ quality }: { quality: SceneQuality }) {
-  if (quality.tier === "low") {
-    return null;
-  }
+function SnowGrade({
+  quality,
+  reducedMotion,
+  selectedTrack,
+}: {
+  quality: SceneQuality;
+  reducedMotion: boolean;
+  selectedTrack: Language | null;
+}) {
+  const graded = quality.tier !== "low";
 
   return (
-    <EffectComposer multisampling={quality.tier === "high" ? 4 : 0}>
-      <N8AO
-        color={SNOW_OCCLUSION}
-        aoRadius={0.95}
-        distanceFalloff={0.8}
-        intensity={0.9}
-        quality={quality.tier === "high" ? "medium" : "low"}
-        halfRes={quality.tier !== "high"}
+    // Two samples everywhere but the top tier. The bottom tier used to render
+    // straight to a multisampled default framebuffer, and routing it through a
+    // composer without any would have traded the transition for aliased rims on
+    // the devices least able to hide them.
+    <EffectComposer multisampling={quality.tier === "high" ? 4 : 2}>
+      {graded ? (
+        <N8AO
+          color={SNOW_OCCLUSION}
+          aoRadius={0.95}
+          distanceFalloff={0.8}
+          intensity={0.9}
+          quality={quality.tier === "high" ? "medium" : "low"}
+          halfRes={quality.tier !== "high"}
+        />
+      ) : null}
+      {graded ? (
+        <DownscaledBloom
+          // Stated rather than left to default: `wrapEffect` forwards an
+          // undefined `blendFunction` to the reconciler as a real prop, and the
+          // fallback for a missing blend function is `SKIP` — an effect that
+          // renders and is then discarded.
+          blendFunction={BlendFunction.SCREEN}
+          args={[
+            {
+              mipmapBlur: true,
+              intensity: 0.42,
+              luminanceThreshold: 0.86,
+              luminanceSmoothing: 0.22,
+              radius: 0.62,
+              levels: BLOOM_LEVELS,
+            },
+          ]}
+        />
+      ) : null}
+      <LensSurge
+        quality={quality}
+        reducedMotion={reducedMotion}
+        selectedTrack={selectedTrack}
       />
-      <Bloom
-        mipmapBlur
-        intensity={0.42}
-        luminanceThreshold={0.86}
-        luminanceSmoothing={0.22}
-        radius={0.62}
-      />
+      {/* The last word on colour, and the only pass in the chain that is a
+          grade in the ordinary sense.
+
+          It is here because two of this scene's inputs carry a hue that cannot
+          be edited at source. The environment is a photograph of a real
+          overcast sky and its blue is baked into every one of its texels; the
+          albedo scan measures 223, 239, 252 and is blue for the same reason.
+          Neutralising either one by tinting the material that samples it is the
+          correction this world spent a version doing, and it produces a tinted
+          white rather than an untinted one — the residue is visible and it is
+          what read as cheerful.
+
+          So the cast comes off at the end, where it can come off completely.
+          Not all the way: at full desaturation the frame goes to greyscale and
+          greyscale is a filter, announcing itself as a treatment applied to a
+          colour image. Held here, the snow keeps the last trace of cold it
+          actually has and nothing in frame reads as chromatic.
+
+          It runs at every tier, unlike the two grades above it, because a
+          scene whose colour decision is tier-dependent is two different
+          scenes.
+
+          Where it stops is set by the one thing in frame allowed to keep a
+          hue: the core frozen inside the lit boundary. A third is enough to take the
+          sky's cast off a near-white field — the field had very little left to
+          lose once its own tint went neutral — and it is shallow enough that a
+          deep blue authored at `blue/700` still arrives as a deep blue rather
+          than as slate. The number was twice this when the core was pale; a
+          saturated core cannot afford it, and the field never needed it. */}
+      <HueSaturation saturation={-0.34} />
     </EffectComposer>
+  );
+}
+
+
+/**
+ * The one hard light, and the only thing in the scene that casts.
+ *
+ * It is a component rather than three lines of JSX because the shadow camera
+ * has to be reconfigured whenever the tier changes, and a directional light's
+ * shadow camera is a real `OrthographicCamera` whose projection matrix does not
+ * recompute on its own — set `left`/`right`/`top`/`bottom` and nothing happens
+ * until someone calls `updateProjectionMatrix`. Doing that in JSX props is the
+ * bug where the shadow silently uses the default 5-unit frustum and clips into
+ * a hard square edge halfway across the field.
+ *
+ * `castShadow` is bound to the tier rather than left on. A zero-size map means
+ * the tier declined the pass, and a light with `castShadow` and no map is a
+ * second full render of the scene per frame producing nothing.
+ */
+function Sun({ quality }: { quality: SceneQuality }) {
+  const light = useRef<DirectionalLight>(null);
+  const casts = quality.shadowMapSize > 0;
+
+  useLayoutEffect(() => {
+    const current = light.current;
+    if (!current || !casts) {
+      return;
+    }
+    const camera = current.shadow.camera;
+    camera.left = -SNOW_SUN.shadowExtent;
+    camera.right = SNOW_SUN.shadowExtent;
+    camera.top = SNOW_SUN.shadowExtent;
+    camera.bottom = -SNOW_SUN.shadowExtent;
+    camera.near = 0.5;
+    camera.far = SNOW_SUN.reach + SNOW_SUN.shadowExtent * 2;
+    camera.updateProjectionMatrix();
+    current.shadow.mapSize.set(quality.shadowMapSize, quality.shadowMapSize);
+    // Depth bias, not slope bias. At thirteen degrees almost every lit surface
+    // in frame is close to parallel to the light, which is exactly the case a
+    // constant bias handles badly and a normal-space offset handles well: the
+    // sample is pushed along the surface normal instead of towards the light,
+    // so the correction does not grow without bound as the angle closes.
+    current.shadow.bias = -0.0004;
+    current.shadow.normalBias = 0.045;
+    // The penumbra. `shadows="soft"` filters with a fixed kernel in texel
+    // space, so the only way to widen the edge is to widen the texel — and the
+    // two tiers have different ones, hence a radius scaled to the map rather
+    // than a number that looks right on a workstation and turns into a stencil
+    // on a laptop.
+    current.shadow.radius = quality.shadowMapSize / 512;
+    current.shadow.needsUpdate = true;
+  }, [casts, quality.shadowMapSize]);
+
+  return (
+    <directionalLight
+      ref={light}
+      color={SNOW_SUN.colour}
+      intensity={SNOW_SUN.intensity}
+      castShadow={casts}
+      position={[
+        Math.cos(SNOW_SUN.bearing) * SNOW_SUN.reach,
+        SNOW_SUN.elevation,
+        Math.sin(SNOW_SUN.bearing) * SNOW_SUN.reach,
+      ]}
+    />
   );
 }
 
@@ -1135,11 +1512,6 @@ export default function DtoLayerStackScene({
         busyKey={`${revealed}:${previewTrack}:${selectedTrack}:${expanded}:${hovered}:${focusLayerIndex}`}
       />
 
-      {/* The whole lighting rig. An overcast winter sky measured over a real
-          snow field, which is one enormous softbox above and one enormous
-          bounce below — the condition every hand-placed light in the previous
-          scene was approximating, and the one that no arrangement of lamps
-          reproduces, because most of its light comes back up off the ground. */}
       {/* The world's far end. Everything past the stack walks into the page's
           own backdrop colour, so the field has a horizon and the page has no
           seam — one value doing the work of a matte painting. */}
@@ -1148,11 +1520,19 @@ export default function DtoLayerStackScene({
         args={[FIELD_HAZE.colour, FIELD_HAZE.near, FIELD_HAZE.far]}
       />
 
+      {/* The fill: an overcast winter sky measured over a real snow field,
+          which is one enormous softbox above and one enormous bounce below.
+          Turned down from the 1.0 it ran at when it was the whole rig, so that
+          what it now does is lift the side the sun cannot reach rather than
+          compete with it for authorship of the frame. */}
       <Environment
         files={SNOW_ENVIRONMENT}
         resolution={quality.environmentResolution}
-        environmentIntensity={1}
+        environmentIntensity={SNOW_SUN.environmentIntensity}
       />
+
+      {/* The key: one sun, almost on the horizon. */}
+      <Sun quality={quality} />
 
       <SnowField
         quality={quality}
@@ -1176,7 +1556,11 @@ export default function DtoLayerStackScene({
         ))}
       </group>
 
-      <SnowGrade quality={quality} />
+      <SnowGrade
+        quality={quality}
+        reducedMotion={reducedMotion}
+        selectedTrack={selectedTrack}
+      />
     </>
   );
 }

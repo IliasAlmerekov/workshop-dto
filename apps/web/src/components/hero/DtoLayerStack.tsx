@@ -453,6 +453,7 @@ export function DtoLayerStack({
       {mode.kind === "flat" ? (
         <DtoLayerStackFallback
           activeTrack={activeTrack}
+          selectedTrack={selectedTrack}
           focusLayerIndex={focusLayerIndex}
           expanded={expanded}
           hovered={hovered}

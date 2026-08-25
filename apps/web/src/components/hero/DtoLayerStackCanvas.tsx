@@ -62,11 +62,16 @@ export default function DtoLayerStackCanvas({
       }}
     >
       <Canvas
-        // No shadow maps anywhere. The scene's only light is an environment,
-        // which casts no shadow a map could capture, and the one contact the
-        // composition needs — the stack's weight in the snow — is real
-        // displaced geometry rather than a dark ellipse under a floating box.
-        shadows={false}
+        // Percentage-closer soft shadows, because the scene now has a sun in
+        // it and a sun eight degrees above the horizon is the whole reason the
+        // stack reads as three-dimensional. Soft rather than hard filtering:
+        // the real sun is half a degree wide and its shadow edge softens with
+        // distance from the caster, and a shadow this long spends most of its
+        // length far enough away that a hard edge would be visibly a texture.
+        // Whether the map is actually allocated is the light's decision, per
+        // quality tier — the stack's *contact* with the ground is still real
+        // displaced geometry, not a dark ellipse under a floating box.
+        shadows="soft"
         dpr={quality.dpr}
         frameloop="demand"
         gl={{

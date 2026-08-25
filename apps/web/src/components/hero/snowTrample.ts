@@ -40,6 +40,27 @@ export class SnowTrample {
   private painted = false;
   private settled = true;
 
+  /**
+   * True when the canvas has been painted since the last upload.
+   *
+   * The buffer is a megabyte, and handing it to the driver means a full
+   * `texImage2D` — decode, unpack, and a stall if the GPU is still reading the
+   * previous copy. At sixty frames that is 60MB/s of bus traffic spent on a
+   * shape whose fastest feature is a footprint filling in over six seconds, so
+   * the copy is refreshed on every other frame instead. It halves the cost and
+   * it is invisible: the map is read as a *displacement*, low-frequency by
+   * construction and filtered bilinearly on the way in, so one frame of lag on
+   * the rim of a mark is a sub-texel difference in a surface the eye is
+   * tracking for its light, not its latency.
+   *
+   * Two frames are exempt. The first press after the field has been asleep goes
+   * up immediately, because that one *is* visible — it is the gap between the
+   * pointer arriving and the snow answering. And the frame that settles goes up
+   * unconditionally: it is the clear to true black, and skipping it would leave
+   * the GPU holding the last mark forever with nothing scheduled to replace it.
+   */
+  private stale = false;
+
   constructor(document: Document) {
     const canvas = document.createElement("canvas");
     canvas.width = TRAMPLE.size;
@@ -101,7 +122,11 @@ export class SnowTrample {
 
     this.residual = Math.min(1, this.residual + amount);
     this.painted = true;
-    this.settled = false;
+    if (this.settled) {
+      // Waking up: this mark is the one the visitor is watching for.
+      this.stale = true;
+      this.settled = false;
+    }
   }
 
   /**
@@ -141,8 +166,19 @@ export class SnowTrample {
       this.settled = true;
     }
 
-    this.texture.needsUpdate = true;
+    if (this.stale || this.settled) {
+      this.texture.needsUpdate = true;
+      this.stale = false;
+    } else {
+      this.stale = true;
+    }
+
     return true;
+  }
+
+  /** True while the canvas holds paint the GPU has not been given yet. */
+  get pendingUpload(): boolean {
+    return this.stale;
   }
 
   /** True while the buffer still holds a mark worth uploading. */

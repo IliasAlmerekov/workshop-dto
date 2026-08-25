@@ -1,4 +1,9 @@
-import { DTO_LAYERS, RESTING_ACCENT_LAYER_INDEX } from "./dtoLayers";
+import {
+  DTO_LAYERS,
+  RESTING_ACCENT_LAYER_INDEX,
+  fittedLabelSize,
+} from "./dtoLayers";
+import { trackDeclaration } from "./trackDeclarations";
 import type { Language } from "@/lib/workshop/types";
 import {
   CONNECTOR_NODE_TONES,
@@ -75,6 +80,7 @@ function facePath(index: number) {
 export function DtoLayerStackFallback({
   className,
   activeTrack = null,
+  selectedTrack = null,
   focusLayerIndex = null,
   expanded = false,
   hovered = false,
@@ -82,6 +88,13 @@ export function DtoLayerStackFallback({
 }: {
   className?: string;
   activeTrack?: Language | null;
+  /**
+   * The committed track, which is the one that renames the two DTO boundaries.
+   * A no-WebGL device is not a reduced-motion device — it still watches the full
+   * transition before the route changes — so it gets the same answer to its
+   * choice, drawn with what SVG has.
+   */
+  selectedTrack?: Language | null;
   /** Index into `DTO_LAYERS` to accent, overriding the track-derived one. */
   focusLayerIndex?: number | null;
   expanded?: boolean;
@@ -192,6 +205,17 @@ export function DtoLayerStackFallback({
             : LABEL_FILL[layer.tone];
           const { left, near, right } = corners(index);
           const nodeY = TOP + index * PITCH;
+          const declaration = trackDeclaration(selectedTrack, layer.id);
+          /** Signed distance from the stack's centre — what makes it a fan. */
+          const fan = index - (DTO_LAYERS.length - 1) / 2;
+          const labelMatrix = [
+            `matrix(${WIDTH_AXIS[0] / WIDTH_LENGTH}`,
+            `${WIDTH_AXIS[1] / WIDTH_LENGTH}`,
+            `${DEPTH_AXIS[0] / DEPTH_LENGTH}`,
+            `${DEPTH_AXIS[1] / DEPTH_LENGTH}`,
+            `${left[0] + (WIDTH_AXIS[0] + DEPTH_AXIS[0]) / 2 + layer.labelShift * UNIT * (WIDTH_AXIS[0] / WIDTH_LENGTH)}`,
+            `${left[1] + (WIDTH_AXIS[1] + DEPTH_AXIS[1]) / 2 + layer.labelShift * UNIT * (WIDTH_AXIS[1] / WIDTH_LENGTH)})`,
+          ].join(" ");
           const side = [
             `M${left[0]} ${left[1]}`,
             `L${near[0]} ${near[1]}`,
@@ -215,6 +239,14 @@ export function DtoLayerStackFallback({
               }}
               className="transition-transform duration-[460ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none"
             >
+              {/* The commit's flinch lives on its own group: the outer one
+                  already carries the picker and hover separation as an inline
+                  transform, and one element cannot hold two. */}
+              <g
+                key={selectedTrack ? `committed-${selectedTrack}` : "resting"}
+                className={selectedTrack ? "hero-stack-fan" : undefined}
+                style={{ "--fan": fan } as React.CSSProperties}
+              >
               <path
                 d={side}
                 fill={
@@ -256,23 +288,40 @@ export function DtoLayerStackFallback({
                 opacity={CONNECTOR_NODE_TONES[index] === "accent" ? 0.9 : 0.5}
               />
               <text
+                data-layer-label="role"
+                className={declaration ? "hero-stack-role--replaced" : undefined}
                 fill={labelFill}
                 fontFamily="Inter, sans-serif"
                 fontSize={layer.labelSize * UNIT}
                 fontWeight="500"
                 textAnchor="middle"
                 dominantBaseline="middle"
-                transform={[
-                  `matrix(${WIDTH_AXIS[0] / WIDTH_LENGTH}`,
-                  `${WIDTH_AXIS[1] / WIDTH_LENGTH}`,
-                  `${DEPTH_AXIS[0] / DEPTH_LENGTH}`,
-                  `${DEPTH_AXIS[1] / DEPTH_LENGTH}`,
-                  `${left[0] + (WIDTH_AXIS[0] + DEPTH_AXIS[0]) / 2 + layer.labelShift * UNIT * (WIDTH_AXIS[0] / WIDTH_LENGTH)}`,
-                  `${left[1] + (WIDTH_AXIS[1] + DEPTH_AXIS[1]) / 2 + layer.labelShift * UNIT * (WIDTH_AXIS[1] / WIDTH_LENGTH)})`,
-                ].join(" ")}
+                transform={labelMatrix}
               >
                 {layer.label}
               </text>
+
+              {/* The chosen track's own name for this boundary. Only the two
+                  DTOs get one; the mapper and the entity are not renamed by a
+                  language choice. */}
+              {declaration ? (
+                <text
+                  data-layer-label="declaration"
+                  className="hero-stack-declaration"
+                  fill={labelFill}
+                  fontFamily="Inter, sans-serif"
+                  fontSize={
+                    fittedLabelSize(declaration, layer.labelSize * 0.88) * UNIT
+                  }
+                  fontWeight="500"
+                  textAnchor="middle"
+                  dominantBaseline="middle"
+                  transform={labelMatrix}
+                >
+                  {declaration}
+                </text>
+              ) : null}
+              </g>
             </g>
           );
         })}

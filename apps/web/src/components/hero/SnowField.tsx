@@ -13,13 +13,13 @@ import {
   SRGBColorSpace,
   Vector2,
   type IUniform,
-  type Mesh,
 } from "three";
 import type { SceneQuality } from "@/lib/three/quality";
-import { SLAB } from "./dtoLayers";
+import { pickFieldUv } from "./fieldPick";
 import { SnowTrample } from "./snowTrample";
 import {
   FIELD,
+  FIELD_ANCHOR,
   SNOW_MAPS,
   SNOW_PRESSED,
   SNOW_SURFACE,
@@ -70,12 +70,13 @@ export function SnowField({
   reducedMotion: boolean;
   pointer: HeroPointerRef;
 }) {
-  const mesh = useRef<Mesh>(null);
   const invalidate = useThree((state) => state.invalidate);
   const camera = useThree((state) => state.camera);
   const maps = useTexture(SNOW_MAPS);
   const raycaster = useMemo(() => new Raycaster(), []);
   const ndc = useMemo(() => new Vector2(), []);
+  // Written by every pick and read immediately; one vector for the whole scene.
+  const uv = useMemo(() => new Vector2(), []);
   const uniforms = useRef<Record<string, IUniform> | null>(null);
 
   /**
@@ -144,19 +145,6 @@ export function SnowField({
     arm.repeat.set(grain, grain);
     height.repeat.set(1, 1);
 
-    /**
-     * The stack's own footprint, in the disc's UV space.
-     *
-     * Widened past the slab it stands for. A press is never the exact outline
-     * of the thing that made it — the material fails outward — and an anchor
-     * matching the slab edge for edge would read as a projection of it rather
-     * than as a mark left by it.
-     */
-    const anchorHalf = new Vector2(
-      (SLAB.width * 0.62) / TRAMPLE.extent,
-      (SLAB.depth * 0.72) / TRAMPLE.extent,
-    );
-
     const created = new MeshStandardMaterial({
       map: colour,
       normalMap: normal,
@@ -201,19 +189,18 @@ export function SnowField({
       shader.uniforms.uSnowSlope = {
         value: (FIELD.pressDepth * TRAMPLE.size) / (TRAMPLE.extent * 2) / 1.35,
       };
-      shader.uniforms.uSnowAnchorHalf = { value: anchorHalf };
-      shader.uniforms.uSnowAnchorCentre = { value: new Vector2(0.5, 0.5) };
-      shader.uniforms.uSnowAnchorRound = { value: 0.006 };
-      // Narrow enough to read as a press rather than as a drop shadow, deep
-      // enough to read at all. Tightened past this the mark disappeared and
-      // the stack went back to floating over an untouched field, which is the
-      // one thing this composition may not say.
-      // Narrow, and deep rather than dark. A press reads as a press because
-      // its rim catches light and its floor does not; widen the falloff and the
-      // two blur into one grey gradient, which is a drop shadow — the figure
-      // this whole world exists to replace.
-      shader.uniforms.uSnowAnchorSoft = { value: 0.0058 };
-      shader.uniforms.uSnowAnchorDepth = { value: 0.82 };
+      // The anchor's five numbers live in `snowWorld` because the pointer pick
+      // evaluates the same distance field on the CPU; a second copy here would
+      // be a second surface for the pointer to press into.
+      shader.uniforms.uSnowAnchorHalf = {
+        value: new Vector2(FIELD_ANCHOR.half[0], FIELD_ANCHOR.half[1]),
+      };
+      shader.uniforms.uSnowAnchorCentre = {
+        value: new Vector2(FIELD_ANCHOR.centre[0], FIELD_ANCHOR.centre[1]),
+      };
+      shader.uniforms.uSnowAnchorRound = { value: FIELD_ANCHOR.round };
+      shader.uniforms.uSnowAnchorSoft = { value: FIELD_ANCHOR.soft };
+      shader.uniforms.uSnowAnchorDepth = { value: FIELD_ANCHOR.depth };
       shader.uniforms.uSnowPressedTint = {
         value: new Color(SNOW_PRESSED).convertSRGBToLinear(),
       };
@@ -266,20 +253,21 @@ export function SnowField({
 
     map.uSnowTime.value = clock.getElapsedTime();
 
-    const target = mesh.current;
     const probe = pointer.current;
-    if (target && probe.inside && !reducedMotion) {
+    if (probe.inside && !reducedMotion) {
       ndc.set(probe.x, probe.y);
+      // The raycaster is here for its camera unprojection and nothing else:
+      // `pickFieldUv` solves the surface analytically rather than walking the
+      // disc's eighty thousand triangles once per frame.
       raycaster.setFromCamera(ndc, camera);
-      const [hit] = raycaster.intersectObject(target, false);
-      if (hit?.uv) {
+      if (pickFieldUv(raycaster.ray, uv)) {
         // The brush is charged by time rather than by event count, so the same
         // gesture leaves the same mark whether the pointer reports at 60Hz or
         // at 1000Hz, and a pointer held still keeps pressing rather than
         // stopping at whatever one sample happened to deposit.
         trample.press(
-          hit.uv.x,
-          hit.uv.y,
+          uv.x,
+          uv.y,
           TRAMPLE.brushStrength * Math.min(delta, 1 / 30) * 60,
         );
       }
@@ -291,10 +279,17 @@ export function SnowField({
   });
 
   return (
+    // Receives, never casts. The disc is the ground: nothing in this scene is
+    // below it for it to shadow, and asking a 176-ring displaced surface to
+    // render itself a second time into a depth map would cost the frame the
+    // stack's shadow is paid for out of. Its own relief is modelled by the
+    // sun's grazing angle across the normal map, which is cheaper and, at
+    // thirteen degrees, sharper than a shadow map of the same dunes.
     <mesh
-      ref={mesh}
       geometry={geometry}
       material={material}
+      receiveShadow
+      castShadow={false}
       position={[0, FIELD.y, 0]}
       rotation={[-Math.PI / 2, 0, 0]}
     />

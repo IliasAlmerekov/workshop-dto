@@ -314,6 +314,64 @@ a {
     infinite;
 }
 
+/* The no-WebGL stack's answer to the live scene's commit surge.
+   Same shape, same 510ms: the boundaries throw apart and tilt, then settle back
+   onto a fraction of the opening while the route changes. `--fan` is the layer's
+   signed distance from the stack's centre, so the outer two travel furthest and
+   the four fan rather than slide. */
+@keyframes hero-stack-fan {
+  0% {
+    transform: translateY(0) rotate(0deg);
+  }
+  17% {
+    transform: translateY(calc(var(--fan) * -13px))
+      rotate(calc(var(--fan) * 0.7deg));
+  }
+  100% {
+    transform: translateY(calc(var(--fan) * -4px)) rotate(0deg);
+  }
+}
+
+/* The inscription being re-pressed. The two strings never overlap: the role name
+   is gone before the declaration arrives, so the face is briefly bare and the
+   swap reads as the block being stamped again rather than as two labels
+   dissolving through one another. */
+@keyframes hero-stack-role-out {
+  0%,
+  10% {
+    opacity: 1;
+  }
+  40%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes hero-stack-declaration-in {
+  0%,
+  46% {
+    opacity: 0;
+  }
+  78%,
+  100% {
+    opacity: 1;
+  }
+}
+
+.hero-stack-fan {
+  animation: hero-stack-fan 510ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.hero-stack-role--replaced {
+  animation: hero-stack-role-out 510ms linear both;
+}
+
+.hero-stack-declaration {
+  animation: hero-stack-declaration-in 510ms linear both;
+}
+
 .hero-track-preview--committed {
   animation: hero-track-commit 1050ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
@@ -325,6 +383,9 @@ a {
 @media (prefers-reduced-motion: reduce) {
   .hero-track-preview--committed,
   .hero-exercise-reveal--active,
+  .hero-stack-fan,
+  .hero-stack-role--replaced,
+  .hero-stack-declaration,
   .hero-glass-loader-layer,
   .hero-glass-loader-sheen,
   .hero-glass-loader-pulse {
@@ -334,6 +395,12 @@ a {
   .hero-glass-loader-layer {
     opacity: 0.82;
     transform: translateX(-50%);
+  }
+
+  /* Without the keyframes' own fill there is nothing holding the replaced role
+     name hidden, and the slab would carry both inscriptions at once. */
+  .hero-stack-role--replaced {
+    opacity: 0;
   }
 }
 

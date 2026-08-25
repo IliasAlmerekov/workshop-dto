@@ -27,6 +27,7 @@ const quality: SceneQuality = {
   dpr: [1, 1.5],
   transmissionResolutionScale: 1,
   environmentResolution: 512,
+  shadowMapSize: 2048,
 };
 
 describe("DtoLayerStackCanvas", () => {

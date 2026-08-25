@@ -1,7 +1,9 @@
+"use client";
+
 import { KnowledgeCheck } from "./KnowledgeCheck";
 import { EntityDtoComparisonPanel } from "./EntityDtoComparisonPanel";
 import { FlowDiagram } from "./FlowDiagram";
-import { BOUNDARY_USE_CASES } from "@/lib/workshop/boundaries";
+import { useMessages } from "@/lib/i18n";
 
 const REPO_URL = "https://github.com/IliasAlmerekov/workshop-dto";
 
@@ -26,26 +28,29 @@ const MODEL_SOLUTION_LINKS = [
  * live comparison never render while a task is still unfinished.
  */
 export function CompletionScreen() {
+  const messages = useMessages();
+
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-12 px-8 py-16">
       <div className="text-center">
-        <p className="text-4xl font-bold">All four exercises complete 🎉</p>
+        <p className="text-4xl font-bold">{messages.completion.heading}</p>
         <p className="mx-auto mt-3 max-w-md text-[var(--muted)]">
-          You defined typed DTOs, wrote explicit mappers, isolated a foreign API
-          contract, and produced a safe public response.
+          {messages.completion.body}
         </p>
       </div>
 
       <section className="flex flex-col gap-4">
-        <h2 className="text-xl font-bold">Quick knowledge check</h2>
+        <h2 className="text-xl font-bold">{messages.completion.quizHeading}</h2>
         <KnowledgeCheck />
       </section>
 
       <section className="flex flex-col gap-4">
-        <h2 className="text-xl font-bold">Before and after, one more time</h2>
+        <h2 className="text-xl font-bold">
+          {messages.completion.beforeAfterHeading}
+        </h2>
         <EntityDtoComparisonPanel />
         <FlowDiagram
-          title="The safe data flow you just built"
+          title={messages.completion.flowTitle}
           steps={[
             { label: "User entity" },
             { label: "UserResponseMapper", tone: "safe" },
@@ -53,15 +58,17 @@ export function CompletionScreen() {
             { label: "Serializer" },
             { label: "Client" },
           ]}
-          note="The mapper is the only place that knows about both shapes."
+          note={messages.completion.flowNote}
           noteTone="safe"
         />
       </section>
 
       <section className="flex flex-col gap-4">
-        <h2 className="text-xl font-bold">What each exercise protected</h2>
+        <h2 className="text-xl font-bold">
+          {messages.completion.protectedHeading}
+        </h2>
         <ol className="flex flex-col gap-2">
-          {BOUNDARY_USE_CASES.map((boundary, index) => (
+          {messages.boundaries.map((boundary, index) => (
             <li
               key={boundary.title}
               className="flex gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3 text-sm"
@@ -79,7 +86,7 @@ export function CompletionScreen() {
 
       <section className="flex flex-col gap-3 border-t border-[var(--border)] pt-8">
         <h2 className="text-sm font-semibold tracking-[0.1em] text-[var(--muted)] uppercase">
-          Repository and model solutions
+          {messages.completion.repositoryHeading}
         </h2>
         <div className="flex flex-wrap gap-3">
           <a
@@ -88,7 +95,7 @@ export function CompletionScreen() {
             rel="noopener noreferrer"
             className="rounded-lg border border-[var(--border)] px-4 py-2 text-sm font-semibold text-[var(--accent)]"
           >
-            View the repository
+            {messages.completion.viewRepository}
           </a>
           {MODEL_SOLUTION_LINKS.map((link) => (
             <a

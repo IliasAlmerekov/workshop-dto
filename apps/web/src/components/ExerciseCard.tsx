@@ -6,6 +6,7 @@ import type { TaskProgress, Language } from "@/lib/workshop/types";
 import { fileExtension } from "@/lib/workshop/fileExtension";
 import { starterCode } from "@/lib/workshop/starterCode";
 import { useWorkshop } from "@/lib/workshop/WorkshopContext";
+import { useMessages } from "@/lib/i18n";
 import { CodeEditor } from "./CodeEditor";
 
 type ExerciseCardProps = {
@@ -57,22 +58,24 @@ export function ExerciseCard({ task, progress, language }: ExerciseCardProps) {
   // track's starter code without writing it to storage. That keeps an
   // untouched task pristine across language switches, and lets a deliberately
   // emptied editor stay empty instead of snapping the template back.
+  const messages = useMessages();
+  const copy = messages.tasks[task.id];
   const editorValue = progress.touched
     ? progress.draft
     : starterCode(task.id, language);
 
   return (
-    <section className="flex flex-col gap-6 px-8 py-8">
+    <section className="workshop-gutter flex flex-col gap-26 py-30">
       <div>
         <p className="text-xs font-semibold tracking-[0.12em] text-[var(--accent)] uppercase">
-          Exercise {String(task.order).padStart(2, "0")}
+          {messages.exercise.eyebrow(String(task.order).padStart(2, "0"))}
         </p>
         <h1 className="mt-3 text-[2.75rem] leading-[1.05] font-bold tracking-tight">
-          {task.title}
+          {copy.title}
         </h1>
-        <p className="mt-2 text-lg text-[var(--muted)]">{task.question}</p>
+        <p className="mt-2 text-lg text-[var(--muted)]">{copy.question}</p>
         <p className="mt-4 max-w-xl text-sm leading-relaxed text-[var(--muted)]">
-          {task.description}
+          {copy.description}
         </p>
       </div>
 
@@ -84,16 +87,15 @@ export function ExerciseCard({ task, progress, language }: ExerciseCardProps) {
           <ClipboardIcon />
         </span>
         <div>
-          <p className="text-sm font-semibold">Your task</p>
+          <p className="text-sm font-semibold">{messages.exercise.yourTask}</p>
           <p className="mt-1 text-sm text-[var(--muted)]">
-            Complete{" "}
             <code className="font-mono text-[var(--accent)]">
               {task.fileName}
             </code>{" "}
-            with the following fields:
+            {messages.exercise.completeWith(task.fileName)}
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
-            {task.fields.map((field) => (
+            {copy.fields.map((field) => (
               <span
                 key={field}
                 className="rounded-md border border-[var(--border)] bg-[var(--surface)] px-2.5 py-1.5 font-mono text-xs text-[var(--accent)]"
@@ -107,7 +109,7 @@ export function ExerciseCard({ task, progress, language }: ExerciseCardProps) {
 
       <CodeEditor
         id={`draft-${task.id}`}
-        label={`Your solution for ${task.title}`}
+        label={messages.exercise.editorLabel(copy.title)}
         fileName={`${task.fileName}.${fileExtension(language)}`}
         language={language}
         value={editorValue}
@@ -132,7 +134,7 @@ export function ExerciseCard({ task, progress, language }: ExerciseCardProps) {
           >
             <path d="M8 5.5v13l11-6.5-11-6.5Z" />
           </svg>
-          Check solution
+          {messages.exercise.checkSolution}
         </button>
         <button
           type="button"
@@ -154,7 +156,7 @@ export function ExerciseCard({ task, progress, language }: ExerciseCardProps) {
               strokeLinejoin="round"
             />
           </svg>
-          Show hint
+          {messages.exercise.showHint}
         </button>
         <button
           type="button"
@@ -162,15 +164,14 @@ export function ExerciseCard({ task, progress, language }: ExerciseCardProps) {
           onClick={() => completeTask(task.id)}
           className="ml-auto flex items-center gap-2 rounded-lg bg-[var(--accent-solid)] px-5 py-3 text-sm font-semibold text-[var(--accent-foreground)] disabled:cursor-not-allowed disabled:bg-[var(--border)] disabled:text-[var(--muted)]"
         >
-          Continue
+          {messages.exercise.continue}
           <span aria-hidden="true">→</span>
         </button>
       </div>
 
       {showHint && (
         <p className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3 text-xs text-[var(--muted)]">
-          Progressive hints for this exercise unlock once task validation ships
-          in a future update.
+          {messages.previewCard.hintsLater}
         </p>
       )}
 
@@ -197,9 +198,7 @@ export function ExerciseCard({ task, progress, language }: ExerciseCardProps) {
           />
           <circle cx="12" cy="8" r="1" fill="currentColor" />
         </svg>
-        {checked
-          ? "Preview build: any draft is accepted. Continue to the next exercise."
-          : "Check solution to preview the flow — real validation ships in a future update."}
+        {checked ? messages.previewCard.accepted : messages.previewCard.prompt}
       </p>
     </section>
   );
